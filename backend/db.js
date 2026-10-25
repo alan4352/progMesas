@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
-import { RUTAS, BACKEND } from './config.js';
+import { RUTAS, BACKEND, AUTH_MODO } from './config.js';
 import { hashContrasena } from './lib/contrasenas.js';
 
 const db = new Database(RUTAS.db);
@@ -115,7 +115,7 @@ db.exec(`
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT NOT NULL UNIQUE COLLATE NOCASE,
         password_hash TEXT NOT NULL,
-        rol TEXT NOT NULL CHECK (rol IN ('teacher', 'advisor', 'student')),
+        rol TEXT NOT NULL CHECK (rol IN ('teacher', 'advisor', 'viewer', 'student')),
         nombre TEXT NOT NULL,
         docente TEXT DEFAULT '',
         activo INTEGER NOT NULL DEFAULT 1,
@@ -123,9 +123,31 @@ db.exec(`
     )
 `);
 
-// Primera vez: crear las cuentas de prueba que antes estaban escritas en auth.js (ahora con contraseña hasheada)
+// Bases creadas con la versión anterior no aceptaban el rol "viewer": se reconstruye la tabla
+const sqlUsuarios = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'usuarios'").get()?.sql || '';
+if (!sqlUsuarios.includes("'viewer'")) {
+    db.transaction(() => {
+        db.exec(`
+            CREATE TABLE usuarios_nueva (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                rol TEXT NOT NULL CHECK (rol IN ('teacher', 'advisor', 'viewer', 'student')),
+                nombre TEXT NOT NULL,
+                docente TEXT DEFAULT '',
+                activo INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL
+            );
+            INSERT INTO usuarios_nueva SELECT id, email, password_hash, rol, nombre, docente, activo, created_at FROM usuarios;
+            DROP TABLE usuarios;
+            ALTER TABLE usuarios_nueva RENAME TO usuarios;
+        `);
+    })();
+}
+
+// Cuentas de prueba (sólo en AUTH_MODO=prueba; en producción los usuarios vienen del sistema principal)
 const { usuarios } = db.prepare('SELECT COUNT(*) AS usuarios FROM usuarios').get();
-if (usuarios === 0) {
+if (usuarios === 0 && AUTH_MODO === 'prueba') {
     const crear = db.prepare(
         'INSERT INTO usuarios (email, password_hash, rol, nombre, docente, created_at) VALUES (?, ?, ?, ?, ?, ?)'
     );
@@ -137,8 +159,7 @@ if (usuarios === 0) {
     })();
     console.warn(
         '[DB] Se crearon las cuentas de prueba (prof@test.com, asesor@test.com, alumno@test.com).\n' +
-        '     Antes de usar el sistema de verdad, creá las cuentas reales y desactivá estas:\n' +
-        '     node scripts/usuarios.js ayuda'
+        '     Sirven sólo para probar: en producción los usuarios vienen del sistema principal (AUTH_MODO=externo).'
     );
 }
 

@@ -4,6 +4,9 @@
 const $ = (id) => document.getElementById(id);
 
 let datos = { anio: null, asignaciones: [], sinAsignacion: [], estado: {} };
+let vinculos = { usuarios: [], sinCuenta: [] };
+let usuario = null;
+let esAsesora = false;   // los roles de consulta (preceptor, directivo) ven todo pero no modifican
 let pendientes = [];
 let limiteCursos = 8;
 let limiteDocentes = 10;
@@ -29,7 +32,10 @@ function botonMas(cantidad, accion, texto) {
 async function cargar() {
     const anio = $('anioDashboard').value;
     try {
-        datos = await api(`/cobertura?anio=${encodeURIComponent(anio)}`);
+        [datos, vinculos] = await Promise.all([
+            api(`/cobertura?anio=${encodeURIComponent(anio)}`),
+            api('/docentes/vinculos')
+        ]);
     } catch (err) {
         showToast(err.message, 'danger');
         return;
@@ -43,12 +49,18 @@ async function cargar() {
     actualizarFiltrosFaltantes();
     renderFaltantes();
     renderUltimos();
+    renderVinculos();
 }
 
 // ================= ESTADO DEL SISTEMA =================
 
 function renderEstadoSistema() {
     const avisos = [];
+    const porConfirmar = vinculos.usuarios.filter((u) => u.estado === 'pendiente').length;
+    if (porConfirmar) {
+        avisos.push(`Hay <b>${porConfirmar}</b> docente(s) esperando que confirmes su nombre. ` +
+            'Están en la sección <b>Cuentas de docentes</b>, más abajo.');
+    }
     const drive = datos.estado?.drive;
     if (drive && !drive.disponible) {
         avisos.push(`<b>Google Drive no está disponible:</b> ${esc(drive.error || 'sin conexión')}. ` +
@@ -99,7 +111,7 @@ function renderNotificaciones() {
     }
 
     // Programas que no corresponden a ninguna asignación (cargados con la versión anterior)
-    if (datos.sinAsignacion.length) {
+    if (datos.sinAsignacion.length && esAsesora) {
         const opcionesAsignaciones = (curso) => {
             const cc = curso.replace(/[^0-9A-Za-z]/g, '').toUpperCase();
             const delCurso = datos.asignaciones.filter((a) => a.curso.replace(/[^0-9A-Za-z]/g, '').toUpperCase() === cc);
@@ -302,6 +314,102 @@ function renderUltimos() {
     }).join('');
 }
 
+// ================= CUENTAS DE DOCENTES =================
+
+const ESTADOS = {
+    pendiente: 'Esperando confirmación',
+    sin_vincular: 'Entró pero no eligió su nombre',
+    confirmado: 'Vinculado'
+};
+
+function fechaCorta(iso) {
+    return iso ? new Date(iso).toLocaleDateString('es-AR') : '-';
+}
+
+function campoNombre(u, valor) {
+    return `<input class="form-control campo-docente" list="listaDocentesLibres" data-usuario="${esc(u.usuarioId)}"
+        value="${esc(valor || '')}" placeholder="Nombre en la lista…" aria-label="Nombre en la lista de docentes">`;
+}
+
+function filaCuenta(u) {
+    const quien = `<b>${esc(u.nombre || u.usuarioId)}</b>${u.email ? ` <small>${esc(u.email)}</small>` : ''}`;
+    let detalle = '';
+    let acciones = '';
+
+    if (u.estado === 'pendiente') {
+        detalle = `Eligió <b>${esc(u.docente)}</b> (${u.asignaciones} materia(s)) el ${fechaCorta(u.solicitado)}`;
+        acciones = esAsesora ? `${campoNombre(u, u.docente)}
+            <button type="button" class="btn-ver" data-accion="confirmar-docente" data-usuario="${esc(u.usuarioId)}">✓ Confirmar</button>
+            <button type="button" class="btn-delete" data-accion="desvincular-docente" data-usuario="${esc(u.usuarioId)}">Rechazar</button>` : '';
+    } else if (u.estado === 'sin_vincular') {
+        detalle = `Último ingreso: ${fechaCorta(u.ultimoAcceso)}`;
+        acciones = esAsesora ? `${campoNombre(u, '')}
+            <button type="button" class="btn-ver" data-accion="confirmar-docente" data-usuario="${esc(u.usuarioId)}">Asignar</button>` : '';
+    } else {
+        const alerta = u.asignaciones === 0
+            ? ' <span class="marca-revisar" title="El nombre ya no aparece en data/asignaciones.xlsx">sin materias</span>' : '';
+        detalle = `<b>${esc(u.docente)}</b> — ${u.asignaciones} materia(s)${alerta} · confirmado por ${esc(u.confirmadoPor || '-')}`;
+        acciones = esAsesora ? `${campoNombre(u, u.docente)}
+            <button type="button" class="btn-secondary-auth btn-chico" data-accion="confirmar-docente" data-usuario="${esc(u.usuarioId)}">Cambiar</button>
+            <button type="button" class="btn-delete" data-accion="desvincular-docente" data-usuario="${esc(u.usuarioId)}" data-confirmar="si">Desvincular</button>` : '';
+    }
+
+    return `<div class="fila-cuenta">
+        <div class="fila-cuenta-info">${quien}<br><small>${detalle}</small></div>
+        ${acciones ? `<div class="fila-cuenta-acciones">${acciones}</div>` : ''}
+    </div>`;
+}
+
+function renderVinculos() {
+    const grupos = ['pendiente', 'sin_vincular', 'confirmado'].map((estado) => ({
+        estado,
+        lista: vinculos.usuarios.filter((u) => u.estado === estado)
+    }));
+
+    $('listaDocentesLibres').innerHTML = vinculos.sinCuenta
+        .map((d) => `<option value="${esc(d.docente)}"></option>`).join('');
+
+    let html = grupos.map(({ estado, lista }) => `
+        <h3 class="subtitulo">${ESTADOS[estado]} (${lista.length})</h3>
+        ${lista.length ? lista.map(filaCuenta).join('') : '<p class="texto-suave">Ninguno.</p>'}`).join('');
+
+    html += `<details class="sub-collapsible">
+        <summary><span>Docentes de la lista que todavía no tienen cuenta</span>
+            <span class="coverage-badge coverage-mid badge-chico">${vinculos.sinCuenta.length}</span></summary>
+        <div class="bloque-contenido lista-columnas">
+            ${vinculos.sinCuenta.map((d) => `<span>${esc(d.docente)} <small>(${d.asignaciones})</small></span>`).join('')}
+        </div>
+    </details>`;
+
+    $('panelDocentes').innerHTML = html;
+    $('resumenCuentas').textContent =
+        `${grupos[2].lista.length} vinculados · ${grupos[0].lista.length} por confirmar`;
+}
+
+async function confirmarDocente(usuarioId) {
+    const campo = document.querySelector(`input.campo-docente[data-usuario="${CSS.escape(usuarioId)}"]`);
+    const docente = campo?.value.trim();
+    if (!docente) return showToast('Escribí el nombre tal como figura en la lista', 'danger');
+    try {
+        await api(`/docentes/vinculos/${encodeURIComponent(usuarioId)}/confirmar`, { method: 'POST', json: { docente } });
+        showToast(`Cuenta vinculada con ${docente}`, 'success');
+        cargar();
+    } catch (err) {
+        showToast(err.message, 'danger');
+    }
+}
+
+async function desvincularDocente(usuarioId, preguntar) {
+    if (preguntar && !confirm('¿Desvincular esta cuenta? El docente no va a poder cargar programas hasta que se vuelva a vincular.')) return;
+    try {
+        await api(`/docentes/vinculos/${encodeURIComponent(usuarioId)}`, { method: 'DELETE' });
+        showToast('Listo', 'success');
+        cargar();
+    } catch (err) {
+        showToast(err.message, 'danger');
+    }
+}
+
 // ================= INICIO =================
 
 function conectarEventos() {
@@ -320,19 +428,21 @@ function conectarEventos() {
             case 'mas-docentes': limiteDocentes += 10; renderDocentes(); break;
             case 'mas-faltantes': limiteFaltantes += 5; renderFaltantes(); break;
             case 'vincular': vincular(b.dataset.id); break;
+            case 'confirmar-docente': confirmarDocente(b.dataset.usuario); break;
+            case 'desvincular-docente': desvincularDocente(b.dataset.usuario, b.dataset.confirmar === 'si'); break;
         }
     });
 }
 
 async function init() {
-    const sesion = sesionActual();
-    if (!sesion || sesion.role !== 'advisor') {
-        if (!sessionStorage.getItem('aviso')) {
-            sessionStorage.setItem('aviso', 'Para entrar al dashboard tenés que iniciar sesión como asesora.');
-        }
+    usuario = await cargarIdentidad();
+    if (!usuario || !['advisor', 'viewer'].includes(usuario.role)) {
+        guardarAviso('Para entrar al dashboard tenés que ingresar como asesora, preceptor o directivo.');
         location.href = '/';
         return;
     }
+    esAsesora = usuario.role === 'advisor';
+    if (!esAsesora) $('tituloDashboard').textContent = 'Dashboard de programas';
     mostrarAvisoPendiente();
 
     let anio = new Date().getFullYear();

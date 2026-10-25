@@ -9,7 +9,8 @@ Los docentes cargan el PDF de cada materia que dictan, los alumnos lo consultan 
 |---|---|
 | **Visitante / alumno** | Ver y buscar todos los programas cargados (por materia, curso, año o docente) y abrir el PDF en el visor. |
 | **Docente** | Subir el programa de sus materias (sólo las asignadas a su nombre) y reemplazarlo por una versión nueva. |
-| **Asesora** | Subir para cualquier materia, eliminar programas y usar el dashboard de control. |
+| **Asesora** | Subir para cualquier materia, eliminar programas, confirmar las cuentas de docentes y usar el dashboard de control. |
+| **Consulta** (preceptor, directivo) | Ver el dashboard sin modificar nada. |
 
 **Dashboard de asesoría**
 
@@ -21,6 +22,9 @@ Los docentes cargan el PDF de cada materia que dictan, los alumnos lo consultan 
 
 ## Cómo funciona
 
+- **Integrado a un sistema más grande** — los usuarios y el inicio de sesión vienen del sistema principal
+  (token firmado). Mientras tanto se puede usar un login de prueba (`AUTH_MODO=prueba`).
+- **Vinculación de docentes** — la primera vez que entra, cada docente elige su nombre en la lista oficial y la asesora lo confirma.
 - **Lista oficial de asignaciones** — `backend/data/asignaciones.xlsx` indica qué programa tiene que entregar cada curso
   (curso + materia + docentes). Se genera a partir de las planillas de horarios y la asesoría la puede editar con Excel:
   el servidor la relee al guardarla.
@@ -68,15 +72,13 @@ node scripts/autorizar_drive.js
 # Importar las planillas de horarios (una hoja por curso) → backend/data/asignaciones.xlsx
 node scripts/importar_horarios.js "Horarios_T.Mañana.xlsx" "Horarios_T.Tarde.xlsx"
 
-# Cuentas
+# Cuentas de prueba (sólo con AUTH_MODO=prueba)
 node scripts/usuarios.js listar
-node scripts/usuarios.js crear docente@escuela.edu.ar teacher "Nombre Apellido" "Apellido Nombre en el Excel"
-node scripts/usuarios.js crear asesora@escuela.edu.ar advisor "Nombre Apellido"
-node scripts/usuarios.js desactivar prof@test.com
+node scripts/usuarios.js crear docente@test.com teacher "Nombre Apellido"
 ```
 
-La primera vez se crean cuentas de prueba (`prof@test.com`, `asesor@test.com`, `alumno@test.com`).
-Desactivalas antes de usar el sistema en la escuela. Más detalles en [LEEME.md](LEEME.md).
+Con `AUTH_MODO=prueba` se crean cuentas de prueba (`prof@test.com`, `asesor@test.com`, `alumno@test.com`).
+En la escuela se usa `AUTH_MODO=externo`. Más detalles en [LEEME.md](LEEME.md).
 
 ## Estructura
 
@@ -87,7 +89,8 @@ Desactivalas antes de usar el sistema en la escuela. Más detalles en [LEEME.md]
     ├── server.js            API y servidor de archivos
     ├── config.js            Configuración (.env)
     ├── db.js                Base SQLite y migraciones
-    ├── auth.js, usuarios.js Login y cuentas
+    ├── auth.js              Identidad del usuario (sistema principal o login de prueba)
+    ├── docentes.js          Vinculación cuenta ↔ nombre en la lista oficial
     ├── asignaciones.js      Lectura de la lista oficial
     ├── store.js             Programas cargados
     ├── drive.js             Google Drive
@@ -99,8 +102,8 @@ Desactivalas antes de usar el sistema en la escuela. Más detalles en [LEEME.md]
 
 ## Seguridad
 
-- Contraseñas guardadas con scrypt y límite de intentos de inicio de sesión.
-- El servidor no arranca sin un `JWT_SECRET` propio.
+- El token del sistema principal se verifica con su firma; en modo prueba, contraseñas con scrypt y límite de intentos.
+- Un docente sólo puede cargar programas de sus materias, y sólo después de que la asesora confirme su cuenta.
 - Sólo se aceptan PDF válidos (hasta 10 MB por defecto).
 - Todo el contenido cargado por usuarios se escapa antes de mostrarse, con una política CSP que bloquea scripts externos.
 - Las credenciales (`.env`, `oauth.json`, `token.json`, `clave.json`) están excluidas del repositorio.

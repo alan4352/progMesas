@@ -12,7 +12,8 @@
     <header>
         <h1>Programas de Examen</h1>
         <div class="header-actions">
-            <button id="btnToggleLogin" type="button" class="btn-secondary-auth">🔐 Acceso docentes</button>
+            <button id="btnToggleLogin" type="button" class="btn-secondary-auth hidden">🔐 Acceso docentes (prueba)</button>
+            <a id="btnIngresarExterno" class="btn-secondary-auth hidden" href="#">🔐 Ingresar</a>
             <a id="btnDashboard" class="btn-primary-custom hidden" href="/frontend/dashboard.html">Dashboard Asesora</a>
             <button id="btnLogout" type="button" class="btn-secondary-auth hidden">Cerrar sesión</button>
         </div>
@@ -48,6 +49,26 @@
             <div class="visor-container">
                 <iframe id="visorPDF" title="Visor de programa de examen"></iframe>
             </div>
+        </section>
+
+        <!-- VINCULACIÓN DEL DOCENTE CON SU NOMBRE EN LA LISTA OFICIAL -->
+        <section id="zonaVinculo" class="section-box hidden">
+            <h3>Elegí tu nombre en la lista de docentes</h3>
+            <div id="vinculoPendiente" class="aviso hidden"></div>
+            <form id="formVinculo">
+                <p class="texto-suave">Para cargar programas, ProgMesas necesita saber cuál de los docentes de los horarios sos vos.
+                    La asesora confirma la elección antes de habilitar la carga.</p>
+                <div class="form-grid">
+                    <div class="col-ancha">
+                        <label class="form-label" for="nombreDocente">Tu nombre como figura en los horarios</label>
+                        <input id="nombreDocente" class="form-control" list="listaNombres" autocomplete="off"
+                               placeholder="Escribí tu apellido…" required>
+                        <datalist id="listaNombres"></datalist>
+                    </div>
+                </div>
+                <button type="submit" class="btn-ingresar">Enviar</button>
+            </form>
+            <button type="button" id="btnCambiarNombre" class="btn-secondary-auth btn-chico hidden">Elegir otro nombre</button>
         </section>
 
         <!-- SUBIDA -->

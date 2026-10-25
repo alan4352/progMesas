@@ -18,7 +18,53 @@ for (const archivo of [path.join(RAIZ, '.env'), path.join(BACKEND, '.env')]) {
 // Secreto publicado en versiones anteriores del código: no se acepta.
 const SECRETOS_INVALIDOS = new Set(['progmesas_super_secret_jwt_key_2026_x89a!', 'tu_clave_secreta_jwt_aqui']);
 
+// ================= IDENTIDAD =================
+// prueba  → login propio de ProgMesas con las cuentas de la base (para desarrollo)
+// externo → el usuario llega autenticado desde el sistema principal con un token firmado
+export const AUTH_MODO = (process.env.AUTH_MODO || 'prueba').trim().toLowerCase();
+if (!['prueba', 'externo'].includes(AUTH_MODO)) {
+    console.error(`[Config] AUTH_MODO inválido: "${AUTH_MODO}" (usá "prueba" o "externo")`);
+    process.exit(1);
+}
+
+const lista = (valor, defecto) =>
+    String(valor ?? defecto)
+        .split(',')
+        .map((x) => x.trim().toLowerCase())
+        .filter(Boolean);
+
+export const EXTERNO = {
+    // Verificación del token: secreto compartido (HS256) o archivo con la clave pública (RS256)
+    secreto: process.env.EXTERNO_JWT_SECRET || '',
+    clavePublica: process.env.EXTERNO_JWT_CLAVE_PUBLICA
+        ? fs.readFileSync(path.resolve(RAIZ, process.env.EXTERNO_JWT_CLAVE_PUBLICA), 'utf-8')
+        : '',
+    // Nombre de los datos dentro del token
+    claimId: process.env.EXTERNO_CLAIM_ID || 'sub',
+    claimNombre: process.env.EXTERNO_CLAIM_NOMBRE || 'name',
+    claimRol: process.env.EXTERNO_CLAIM_ROL || 'role',
+    claimEmail: process.env.EXTERNO_CLAIM_EMAIL || 'email',
+    // Si el sistema principal deja el token en una cookie del mismo dominio
+    cookie: process.env.EXTERNO_COOKIE || '',
+    // Página de inicio de sesión del sistema principal (el botón "Ingresar" lleva ahí)
+    loginUrl: process.env.EXTERNO_LOGIN_URL || ''
+};
+
+// Cómo se llaman los roles en el sistema principal → rol interno de ProgMesas
+export const ROLES = {
+    teacher: lista(process.env.ROL_DOCENTE, 'docente,teacher,profesor'),
+    advisor: lista(process.env.ROL_ASESORA, 'asesora,asesor,advisor'),
+    viewer: lista(process.env.ROL_CONSULTA, 'preceptor,preceptora,directivo,director,directora'),
+    student: lista(process.env.ROL_ALUMNO, 'alumno,alumna,student,estudiante')
+};
+
+if (AUTH_MODO === 'externo' && !EXTERNO.secreto && !EXTERNO.clavePublica) {
+    console.error('[Config] Con AUTH_MODO=externo hay que configurar EXTERNO_JWT_SECRET o EXTERNO_JWT_CLAVE_PUBLICA');
+    process.exit(1);
+}
+
 function leerSecreto() {
+    if (AUTH_MODO !== 'prueba') return '';
     const secreto = process.env.JWT_SECRET || '';
     if (!secreto || secreto.length < 32 || SECRETOS_INVALIDOS.has(secreto)) {
         console.error(

@@ -730,6 +730,30 @@ details.sub-collapsible summary {
 
 select optgroup { font-weight: 700; }
 
+/* Cuentas de docentes (dashboard) */
+.fila-cuenta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 0.6rem;
+}
+.fila-cuenta-info { flex: 1 1 280px; line-height: 1.5; }
+.fila-cuenta-info small { opacity: 0.85; }
+.fila-cuenta-acciones { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.campo-docente { height: 38px; width: 240px; font-size: 0.9rem; }
+.lista-columnas { columns: 3 220px; column-gap: 1.5rem; }
+.lista-columnas span { display: block; padding: 2px 0; break-inside: avoid; }
+.resumen-summary { font-family: 'Inter', sans-serif; font-weight: normal; font-size: 0.85rem; opacity: 0.8; margin-left: auto; margin-right: 1rem; }
+
+@media (max-width: 768px) {
+    .campo-docente { width: 100%; }
+}
+
 /* ================= RESPONSIVE ================= */
 @media (max-width: 768px) {
     header {

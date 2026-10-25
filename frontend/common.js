@@ -27,35 +27,18 @@ function compararCursos(a, b) {
 }
 
 // ================= SESIÓN =================
+// El token puede llegar de dos formas:
+//   - desde el sistema principal, en la dirección:  /?token=...  (se guarda y se quita de la barra)
+//   - del login de prueba de ProgMesas
+// Si el sistema principal usa una cookie, no hay token guardado y el servidor la lee solo.
+// Quién es el usuario lo responde siempre el servidor (/api/yo): el navegador no interpreta el token.
 
-function leerPayload(token) {
+function leerToken() {
     try {
-        const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-        const json = decodeURIComponent(
-            atob(base64).split('').map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
-        );
-        return JSON.parse(json);
+        return localStorage.getItem('token');
     } catch {
         return null;
     }
-}
-
-/** Devuelve el usuario de la sesión o null. Si el token venció lo borra. */
-function sesionActual() {
-    let token = null;
-    try {
-        token = localStorage.getItem('token');
-    } catch {
-        return null;
-    }
-    if (!token) return null;
-    const payload = leerPayload(token);
-    if (!payload || (payload.exp && payload.exp * 1000 < Date.now())) {
-        cerrarSesion();
-        sessionStorage.setItem('aviso', 'Tu sesión venció. Volvé a iniciar sesión.');
-        return null;
-    }
-    return { ...payload, token };
 }
 
 function guardarSesion(token) {
@@ -74,14 +57,52 @@ function cerrarSesion() {
     }
 }
 
+function guardarAviso(mensaje) {
+    try {
+        sessionStorage.setItem('aviso', mensaje);
+    } catch {
+        /* nada */
+    }
+}
+
+/** Toma el token que manda el sistema principal en la dirección y lo saca de la barra. */
+function tomarTokenDeLaUrl() {
+    const url = new URL(location.href);
+    const token = url.searchParams.get('token');
+    if (!token) return;
+    guardarSesion(token);
+    url.searchParams.delete('token');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+}
+
+/** Pregunta al servidor quién es el usuario. Devuelve null si es un visitante. */
+async function cargarIdentidad() {
+    tomarTokenDeLaUrl();
+    const teniaToken = Boolean(leerToken());
+    let yo;
+    try {
+        yo = await api('/yo');
+    } catch {
+        return null;
+    }
+    if (!yo.autenticado) {
+        if (teniaToken) {
+            cerrarSesion();
+            showToast('Tu sesión venció. Volvé a ingresar.', 'warning', 6000);
+        }
+        return null;
+    }
+    return yo;
+}
+
 /**
  * fetch con el token y manejo de errores uniforme.
  * Lanza Error con el mensaje del servidor si la respuesta no es OK.
  */
 async function api(ruta, opciones = {}) {
-    const sesion = sesionActual();
+    const token = leerToken();
     const headers = { ...(opciones.headers || {}) };
-    if (sesion) headers.Authorization = 'Bearer ' + sesion.token;
+    if (token) headers.Authorization = 'Bearer ' + token;
     if (opciones.json !== undefined) {
         headers['Content-Type'] = 'application/json';
         opciones.body = JSON.stringify(opciones.json);
@@ -89,15 +110,15 @@ async function api(ruta, opciones = {}) {
 
     let res;
     try {
-        res = await fetch(API + ruta, { ...opciones, headers });
+        res = await fetch(API + ruta, { ...opciones, headers, credentials: 'same-origin' });
     } catch {
         throw new Error('No se pudo conectar con el servidor');
     }
 
     const datos = await res.json().catch(() => ({}));
-    if (res.status === 401 && sesion) {
+    if (res.status === 401 && ruta !== '/login') {
         cerrarSesion();
-        sessionStorage.setItem('aviso', datos.error || 'Tu sesión venció. Volvé a iniciar sesión.');
+        guardarAviso(datos.error || 'Tu sesión venció. Volvé a ingresar.');
         location.reload();
         throw new Error(datos.error || 'Sesión vencida');
     }
@@ -127,9 +148,12 @@ function showToast(mensaje, tipo = 'info', duracion = 4000) {
 
 /** Muestra un aviso guardado antes de recargar la página (por ejemplo, sesión vencida). */
 function mostrarAvisoPendiente() {
-    const aviso = sessionStorage.getItem('aviso');
-    if (aviso) {
+    let aviso = null;
+    try {
+        aviso = sessionStorage.getItem('aviso');
         sessionStorage.removeItem('aviso');
-        showToast(aviso, 'warning', 6000);
+    } catch {
+        /* nada */
     }
+    if (aviso) showToast(aviso, 'warning', 6000);
 }

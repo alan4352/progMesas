@@ -10,7 +10,7 @@
 <body>
 
     <header>
-        <h1>Dashboard Asesora</h1>
+        <h1 id="tituloDashboard">Dashboard Asesora</h1>
         <div class="header-actions">
             <label class="selector-anio" for="anioDashboard">Año
                 <select id="anioDashboard" class="form-select select-chico"></select>
@@ -63,6 +63,16 @@
                 </div>
                 <button type="button" id="btnExportar" class="btn-secondary-auth btn-chico">⬇ Descargar pendientes (CSV)</button>
                 <div id="faltantes"></div>
+            </div>
+        </details>
+
+        <details open class="collapsible-box">
+            <summary>Cuentas de docentes <small id="resumenCuentas" class="resumen-summary"></small></summary>
+            <div class="collapsible-content">
+                <p class="texto-suave">Cada docente elige su nombre de la lista de horarios la primera vez que entra.
+                    Hasta que lo confirmes no puede cargar programas.</p>
+                <datalist id="listaDocentesLibres"></datalist>
+                <div id="panelDocentes"></div>
             </div>
         </details>
 

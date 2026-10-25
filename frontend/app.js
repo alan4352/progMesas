@@ -1,8 +1,8 @@
-// Página principal: listado público de programas, login y subida.
+// Página principal: listado público de programas, ingreso, vinculación del docente y subida.
 
 let programas = [];
-let usuario = null;          // null = visitante / alumno
-let config = { anioLectivo: new Date().getFullYear(), maxPdfMb: 10 };
+let usuario = null;          // null = visitante; si no, lo que devuelve /api/yo
+let config = { anioLectivo: new Date().getFullYear(), maxPdfMb: 10, authModo: 'prueba', loginUrl: null };
 let asignaciones = [];       // las que el usuario puede cargar
 
 const $ = (id) => document.getElementById(id);
@@ -13,23 +13,82 @@ function mostrar(el, visible) {
 
 // ================= INTERFAZ SEGÚN EL ROL =================
 
+function docenteVinculado() {
+    return usuario?.role === 'teacher' && usuario.vinculo?.estado === 'confirmado';
+}
+
 function aplicarRol() {
     const logueado = Boolean(usuario);
-    const puedeSubir = usuario?.role === 'teacher' || usuario?.role === 'advisor';
+    const esDocente = usuario?.role === 'teacher';
+    const puedeSubir = usuario?.role === 'advisor' || docenteVinculado();
 
-    mostrar($('btnToggleLogin'), !logueado);
+    // Ingreso: login propio en modo prueba; en modo externo se va al sistema principal
+    mostrar($('btnToggleLogin'), !logueado && config.authModo === 'prueba');
+    const ingresar = $('btnIngresarExterno');
+    if (config.loginUrl) ingresar.href = config.loginUrl;
+    mostrar(ingresar, !logueado && config.authModo === 'externo' && Boolean(config.loginUrl));
+
     mostrar($('btnLogout'), logueado);
-    mostrar($('btnDashboard'), usuario?.role === 'advisor');
+    mostrar($('btnDashboard'), usuario?.role === 'advisor' || usuario?.role === 'viewer');
     mostrar($('zonaSubida'), puedeSubir);
+    mostrar($('zonaVinculo'), esDocente && !docenteVinculado());
     if (logueado) mostrar($('zonaLogin'), false);
+    if (esDocente && !docenteVinculado()) mostrarEstadoVinculo();
 
     const banner = $('bannerDocente');
-    if (usuario?.role === 'teacher') {
-        banner.innerHTML = `🧑‍🏫 <b>Mis programas:</b> sesión iniciada como <u>${esc(usuario.name)}</u>. ` +
+    if (esDocente) {
+        const como = usuario.vinculo?.estado === 'confirmado' ? ` (<b>${esc(usuario.vinculo.docente)}</b>)` : '';
+        banner.innerHTML = `🧑‍🏫 <b>Mis programas:</b> sesión iniciada como <u>${esc(usuario.nombre)}</u>${como}. ` +
             'Acá se muestran sólo los programas de tus materias.';
         mostrar(banner, true);
     } else {
         mostrar(banner, false);
+    }
+}
+
+// ================= VINCULACIÓN DEL DOCENTE =================
+
+function mostrarEstadoVinculo(forzarFormulario = false) {
+    const v = usuario.vinculo;
+    const pendiente = v?.estado === 'pendiente' && !forzarFormulario;
+    const aviso = $('vinculoPendiente');
+    if (pendiente) {
+        aviso.innerHTML = `Elegiste <b>${esc(v.docente)}</b>. La asesora tiene que confirmarlo; ` +
+            'cuando lo haga vas a poder cargar tus programas desde esta página.';
+    }
+    mostrar(aviso, pendiente);
+    mostrar($('formVinculo'), !pendiente);
+    mostrar($('btnCambiarNombre'), pendiente);
+    if (!pendiente) cargarNombres();
+}
+
+let nombresCargados = false;
+async function cargarNombres() {
+    if (nombresCargados) return;
+    try {
+        const nombres = await api('/docentes/nombres');
+        $('listaNombres').innerHTML = nombres
+            .filter((n) => n.disponible)
+            .map((n) => `<option value="${esc(n.nombre)}"></option>`)
+            .join('');
+        nombresCargados = true;
+    } catch (err) {
+        showToast(err.message, 'danger');
+    }
+}
+
+async function enviarVinculo(evento) {
+    evento.preventDefault();
+    const docente = $('nombreDocente').value.trim();
+    if (!docente) return;
+    try {
+        const r = await api('/docentes/vinculo', { method: 'POST', json: { docente } });
+        usuario.vinculo = r.vinculo;
+        $('nombreDocente').value = '';
+        showToast('Listo. Queda pendiente de confirmación de la asesora.', 'success');
+        aplicarRol();
+    } catch (err) {
+        showToast(err.message, 'danger');
     }
 }
 
@@ -42,7 +101,7 @@ async function login(evento) {
     try {
         const datos = await api('/login', { method: 'POST', json: { email, password } });
         guardarSesion(datos.token);
-        usuario = sesionActual();
+        usuario = await cargarIdentidad();
         $('password').value = '';
         showToast('¡Sesión iniciada!', 'success');
         aplicarRol();
@@ -54,7 +113,8 @@ async function login(evento) {
 
 function logout() {
     cerrarSesion();
-    location.reload();
+    if (config.authModo === 'externo' && config.loginUrl) location.href = config.loginUrl;
+    else location.reload();
 }
 
 // ================= LISTADO =================
@@ -192,7 +252,7 @@ async function eliminarPrograma(id) {
 // ================= SUBIDA =================
 
 async function cargarAsignaciones() {
-    if (!(usuario?.role === 'teacher' || usuario?.role === 'advisor')) return;
+    if (!(usuario?.role === 'advisor' || docenteVinculado())) return;
     const anio = Number($('anio').value) || config.anioLectivo;
     let datos;
     try {
@@ -206,8 +266,8 @@ async function cargarAsignaciones() {
     const aviso = $('avisoSinAsignaciones');
     if (asignaciones.length === 0) {
         aviso.innerHTML = usuario.role === 'teacher'
-            ? `Tu cuenta no tiene materias asociadas${datos.docente ? ` (figurás como <b>${esc(datos.docente)}</b>)` : ''}. ` +
-              'Pedile a la asesora que revise cómo está escrito tu nombre en la lista de asignaciones.'
+            ? `No hay materias asignadas a <b>${esc(datos.docente)}</b> en la lista oficial. ` +
+              'Pedile a la asesora que revise la lista de asignaciones o el nombre vinculado a tu cuenta.'
             : 'No hay asignaciones cargadas. Generá el archivo con el importador de horarios.';
         mostrar(aviso, true);
         mostrar($('formSubida'), false);
@@ -297,6 +357,8 @@ function conectarEventos() {
         if (!zona.classList.contains('hidden')) $('email').focus();
     });
     $('btnLogout').addEventListener('click', logout);
+    $('formVinculo').addEventListener('submit', enviarVinculo);
+    $('btnCambiarNombre').addEventListener('click', () => mostrarEstadoVinculo(true));
     $('formLogin').addEventListener('submit', login);
     $('btnVerPassword').addEventListener('click', () => {
         const input = $('password');
@@ -330,7 +392,7 @@ async function init() {
     $('anio').value = config.anioLectivo;
     $('maxPdf').textContent = `(máximo ${config.maxPdfMb} MB)`;
 
-    usuario = sesionActual();
+    usuario = await cargarIdentidad();
     aplicarRol();
     await Promise.all([cargarProgramas(), cargarAsignaciones()]);
 }

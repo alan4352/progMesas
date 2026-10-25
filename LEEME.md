@@ -28,20 +28,27 @@ Se puede editar con Excel: el servidor lo relee al guardarlo. Las filas en amari
 son docentes del contraturno que el importador ubicó por cercanía o materias sin docente.
 Para que una materia no cuente como pendiente, poné `NO` en *Requiere programa*.
 
-## Cuentas
+## Usuarios e ingreso
 
-Las cuentas están en la base de datos con contraseña cifrada. La primera vez se crean las de prueba
-(`prof@test.com`, `asesor@test.com`, `alumno@test.com`, con las mismas contraseñas de antes).
+ProgMesas forma parte de un sistema más grande: **los usuarios y el inicio de sesión vienen del sistema principal**.
+Todo lo relacionado está en un solo archivo, `backend/auth.js`, y se configura en el `.env` con `AUTH_MODO`:
 
-```
-node scripts/usuarios.js listar
-node scripts/usuarios.js crear ana@escuela.edu.ar advisor "Ana Pérez"
-node scripts/usuarios.js crear lfernandez@escuela.edu.ar teacher "Lucrecia Fernández" "Fernandez Lucrecia"
-node scripts/usuarios.js desactivar prof@test.com
-```
+- `AUTH_MODO=prueba` (por defecto): login propio con cuentas de prueba (`prof@test.com` / `prof123`,
+  `asesor@test.com` / `asesor123`, `alumno@test.com` / `alumno123`). Para crear más: `node scripts/usuarios.js ayuda`.
+- `AUTH_MODO=externo`: el usuario llega con un token firmado (JWT) del sistema principal, en el link (`/?token=...`),
+  en el encabezado `Authorization` o en una cookie. En `.env.example` están los datos a completar
+  (clave para verificar el token, nombre de los campos y nombres de los roles).
 
-Para un docente, el último dato es su nombre **tal como figura en la columna Docentes** del Excel
-(si aparece escrito de dos formas, separalas con `;`). Así el sistema sabe qué materias puede cargar.
+Roles: **docente** (carga sus programas), **asesora** (todo), **consulta** (preceptor/directivo: ve el dashboard sin modificar nada)
+y **alumno** (ve los programas).
+
+### Vinculación de docentes
+
+El sistema principal identifica a cada docente con un usuario único, pero no sabe qué materias dicta. Por eso:
+
+1. La primera vez que un docente entra, elige su nombre tal como figura en `asignaciones.xlsx`.
+2. La asesora lo confirma en el dashboard (sección **Cuentas de docentes**). Recién ahí el docente puede cargar programas.
+3. La asesora también puede asignar, corregir o desvincular nombres desde esa sección.
 
 ## Google Drive
 

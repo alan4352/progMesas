@@ -87,3 +87,21 @@ export function buscarAsignacionPara(curso, materia) {
     const mc = claveCompacta(normalizarMateria(materia));
     return todasLasAsignaciones().find((a) => a.cursoClave === cc && claveCompacta(a.materia) === mc) || null;
 }
+
+/** Nombres de docentes que figuran en la lista oficial (sin repetir, ordenados). */
+export function listaDocentes() {
+    const nombres = new Map();
+    for (const a of todasLasAsignaciones()) {
+        for (const d of a.docentes) {
+            const k = claveTexto(d);
+            if (!nombres.has(k)) nombres.set(k, d);
+        }
+    }
+    return [...nombres.values()].sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+/** Devuelve el nombre tal como figura en la lista oficial, o null si no existe. */
+export function docenteOficial(nombre) {
+    const k = claveTexto(nombre);
+    return listaDocentes().find((d) => claveTexto(d) === k) || null;
+}

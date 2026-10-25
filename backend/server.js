@@ -2,16 +2,18 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 
-import { PORT, ANIO_LECTIVO, CORS_ORIGENES, MAX_PDF_MB, RUTAS } from './config.js';
+import { PORT, ANIO_LECTIVO, CORS_ORIGENES, MAX_PDF_MB, RUTAS, AUTH_MODO, EXTERNO } from './config.js';
 import { login, auth, authOpcional, rol } from './auth.js';
-import { buscarPorEmail } from './usuarios.js';
+import {
+    registrarAcceso, vinculoDe, docenteConfirmado, solicitarVinculo, confirmarVinculo, desvincular, resumenVinculos
+} from './docentes.js';
 import {
     getProgramas, getPrograma, programaDeAsignacion, programasSinAsignacion,
     agregarPrograma, reemplazarPrograma, vincularAsignacion, eliminarPrograma
 } from './store.js';
 import {
     todasLasAsignaciones, asignacionesRequeridas, asignacionPorId, asignacionesDeDocente,
-    docenteDictaAsignacion, buscarAsignacionPara, estadoAsignaciones
+    docenteDictaAsignacion, buscarAsignacionPara, estadoAsignaciones, listaDocentes
 } from './asignaciones.js';
 import { guardarPdf, eliminarPdf } from './almacenamiento.js';
 import { estadoDrive, verificarDrive } from './drive.js';
@@ -76,10 +78,9 @@ function esPdfValido(buffer) {
 
 // ================= HELPERS =================
 
-/** Datos frescos del usuario (por si la asesora le cambió el docente asociado). */
-function usuarioActual(req) {
-    const u = req.user ? buscarPorEmail(req.user.email) : null;
-    return u && u.activo ? u : null;
+/** Vínculo del docente en formato para el frontend. */
+function vinculoPublico(v) {
+    return v ? { docente: v.docente, estado: v.estado } : null;
 }
 
 /** Quita datos internos antes de mandar un programa a quien no es asesora. */
@@ -111,13 +112,48 @@ function anioValido(valor) {
 app.post('/api/login', login);
 
 app.get('/api/config', (req, res) => {
-    res.json({ anioLectivo: ANIO_LECTIVO, maxPdfMb: MAX_PDF_MB });
+    res.json({ anioLectivo: ANIO_LECTIVO, maxPdfMb: MAX_PDF_MB, authModo: AUTH_MODO, loginUrl: EXTERNO.loginUrl || null });
 });
 
-app.get('/api/yo', auth, (req, res) => {
-    const u = usuarioActual(req);
-    if (!u) return res.status(401).json({ error: 'La cuenta no existe o está desactivada' });
-    res.json({ email: u.email, role: u.rol, name: u.nombre, docente: u.docente });
+// Quién es el usuario actual. Los docentes quedan registrados para que la asesora pueda vincularlos.
+app.get('/api/yo', authOpcional, (req, res) => {
+    if (!req.user) return res.json({ autenticado: false });
+    const { id, nombre, email, role } = req.user;
+    const vinculo = role === 'teacher' ? registrarAcceso(req.user) : null;
+    res.json({ autenticado: true, id, nombre, email, role, vinculo: vinculoPublico(vinculo) });
+});
+
+// ================= VINCULACIÓN DOCENTE ↔ LISTA OFICIAL =================
+
+// Nombres disponibles para que el docente elija el suyo
+app.get('/api/docentes/nombres', auth, rol('teacher', 'advisor'), (req, res) => {
+    const tomados = new Set(
+        resumenVinculos().usuarios
+            .filter((u) => u.estado === 'confirmado' && u.usuarioId !== req.user.id)
+            .map((u) => u.docente)
+    );
+    res.json(listaDocentes().map((d) => ({ nombre: d, disponible: !tomados.has(d) })));
+});
+
+// El docente elige su nombre (queda pendiente de confirmación)
+app.post('/api/docentes/vinculo', auth, rol('teacher'), (req, res) => {
+    const v = solicitarVinculo(req.user, req.body?.docente);
+    res.json({ ok: true, vinculo: vinculoPublico(v) });
+});
+
+app.get('/api/docentes/vinculos', auth, rol('advisor', 'viewer'), (req, res) => {
+    res.json(resumenVinculos());
+});
+
+// La asesora confirma (opcionalmente con otro nombre) o corrige el vínculo
+app.post('/api/docentes/vinculos/:usuarioId/confirmar', auth, rol('advisor'), (req, res) => {
+    const v = confirmarVinculo(req.params.usuarioId, req.body?.docente, req.user);
+    res.json({ ok: true, vinculo: vinculoPublico(v) });
+});
+
+app.delete('/api/docentes/vinculos/:usuarioId', auth, rol('advisor'), (req, res) => {
+    desvincular(req.params.usuarioId);
+    res.json({ ok: true });
 });
 
 // Lista de programas: los docentes ven los de sus materias; el resto ve todos.
@@ -126,9 +162,10 @@ app.get('/api/programas', authOpcional, (req, res) => {
     const esAsesora = req.user?.role === 'advisor';
 
     if (req.user?.role === 'teacher') {
-        const u = usuarioActual(req);
-        const ids = new Set(asignacionesDeDocente(u?.docente).map((a) => a.id));
-        const propios = programas.filter((p) => ids.has(p.asignacion_id) || p.uploaded_by === req.user.email);
+        const ids = new Set(asignacionesDeDocente(docenteConfirmado(req.user.id)).map((a) => a.id));
+        const propios = programas.filter(
+            (p) => ids.has(p.asignacion_id) || p.uploaded_by === req.user.id || (req.user.email && p.uploaded_by === req.user.email)
+        );
         return res.json(propios.map((p) => programaPublico(p, false)));
     }
 
@@ -138,10 +175,10 @@ app.get('/api/programas', authOpcional, (req, res) => {
 // Asignaciones para el formulario de subida: las del docente, o todas si es la asesora.
 app.get('/api/asignaciones/mias', auth, rol('teacher', 'advisor'), (req, res) => {
     const anio = anioValido(req.query.anio) || ANIO_LECTIVO;
-    const u = usuarioActual(req);
-    if (!u) return res.status(401).json({ error: 'La cuenta no existe o está desactivada' });
+    const esAsesora = req.user.role === 'advisor';
+    const docente = esAsesora ? '' : docenteConfirmado(req.user.id);
 
-    const lista = u.rol === 'advisor' ? todasLasAsignaciones() : asignacionesDeDocente(u.docente);
+    const lista = esAsesora ? todasLasAsignaciones() : asignacionesDeDocente(docente);
     const cargados = new Map();
     for (const p of getProgramas()) {
         if (p.year === anio && p.asignacion_id && !cargados.has(p.asignacion_id)) cargados.set(p.asignacion_id, p);
@@ -149,7 +186,8 @@ app.get('/api/asignaciones/mias', auth, rol('teacher', 'advisor'), (req, res) =>
 
     res.json({
         anio,
-        docente: u.docente,
+        docente,
+        vinculo: esAsesora ? null : vinculoPublico(vinculoDe(req.user.id)),
         asignaciones: lista.map((a) => {
             const p = cargados.get(a.id);
             return {
@@ -166,8 +204,11 @@ app.get('/api/asignaciones/mias', auth, rol('teacher', 'advisor'), (req, res) =>
 });
 
 app.post('/api/programas/subir', auth, rol('teacher', 'advisor'), upload.single('pdf'), async (req, res) => {
-    const u = usuarioActual(req);
-    if (!u) return res.status(401).json({ error: 'La cuenta no existe o está desactivada' });
+    const esAsesora = req.user.role === 'advisor';
+    const docente = esAsesora ? '' : docenteConfirmado(req.user.id);
+    if (!esAsesora && !docente) {
+        return res.status(403).json({ error: 'Tu cuenta todavía no está vinculada con tu nombre en la lista de docentes' });
+    }
 
     const asignacion = asignacionPorId(req.body?.asignacion_id);
     const anio = anioValido(req.body?.anio);
@@ -177,13 +218,13 @@ app.post('/api/programas/subir', auth, rol('teacher', 'advisor'), upload.single(
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo PDF' });
     if (!esPdfValido(req.file.buffer)) return res.status(400).json({ error: 'El archivo no es un PDF válido' });
 
-    if (u.rol === 'teacher' && !docenteDictaAsignacion(u.docente, asignacion)) {
+    if (!esAsesora && !docenteDictaAsignacion(docente, asignacion)) {
         return res.status(403).json({ error: 'Esa materia no figura entre tus asignaciones' });
     }
 
     const titulo = String(req.body.titulo || '').trim().slice(0, 150) ||
         `Programa de ${asignacion.materia} - ${asignacion.curso} - ${anio}`;
-    const profesor = u.rol === 'teacher' ? (u.docente.split(';')[0].trim() || u.nombre) : asignacion.docentes.join(' / ') || u.nombre;
+    const profesor = esAsesora ? asignacion.docentes.join(' / ') || req.user.nombre : docente;
 
     const archivo = await guardarPdf(req.file.buffer, {
         anio,
@@ -198,7 +239,7 @@ app.post('/api/programas/subir', auth, rol('teacher', 'advisor'), upload.single(
         year: anio,
         curso: asignacion.curso,
         profesor,
-        uploaded_by: u.email,
+        uploaded_by: req.user.id,
         asignacion_id: asignacion.id,
         ...archivo
     };
@@ -272,7 +313,7 @@ function calcularCobertura(anio) {
     return { anio, asignaciones, sinAsignacion };
 }
 
-app.get('/api/cobertura', auth, rol('advisor'), (req, res) => {
+app.get('/api/cobertura', auth, rol('advisor', 'viewer'), (req, res) => {
     const anio = anioValido(req.query.anio) || ANIO_LECTIVO;
     res.json({
         ...calcularCobertura(anio),
@@ -281,7 +322,7 @@ app.get('/api/cobertura', auth, rol('advisor'), (req, res) => {
 });
 
 // Compatibilidad con la versión anterior del dashboard
-app.get('/api/programas/faltantes', auth, rol('advisor'), (req, res) => {
+app.get('/api/programas/faltantes', auth, rol('advisor', 'viewer'), (req, res) => {
     const anio = anioValido(req.query.anio) || ANIO_LECTIVO;
     const { asignaciones } = calcularCobertura(anio);
     res.json(
