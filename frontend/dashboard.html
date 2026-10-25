@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Asesora - ProgMesas</title>
+    <link rel="stylesheet" href="/frontend/styles.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>Dashboard Asesora</h1>
+        <div class="header-actions">
+            <label class="selector-anio" for="anioDashboard">Año
+                <select id="anioDashboard" class="form-select select-chico"></select>
+            </label>
+            <a class="btn-secondary-auth" href="/">← Volver a inicio</a>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <div id="toast-container" aria-live="polite"></div>
+
+        <div id="estadoSistema"></div>
+
+        <section class="section-box">
+            <h2>Cobertura general</h2>
+            <div id="dashboardResumen" class="dashboard-grid"></div>
+        </section>
+
+        <details open class="collapsible-box">
+            <summary>Notificaciones y alertas</summary>
+            <div class="collapsible-content">
+                <div id="notificaciones"></div>
+            </div>
+        </details>
+
+        <details open class="collapsible-box">
+            <summary>Estado por curso</summary>
+            <div class="collapsible-content">
+                <div id="estadoCursos"></div>
+            </div>
+        </details>
+
+        <details class="collapsible-box">
+            <summary>Estado por docente</summary>
+            <div class="collapsible-content">
+                <input id="busquedaDocente" class="form-control campo-busqueda" placeholder="Buscar docente…" aria-label="Buscar docente">
+                <div id="estadoProfesores"></div>
+            </div>
+        </details>
+
+        <details open class="collapsible-box">
+            <summary>Programas pendientes</summary>
+            <div class="collapsible-content">
+                <div class="filtros">
+                    <input id="busquedaFaltantes" class="form-control" placeholder="Buscar por docente, materia o curso…" aria-label="Buscar pendientes">
+                    <select id="filtroProfesorFaltantes" class="form-select" aria-label="Docente"></select>
+                    <select id="filtroMateriaFaltantes" class="form-select" aria-label="Materia"></select>
+                    <select id="filtroCursoFaltantes" class="form-select" aria-label="Curso"></select>
+                </div>
+                <button type="button" id="btnExportar" class="btn-secondary-auth btn-chico">⬇ Descargar pendientes (CSV)</button>
+                <div id="faltantes"></div>
+            </div>
+        </details>
+
+        <details open class="collapsible-box">
+            <summary>Últimos programas cargados</summary>
+            <div class="collapsible-content">
+                <div id="ultimosProgramas"></div>
+            </div>
+        </details>
+
+    </div>
+
+    <script src="/frontend/common.js"></script>
+    <script src="/frontend/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "progmesas",
+  "version": "1.0.0",
+  "description": "Sistema de Gestión de Programas de Examen",
+  "main": "backend/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node backend/server.js"
+  }
+}

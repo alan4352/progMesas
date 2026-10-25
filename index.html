@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programas de Examen</title>
+    <link rel="stylesheet" href="/frontend/styles.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>Programas de Examen</h1>
+        <div class="header-actions">
+            <button id="btnToggleLogin" type="button" class="btn-secondary-auth">🔐 Acceso docentes</button>
+            <a id="btnDashboard" class="btn-primary-custom hidden" href="/frontend/dashboard.html">Dashboard Asesora</a>
+            <button id="btnLogout" type="button" class="btn-secondary-auth hidden">Cerrar sesión</button>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <div id="toast-container" aria-live="polite"></div>
+
+        <!-- LOGIN -->
+        <div id="zonaLogin" class="auth-container hidden">
+            <form id="formLogin" class="auth-form">
+                <h2>Iniciar sesión</h2>
+                <div class="input-group">
+                    <label class="form-label" for="email">Correo electrónico</label>
+                    <input id="email" type="email" class="form-control" autocomplete="username" required>
+                </div>
+                <div class="input-group">
+                    <label class="form-label" for="password">Contraseña</label>
+                    <input id="password" type="password" class="form-control has-toggle" autocomplete="current-password" required>
+                    <button type="button" id="btnVerPassword" class="toggle-password-btn" title="Ver u ocultar contraseña" aria-label="Ver u ocultar contraseña">👁️</button>
+                </div>
+                <button type="submit" class="btn-ingresar">Ingresar</button>
+            </form>
+        </div>
+
+        <!-- VISOR PDF -->
+        <section id="seccionVisor" class="section-box hidden">
+            <div class="visor-header">
+                <h2 id="tituloVisor" class="titulo-visor">Visualización de programa</h2>
+                <button type="button" id="btnCerrarVisor" class="btn-secondary-auth btn-chico">✕ Cerrar visor</button>
+            </div>
+            <div class="visor-container">
+                <iframe id="visorPDF" title="Visor de programa de examen"></iframe>
+            </div>
+        </section>
+
+        <!-- SUBIDA -->
+        <section id="zonaSubida" class="section-box hidden">
+            <h3>Subir programa de examen</h3>
+            <div id="avisoSinAsignaciones" class="aviso hidden"></div>
+            <form id="formSubida">
+                <div class="form-grid">
+                    <div class="col-ancha">
+                        <label class="form-label" for="asignacion">Curso y materia</label>
+                        <select id="asignacion" class="form-select" required></select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="anio">Año lectivo</label>
+                        <input id="anio" type="number" min="2000" max="2100" class="form-control" required>
+                    </div>
+                </div>
+                <p id="infoAsignacion" class="info-asignacion"></p>
+                <div class="form-grid">
+                    <div class="col-ancha">
+                        <label class="form-label" for="titulo">Título (opcional)</label>
+                        <input id="titulo" class="form-control" maxlength="150" placeholder="Se completa solo si lo dejás vacío">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="form-label" for="pdf">Archivo PDF del programa <small id="maxPdf"></small></label>
+                    <input type="file" id="pdf" accept="application/pdf,.pdf" class="form-control" required>
+                </div>
+                <button type="submit" id="btnSubir" class="btn-ingresar">Guardar programa</button>
+            </form>
+        </section>
+
+        <!-- FILTROS -->
+        <section class="filtros" aria-label="Filtros">
+            <input id="busqueda" class="form-control" placeholder="Buscar por título, materia, curso o docente…" aria-label="Buscar">
+            <select id="filtroMateria" class="form-select" aria-label="Materia"></select>
+            <select id="filtroCurso" class="form-select" aria-label="Curso"></select>
+            <select id="filtroAnio" class="form-select" aria-label="Año"></select>
+        </section>
+
+        <div id="bannerDocente" class="banner-docente hidden"></div>
+
+        <section id="lista" aria-live="polite"></section>
+
+    </div>
+
+    <script src="/frontend/common.js"></script>
+    <script src="/frontend/app.js"></script>
+</body>
+</html>

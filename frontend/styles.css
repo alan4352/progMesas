@@ -1,0 +1,795 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@600;700;800&display=swap');
+
+/*
+ * Estilos unificados para todas las páginas del sistema ProgMesas
+ * Respetando los colores e identidad institucional
+ */
+:root {
+    --color-primary: #7a0000;
+    --color-secondary: beige;
+    --color-accent: #9d0000;
+    --color-success: #2e7d32;
+    --color-warning: #f57c00;
+    --color-info: #0288d1;
+}
+
+html { 
+    scroll-behavior: smooth; 
+    font-size: 16px; 
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--color-primary);
+    color: var(--color-secondary);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ================= ENCABEZADO Y NAVEGACIÓN ================= */
+header {
+    background-color: rgba(0, 0, 0, 0.25);
+    border-bottom: 2px solid var(--color-accent);
+    padding: 1.2rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+header h1 {
+    margin: 0;
+    font-family: "Montserrat", sans-serif;
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    color: var(--color-secondary);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+/* ================= CONTENEDOR PRINCIPAL ================= */
+.container {
+    width: 92%;
+    max-width: 1100px;
+    margin: 2rem auto;
+    flex: 1;
+}
+
+h1, h2, h3 {
+    color: var(--color-secondary);
+    font-family: "Montserrat", sans-serif;
+    font-weight: bold;
+    text-align: left;
+}
+
+h2 {
+    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 0.5rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+/* ================= CONTENEDORES Y TARJETAS SECCIONES ================= */
+.auth-container { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 1rem; 
+    width: 100%; 
+}
+
+.auth-form, .section-box {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 1.5rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.auth-form {
+    max-width: 450px;
+    margin: 1.5rem auto;
+}
+
+/* ================= SECCIONES CONTRAÍBLES (ACCORDION / DETAILS) ================= */
+details.collapsible-box {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+details.collapsible-box summary {
+    padding: 1.2rem 1.6rem;
+    font-family: "Montserrat", sans-serif;
+    font-weight: bold;
+    font-size: 1.25rem;
+    color: var(--color-secondary);
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.2);
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+}
+
+details.collapsible-box summary::-webkit-details-marker {
+    display: none;
+}
+
+details.collapsible-box summary::after {
+    content: "▼";
+    font-size: 0.85rem;
+    transition: transform 0.3s ease;
+    opacity: 0.8;
+}
+
+details.collapsible-box[open] summary::after {
+    transform: rotate(180deg);
+}
+
+details.collapsible-box .collapsible-content {
+    padding: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* SUB-CONTRAÍBLES (GRUPOS POR PARTE / CURSO) */
+details.sub-collapsible {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 0.8rem;
+    overflow: hidden;
+}
+
+details.sub-collapsible summary {
+    padding: 0.9rem 1.2rem;
+    font-size: 1.05rem;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.btn-load-more {
+    display: block;
+    width: 100%;
+    margin: 1rem 0 0.5rem 0;
+    padding: 10px 15px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: "Montserrat", sans-serif;
+    font-weight: bold;
+    transition: all 0.25s ease;
+}
+
+.btn-load-more:hover {
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
+}
+
+/* ================= FORMULARIOS E INPUTS ================= */
+.form-label {
+    color: var(--color-secondary);
+    font-weight: 600;
+    text-align: left;
+    display: block;
+    width: 100%;
+    margin-bottom: 0.35rem;
+    font-size: 0.95rem;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 1.2rem;
+    width: 100%;
+}
+
+.form-control {
+    width: 100%;
+    border: 2px solid var(--color-primary);
+    border-radius: 8px;
+    height: 45px;
+    font-size: 1rem;
+    padding: 0 12px;
+    transition: all 0.3s ease;
+    background: var(--color-secondary);
+    color: var(--color-primary);
+    font-weight: 500;
+}
+
+.form-control.has-toggle {
+    padding-right: 48px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 8px rgba(255, 242, 204, 0.6);
+    background: #fff;
+}
+
+.form-select {
+    width: 100%;
+    border: 2px solid var(--color-primary);
+    border-radius: 8px;
+    height: 45px;
+    font-size: 1rem;
+    padding: 0 12px;
+    transition: box-shadow 0.3s ease;
+    background: var(--color-secondary);
+    color: var(--color-primary);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 8px rgba(255, 242, 204, 0.6);
+    background: #fff;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    line-height: 1;
+    color: var(--color-primary);
+    font-size: 1.25rem;
+}
+
+.toggle-password-btn:focus { 
+    outline: 2px solid rgba(255,255,255,0.2); 
+    border-radius: 6px; 
+}
+
+/* ================= BOTONES ================= */
+.btn-ingresar, .btn-primary-custom {
+    background-color: var(--color-secondary);
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-transform: uppercase;
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.btn-ingresar:hover, .btn-primary-custom:hover { 
+    background-color: #fff2cc; 
+    transform: scale(1.03); 
+    color: var(--color-primary);
+}
+
+.btn-secondary-auth {
+    background: transparent;
+    color: var(--color-secondary);
+    border: 2px solid var(--color-secondary);
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.btn-secondary-auth:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border-color: #fff;
+}
+
+.btn-danger-custom {
+    background-color: #b91c1c;
+    color: white;
+    border: 1px solid #dc2626;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-danger-custom:hover {
+    background-color: #991b1b;
+    transform: scale(1.02);
+}
+
+/* ================= BOTONES VER PDF Y ELIMINAR ================= */
+.btn-ver {
+    background-color: var(--color-secondary);
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    user-select: none;
+}
+
+.btn-ver:hover {
+    background-color: #fff2cc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+    color: var(--color-primary);
+}
+
+.btn-delete {
+    background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%);
+    color: #ffffff;
+    border: 1px solid #ef4444;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    user-select: none;
+}
+
+.btn-delete:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.45);
+}
+
+/* ================= VISOR DE PDF ================= */
+.visor-container {
+    width: 100%;
+    height: 520px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    margin-bottom: 2rem;
+}
+
+#visorPDF {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #ffffff;
+}
+
+/* ================= FILTROS Y SUBIDA ================= */
+.filtros {
+    display: flex;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+}
+
+.filtros .form-control, .filtros .form-select {
+    flex: 1;
+    min-width: 180px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+}
+
+/* ================= TARJETAS DE PROGRAMA ================= */
+.year-title {
+    background: var(--color-accent);
+    color: var(--color-secondary);
+    padding: 10px 18px;
+    border-radius: 8px;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-family: "Montserrat", sans-serif;
+    font-size: 1.3rem;
+    font-weight: bold;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 1.2rem 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.card:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.card-info {
+    color: var(--color-secondary);
+    line-height: 1.6;
+}
+
+.card-info b {
+    font-size: 1.1rem;
+    color: #fff;
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.card-info small {
+    opacity: 0.85;
+}
+
+.card-actions {
+    display: flex;
+    gap: 0.6rem;
+}
+
+/* ================= DASHBOARD GRID Y METRICAS DE COBERTURA ================= */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.dash-card {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 1.5rem;
+    border-radius: 12px;
+    color: var(--color-secondary);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.dash-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    text-align: center;
+    opacity: 0.9;
+}
+
+.dash-card p {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0;
+    color: #fff;
+    font-family: "Montserrat", sans-serif;
+}
+
+.coverage-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-top: 0.4rem;
+}
+.coverage-high { background: #14532d; color: #4ade80; border: 1px solid #22c55e; }
+.coverage-mid { background: #7c2d12; color: #fdba74; border: 1px solid #f97316; }
+.coverage-low { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; }
+
+.curso-box, .prof-box {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-secondary);
+    padding: 1.2rem 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.curso-box h3, .prof-box h3 {
+    margin: 0 0 0.4rem 0;
+    font-size: 1.1rem;
+}
+
+.barra {
+    width: 100%;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.barra-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-success) 0%, #4ade80 100%);
+    border-radius: 10px;
+    transition: width 0.4s ease;
+}
+
+/* ================= TABLAS ================= */
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.custom-table th, .custom-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.custom-table th {
+    background-color: var(--color-accent);
+    color: var(--color-secondary);
+    font-family: "Montserrat", sans-serif;
+    font-weight: bold;
+}
+
+.custom-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ================= ALERTAS Y TOASTS ================= */
+.alert-custom {
+    background-color: var(--color-secondary);
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+    font-weight: bold;
+    margin-top: 15px;
+    text-align: center;
+    width: 100%;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.alert-custom.alert-success {
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.alert-custom.alert-danger {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 380px;
+}
+
+.toast {
+    background: var(--color-secondary);
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    animation: slideIn 0.3s forwards ease-out;
+}
+
+.toast.toast-success {
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.toast.toast-danger {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ================= UTILIDADES (reemplazan los estilos inline) ================= */
+.hidden { display: none !important; }
+
+.visor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.titulo-visor { margin: 0; padding: 0; border: none; font-size: 1.3rem; }
+
+.btn-chico { padding: 6px 14px; font-size: 0.85rem; }
+
+.col-ancha { grid-column: span 2; }
+
+.aviso, .alert-box {
+    background: rgba(245, 124, 0, 0.15);
+    border-left: 4px solid var(--color-warning);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 0.8rem;
+    color: var(--color-secondary);
+    line-height: 1.5;
+}
+
+.alert-box { background: rgba(0, 0, 0, 0.2); border-left-color: #fca5a5; }
+
+.aviso code, .texto-suave code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.info-asignacion { margin: -0.4rem 0 1rem; min-height: 1.2em; line-height: 1.5; }
+.texto-aviso { color: #fdba74; }
+.texto-suave { opacity: 0.85; }
+.subtitulo { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+
+.banner-docente {
+    background: rgba(255, 255, 255, 0.08);
+    border-left: 4px solid var(--color-accent);
+    padding: 12px 18px;
+    border-radius: 8px;
+    margin-bottom: 1.2rem;
+}
+
+.bloque-anio { margin-top: 1.2rem; }
+.bloque-contenido { padding: 0.8rem 1rem; }
+.badge-chico { font-size: 0.8rem; padding: 2px 8px; margin-top: 0; }
+
+.fila-titulo { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.fila-titulo small { opacity: 0.7; font-weight: normal; font-size: 0.85rem; }
+
+.numero-pendiente { color: #fca5a5 !important; }
+
+.fila-vincular { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.fila-vincular span { flex: 1 1 260px; }
+
+.select-chico { height: 38px; width: auto; min-width: 140px; font-size: 0.9rem; }
+.fila-vincular .select-chico { flex: 1 1 220px; }
+
+.selector-anio { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600; }
+
+.campo-busqueda { margin-bottom: 1rem; }
+
+.marca-revisar {
+    font-size: 0.7rem;
+    background: #7c2d12;
+    color: #fdba74;
+    border-radius: 4px;
+    padding: 1px 6px;
+    vertical-align: middle;
+    cursor: help;
+}
+
+.toast.toast-warning { border-color: var(--color-warning); color: #8a4300; }
+
+select optgroup { font-weight: 700; }
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    body { 
+        padding: 0; 
+    }
+
+    .container {
+        padding: 10px;
+        margin: 1rem auto;
+    }
+
+    .card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .card-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .visor-container {
+        height: 380px;
+    }
+
+    .col-ancha {
+        grid-column: auto;
+    }
+
+    .custom-table th, .custom-table td {
+        padding: 8px;
+    }
+
+    .filtros {
+        flex-direction: column;
+    }
+
+    .filtros .form-control, .filtros .form-select {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    h1, h2, h3 { 
+        font-size: 1.4rem; 
+    }
+
+    .auth-form {
+        padding: 1.2rem;
+    }
+
+    .btn-ingresar, .btn-primary-custom { 
+        padding: 8px 12px; 
+        font-size: 0.9rem; 
+    }
+}
