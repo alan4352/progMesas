@@ -1,0 +1,38 @@
+# Despliegue del sistema completo (servidor Node) en Render, conectado a este repositorio.
+# Render vuelve a desplegar solo en cada push a main.
+#
+# Cómo usarlo: render.com → New → Blueprint → elegir alan4352/progMesas → Apply.
+#
+# Importante sobre los datos:
+#   - En el plan gratis el disco se borra en cada despliegue o reinicio: la base y los PDF
+#     guardados localmente vuelven a como están en el repositorio. Sirve para mostrar el sistema.
+#   - Para guardar datos de verdad: plan "starter" + el disco de abajo (descomentar), o
+#     conectar Google Drive para los PDF.
+
+services:
+  - type: web
+    name: progmesas
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: cd backend && npm ci
+    startCommand: node backend/server.js
+    healthCheckPath: /api/config
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AUTH_MODO
+        value: prueba
+      - key: ANIO_LECTIVO
+        value: "2026"
+      # Con disco persistente:
+      # - key: DATOS_DIR
+      #   value: /var/data
+    # disk:
+    #   name: progmesas-datos
+    #   mountPath: /var/data
+    #   sizeGB: 1

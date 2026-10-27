@@ -438,7 +438,7 @@ async function init() {
     usuario = await cargarIdentidad();
     if (!usuario || !['advisor', 'viewer'].includes(usuario.role)) {
         guardarAviso('Para entrar al dashboard tenés que ingresar como asesora, preceptor o directivo.');
-        location.href = '/';
+        location.href = '../';
         return;
     }
     esAsesora = usuario.role === 'advisor';

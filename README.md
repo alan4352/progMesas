@@ -80,6 +80,29 @@ node scripts/usuarios.js crear docente@test.com teacher "Nombre Apellido"
 Con `AUTH_MODO=prueba` se crean cuentas de prueba (`prof@test.com`, `asesor@test.com`, `alumno@test.com`).
 En la escuela se usa `AUTH_MODO=externo`. Más detalles en [LEEME.md](LEEME.md).
 
+## Despliegue
+
+### Demo en GitHub Pages
+
+<https://alan4352.github.io/progMesas/>
+
+GitHub Pages sólo sirve archivos estáticos, así que la demo no usa el servidor: `demo/demo.js` atiende las
+mismas rutas `/api/...` dentro del navegador, con las mismas reglas de permisos, a partir de los datos de la
+base y de `asignaciones.xlsx`. Los cambios (subir, borrar, confirmar docentes) quedan sólo en el navegador de
+quien la usa y se pueden restablecer. Se publica sola en cada push a `main`
+(`.github/workflows/pages.yml`).
+
+Cuentas de la demo: `asesor@test.com` / `asesor123`, `prof@test.com` / `prof123`,
+`docente2@test.com` / `docente123` (docente sin vincular), `preceptor@test.com` / `preceptor123`, `alumno@test.com` / `alumno123`.
+
+Para probarla en la compu: `cd backend && npm ci`, después `node demo/construir_sitio.js` y servir la carpeta `_site`.
+
+### Sistema completo en Render
+
+`render.yaml` configura el servidor real: en render.com → **New → Blueprint** → elegir este repositorio.
+Render genera `JWT_SECRET` y vuelve a desplegar en cada push. En el plan gratis los datos guardados se
+pierden al reiniciar; para conservarlos hace falta un disco persistente (`DATOS_DIR`, ver el archivo) o Google Drive.
+
 ## Estructura
 
 ```

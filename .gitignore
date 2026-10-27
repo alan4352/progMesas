@@ -15,3 +15,6 @@ backend/data/asignaciones_importadas_*.xlsx
 *.log
 .DS_Store
 ~$*.xlsx
+
+# Sitio de la demo (se genera en GitHub Actions)
+_site/

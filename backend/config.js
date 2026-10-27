@@ -90,9 +90,22 @@ export const CORS_ORIGENES = (process.env.CORS_ORIGIN || '')
 
 export const MAX_PDF_MB = Number(process.env.MAX_PDF_MB) || 10;
 
+// Carpeta de la base y los PDF locales. Por defecto backend/; en un hosting con disco
+// persistente (por ejemplo Render) se apunta DATOS_DIR a ese disco. La primera vez se
+// copian ahí la base y los PDF del repositorio para no empezar de cero.
+const DATOS = process.env.DATOS_DIR ? path.resolve(RAIZ, process.env.DATOS_DIR) : BACKEND;
+if (DATOS !== BACKEND && !fs.existsSync(path.join(DATOS, 'database.sqlite'))) {
+    fs.mkdirSync(DATOS, { recursive: true });
+    for (const nombre of ['database.sqlite', 'uploads']) {
+        const origen = path.join(BACKEND, nombre);
+        if (fs.existsSync(origen)) fs.cpSync(origen, path.join(DATOS, nombre), { recursive: true });
+    }
+    console.log(`[Config] Datos iniciales copiados a ${DATOS}`);
+}
+
 export const RUTAS = {
-    db: path.join(BACKEND, 'database.sqlite'),
-    uploads: path.join(BACKEND, 'uploads'),
+    db: path.join(DATOS, 'database.sqlite'),
+    uploads: path.join(DATOS, 'uploads'),
     asignaciones: path.join(BACKEND, 'data', 'asignaciones.xlsx'),
     oauth: path.join(BACKEND, 'oauth.json'),
     token: path.join(BACKEND, 'token.json'),
