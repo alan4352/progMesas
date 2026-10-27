@@ -506,7 +506,10 @@
                 background:#fffaf0; color:#3a1a00; border:1px solid #d4b26a; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.25); }
             .demo-barra li { margin:.2rem 0; }
             .demo-barra button { font:inherit; padding:.2rem .7rem; border-radius:6px; border:1px solid #9d6a00;
-                background:#fffaf0; color:#3a1a00; cursor:pointer; }`;
+                background:#fffaf0; color:#3a1a00; cursor:pointer; }
+            :root[data-tema="oscuro"] .demo-barra { background:#2e2410; color:#ecd9b0; border-bottom-color:#5a4520; }
+            :root[data-tema="oscuro"] .demo-barra ul,
+            :root[data-tema="oscuro"] .demo-barra button { background:#221b10; color:#ecd9b0; border-color:#6b5226; }`;
         document.head.appendChild(estilo);
     }
     mostrarBarra();

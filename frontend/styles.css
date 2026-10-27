@@ -6,43 +6,98 @@
  * el contenido va sobre un fondo claro para que se lea con comodidad.
  */
 :root {
-    /* Institucional */
+    /* Institucional (igual en los dos modos) */
     --bordo-900: #4a0d12;
     --bordo-800: #5e1118;
     --bordo-700: #7a1620;
     --bordo-600: #92202b;
-    --bordo-100: #f5e6e7;
-    --bordo-50: #fbf3f3;
     --dorado: #c9a24d;
     --crema: #f7efdf;
 
-    /* Superficies y texto */
-    --fondo: #f5f2ed;
-    --superficie: #ffffff;
-    --superficie-2: #faf8f5;
-    --borde: #e3dcd2;
-    --borde-fuerte: #cfc5b8;
+    /* ===== Modo claro ===== */
+    color-scheme: light;
+    --fondo: #e9e2d8;
+    --superficie: #f7f3ed;
+    --superficie-2: #efe9e0;
+    --campo: #fcfaf7;
+    --borde: #d8cfc2;
+    --borde-fuerte: #c2b6a7;
     --texto: #2b2522;
-    --texto-suave: #6b615a;
+    --texto-suave: #665c55;
+    --placeholder: #958a82;
+    --titulo: var(--bordo-900);
+    --enlace: var(--bordo-700);
+    --acento-tarjeta: var(--bordo-700);
+    --encabezado: var(--bordo-800);
+    --resalte: #f3e3e3;
+    --resalte-borde: #e6caca;
+    --anillo-foco: rgba(146, 32, 43, 0.18);
+    --barra-fondo: #ddd5ca;
+    --codigo-fondo: rgba(43, 37, 34, 0.08);
 
-    /* Estados */
     --exito: #2f7a4b;
-    --exito-fondo: #e6f2ea;
+    --exito-fondo: #e1eee4;
+    --exito-borde: #b3d6bf;
     --aviso: #9a5b00;
-    --aviso-fondo: #fdf2e1;
+    --aviso-fondo: #f8ead3;
+    --aviso-borde: #e8cc9c;
+    --aviso-texto: #5c3a06;
     --peligro: #b3261e;
-    --peligro-fondo: #fceceb;
+    --peligro-fondo: #f7e3e1;
+    --peligro-borde: #e5bab6;
+    --peligro-texto: #6e1a14;
 
-    --sombra: 0 1px 2px rgba(43, 37, 34, 0.06), 0 4px 14px rgba(43, 37, 34, 0.06);
+    --sombra: 0 1px 2px rgba(43, 37, 34, 0.07), 0 4px 14px rgba(43, 37, 34, 0.07);
+    --sombra-toast: 0 8px 24px rgba(43, 37, 34, 0.18);
     --radio: 10px;
 
     /* Nombres anteriores (se mantienen por compatibilidad) */
+    --bordo-50: var(--resalte);
+    --bordo-100: var(--resalte-borde);
     --color-primary: var(--bordo-700);
     --color-secondary: var(--crema);
     --color-accent: var(--bordo-600);
     --color-success: var(--exito);
     --color-warning: var(--aviso);
     --color-info: #2b6a9e;
+}
+
+/* ===== Modo oscuro (lo activa frontend/tema.js según el sistema o el botón del encabezado) ===== */
+:root[data-tema="oscuro"] {
+    color-scheme: dark;
+    --fondo: #16110f;
+    --superficie: #211a17;
+    --superficie-2: #29211d;
+    --campo: #1b1513;
+    --borde: #3a302b;
+    --borde-fuerte: #52453e;
+    --texto: #ece4db;
+    --texto-suave: #a99c92;
+    --placeholder: #7e726a;
+    --titulo: #f1e0cd;
+    --enlace: #e8a3a3;
+    --acento-tarjeta: #a83440;
+    --encabezado: #2b0c10;
+    --resalte: rgba(168, 52, 64, 0.16);
+    --resalte-borde: rgba(168, 52, 64, 0.35);
+    --anillo-foco: rgba(232, 163, 163, 0.25);
+    --barra-fondo: #3a302b;
+    --codigo-fondo: rgba(255, 255, 255, 0.08);
+
+    --exito: #6cc58f;
+    --exito-fondo: rgba(47, 122, 75, 0.2);
+    --exito-borde: rgba(108, 197, 143, 0.35);
+    --aviso: #e2aa55;
+    --aviso-fondo: rgba(154, 91, 0, 0.2);
+    --aviso-borde: rgba(226, 170, 85, 0.35);
+    --aviso-texto: #f0d4a8;
+    --peligro: #f08a80;
+    --peligro-fondo: rgba(179, 38, 30, 0.2);
+    --peligro-borde: rgba(240, 138, 128, 0.35);
+    --peligro-texto: #f5c6c1;
+
+    --sombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.25);
+    --sombra-toast: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
 html {
@@ -65,13 +120,13 @@ body {
     flex-direction: column;
 }
 
-a { color: var(--bordo-700); }
+a { color: var(--enlace); }
 
-::selection { background: var(--bordo-100); }
+::selection { background: var(--resalte-borde); }
 
 /* ================= ENCABEZADO Y NAVEGACIÓN ================= */
 header {
-    background: var(--bordo-800);
+    background: var(--encabezado);
     border-bottom: 3px solid var(--dorado);
     padding: 1.1rem 2rem;
     display: flex;
@@ -105,7 +160,7 @@ header h1 {
 }
 
 h1, h2, h3 {
-    color: var(--bordo-900);
+    color: var(--titulo);
     font-family: "Montserrat", sans-serif;
     font-weight: 700;
     text-align: left;
@@ -147,7 +202,7 @@ h3 { font-size: 1.15rem; }
 .auth-form {
     max-width: 450px;
     margin: 1.5rem auto;
-    border-top: 4px solid var(--bordo-700);
+    border-top: 4px solid var(--acento-tarjeta);
 }
 
 /* ================= SECCIONES CONTRAÍBLES (ACCORDION / DETAILS) ================= */
@@ -165,7 +220,7 @@ details.collapsible-box summary {
     font-family: "Montserrat", sans-serif;
     font-weight: 700;
     font-size: 1.15rem;
-    color: var(--bordo-900);
+    color: var(--titulo);
     cursor: pointer;
     background: var(--superficie);
     user-select: none;
@@ -230,7 +285,7 @@ details.sub-collapsible[open] summary { border-bottom: 1px solid var(--borde); }
     padding: 10px 15px;
     text-align: center;
     background: var(--superficie-2);
-    color: var(--bordo-700);
+    color: var(--enlace);
     border: 1px dashed var(--borde-fuerte);
     border-radius: 8px;
     cursor: pointer;
@@ -241,7 +296,7 @@ details.sub-collapsible[open] summary { border-bottom: 1px solid var(--borde); }
 
 .btn-load-more:hover {
     background: var(--bordo-50);
-    border-color: var(--bordo-600);
+    border-color: var(--acento-tarjeta);
 }
 
 /* ================= FORMULARIOS E INPUTS ================= */
@@ -270,14 +325,14 @@ details.sub-collapsible[open] summary { border-bottom: 1px solid var(--borde); }
     font-family: inherit;
     padding: 0 12px;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    background: var(--superficie);
+    background: var(--campo);
     color: var(--texto);
     font-weight: 400;
 }
 
 .form-select { cursor: pointer; }
 
-.form-control::placeholder { color: #9a9089; }
+.form-control::placeholder { color: var(--placeholder); }
 
 .form-control[type="file"] { padding: 9px 12px; }
 
@@ -288,7 +343,7 @@ details.sub-collapsible[open] summary { border-bottom: 1px solid var(--borde); }
 .form-control:focus, .form-select:focus {
     outline: none;
     border-color: var(--bordo-600);
-    box-shadow: 0 0 0 3px rgba(146, 32, 43, 0.15);
+    box-shadow: 0 0 0 3px var(--anillo-foco);
 }
 
 .toggle-password-btn {
@@ -309,10 +364,10 @@ details.sub-collapsible[open] summary { border-bottom: 1px solid var(--borde); }
     font-size: 1.25rem;
 }
 
-.toggle-password-btn:hover { color: var(--bordo-700); }
+.toggle-password-btn:hover { color: var(--enlace); }
 
 .toggle-password-btn:focus-visible {
-    outline: 2px solid var(--bordo-600);
+    outline: 2px solid var(--acento-tarjeta);
     border-radius: 6px;
 }
 
@@ -348,8 +403,8 @@ details.sub-collapsible[open] summary { border-bottom: 1px solid var(--borde); }
 .btn-ingresar:disabled { opacity: 0.6; cursor: wait; }
 
 .btn-secondary-auth {
-    background: var(--superficie);
-    color: var(--bordo-700);
+    background: var(--campo);
+    color: var(--enlace);
     border: 1px solid var(--borde-fuerte);
     font-weight: 500;
     padding: 8px 15px;
@@ -358,8 +413,8 @@ details.sub-collapsible[open] summary { border-bottom: 1px solid var(--borde); }
 
 .btn-secondary-auth:hover {
     background-color: var(--bordo-50);
-    border-color: var(--bordo-600);
-    color: var(--bordo-700);
+    border-color: var(--acento-tarjeta);
+    color: var(--enlace);
 }
 
 /* Variantes sobre el encabezado bordó */
@@ -394,7 +449,7 @@ header .form-select {
 .btn-danger-custom, .btn-delete {
     background-color: var(--superficie);
     color: var(--peligro);
-    border: 1px solid #e7b4b0;
+    border: 1px solid var(--peligro-borde);
     font-weight: 600;
     padding: 8px 14px;
     font-size: 0.9rem;
@@ -480,7 +535,7 @@ header .form-select {
 }
 
 .card {
-    background: var(--superficie);
+    background: var(--campo);
     padding: 1.1rem 1.4rem;
     border-radius: 8px;
     margin-bottom: 0.8rem;
@@ -489,14 +544,14 @@ header .form-select {
     align-items: center;
     gap: 1rem;
     border: 1px solid var(--borde);
-    border-left: 4px solid var(--bordo-700);
+    border-left: 4px solid var(--acento-tarjeta);
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .card:hover {
     box-shadow: var(--sombra);
     border-color: var(--borde-fuerte);
-    border-left-color: var(--bordo-600);
+    border-left-color: var(--acento-tarjeta);
 }
 
 .card-info {
@@ -506,7 +561,7 @@ header .form-select {
 
 .card-info b {
     font-size: 1.05rem;
-    color: var(--bordo-900);
+    color: var(--titulo);
     display: block;
     margin-bottom: 0.15rem;
 }
@@ -553,7 +608,7 @@ header .form-select {
     font-size: 2.4rem;
     font-weight: 800;
     margin: 0;
-    color: var(--bordo-900);
+    color: var(--titulo);
     font-family: "Montserrat", sans-serif;
     font-variant-numeric: tabular-nums;
 }
@@ -567,9 +622,9 @@ header .form-select {
     margin-top: 0.4rem;
     border: 1px solid transparent;
 }
-.coverage-high { background: var(--exito-fondo); color: var(--exito); border-color: #b9dcc5; }
-.coverage-mid { background: var(--aviso-fondo); color: var(--aviso); border-color: #f0d1a0; }
-.coverage-low { background: var(--peligro-fondo); color: var(--peligro); border-color: #efc2be; }
+.coverage-high { background: var(--exito-fondo); color: var(--exito); border-color: var(--exito-borde); }
+.coverage-mid { background: var(--aviso-fondo); color: var(--aviso); border-color: var(--aviso-borde); }
+.coverage-low { background: var(--peligro-fondo); color: var(--peligro); border-color: var(--peligro-borde); }
 
 .curso-box, .prof-box {
     background: var(--superficie);
@@ -588,7 +643,7 @@ header .form-select {
 .barra {
     width: 100%;
     height: 10px;
-    background: #ece6dd;
+    background: var(--barra-fondo);
     border-radius: 999px;
     overflow: hidden;
     margin-top: 8px;
@@ -669,11 +724,11 @@ header .form-select {
     background: var(--superficie);
     color: var(--texto);
     border: 1px solid var(--borde);
-    border-left: 4px solid var(--bordo-700);
+    border-left: 4px solid var(--acento-tarjeta);
     padding: 12px 18px;
     border-radius: 8px;
     font-weight: 500;
-    box-shadow: 0 8px 24px rgba(43, 37, 34, 0.16);
+    box-shadow: var(--sombra-toast);
     animation: slideIn 0.3s forwards ease-out;
 }
 
@@ -712,24 +767,24 @@ header .form-select {
 
 .aviso, .alert-box {
     background: var(--aviso-fondo);
-    border: 1px solid #f0d9b5;
+    border: 1px solid var(--aviso-borde);
     border-left: 4px solid var(--aviso);
     padding: 12px 16px;
     border-radius: 8px;
     margin-bottom: 0.8rem;
-    color: #5c3a06;
+    color: var(--aviso-texto);
     line-height: 1.5;
 }
 
 .alert-box {
     background: var(--peligro-fondo);
-    border-color: #f2cdca;
+    border-color: var(--peligro-borde);
     border-left-color: var(--peligro);
-    color: #6e1a14;
+    color: var(--peligro-texto);
 }
 
 .aviso code, .texto-suave code {
-    background: rgba(43, 37, 34, 0.07);
+    background: var(--codigo-fondo);
     padding: 1px 6px;
     border-radius: 4px;
     font-size: 0.9em;
@@ -743,11 +798,11 @@ header .form-select {
 .banner-docente {
     background: var(--bordo-50);
     border: 1px solid var(--bordo-100);
-    border-left: 4px solid var(--bordo-700);
+    border-left: 4px solid var(--acento-tarjeta);
     padding: 12px 18px;
     border-radius: 8px;
     margin-bottom: 1.2rem;
-    color: var(--bordo-900);
+    color: var(--titulo);
 }
 
 .bloque-anio { margin-top: 1.2rem; }
@@ -774,7 +829,7 @@ header .form-select {
     font-size: 0.7rem;
     background: var(--aviso-fondo);
     color: var(--aviso);
-    border: 1px solid #f0d1a0;
+    border: 1px solid var(--aviso-borde);
     border-radius: 4px;
     padding: 1px 6px;
     vertical-align: middle;
@@ -886,7 +941,7 @@ select optgroup { font-weight: 700; }
     border-top: 1px solid var(--borde);
 }
 .pie a { color: var(--texto-suave); }
-.pie a:hover { color: var(--bordo-700); }
+.pie a:hover { color: var(--enlace); }
 
 /* ================= ÍCONOS ================= */
 .icono {
@@ -900,3 +955,7 @@ select optgroup { font-weight: 700; }
 .btn-ingresar .icono, .btn-primary-custom .icono, .btn-ver .icono,
 .btn-secondary-auth .icono, .btn-delete .icono { margin-right: 0; }
 .toggle-password-btn .icono { width: 1.25rem; height: 1.25rem; vertical-align: middle; }
+
+/* Botón de modo claro / oscuro */
+.btn-tema { padding: 8px 10px; }
+.btn-tema .icono { width: 1.15rem; height: 1.15rem; }
