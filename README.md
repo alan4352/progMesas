@@ -3,6 +3,12 @@
 Sistema web para subir, controlar y consultar los **programas de examen** de una escuela secundaria técnica.
 Los docentes cargan el PDF de cada materia que dictan, los alumnos lo consultan y la asesoría pedagógica ve qué programas faltan.
 
+Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
+
+- **Demo:** <https://alan4352.github.io/progMesas/>
+- **Política de privacidad:** <https://alan4352.github.io/progMesas/privacidad.html>
+- **Condiciones del servicio:** <https://alan4352.github.io/progMesas/terminos.html>
+
 ## Funciones
 
 | Rol | Puede |
@@ -18,7 +24,15 @@ Los docentes cargan el PDF de cada materia que dictan, los alumnos lo consultan 
 - Avance por curso y por docente.
 - Lista de pendientes con filtros y exportación a CSV.
 - Aviso cuando Google Drive no está disponible o hay asignaciones para revisar.
+- Confirmación, corrección y desvinculación de las cuentas de docentes.
 - Vinculación manual de programas viejos que no coinciden con ninguna materia oficial.
+
+**Interfaz**
+
+- Modo claro y modo oscuro: sigue la preferencia del sistema y se puede cambiar con el botón del encabezado (se recuerda).
+- Paleta institucional (bordó y dorado) definida con variables en `frontend/styles.css`.
+- Íconos SVG propios, sin librerías externas.
+- Adaptada a celulares.
 
 ## Cómo funciona
 
@@ -30,20 +44,20 @@ Los docentes cargan el PDF de cada materia que dictan, los alumnos lo consultan 
   el servidor la relee al guardarla.
 - **Cobertura exacta** — cada programa queda asociado a una asignación, así el control no depende de cómo se escribió la materia.
 - **Almacenamiento** — los PDF se guardan en Google Drive (carpetas Año / Curso / Materia). Si Drive no está disponible,
-  se guardan en `backend/uploads` y el dashboard lo avisa.
+  se guardan en el servidor (`backend/uploads` o `DATOS_DIR/uploads`) y el dashboard lo avisa.
 
 ## Tecnologías
 
-- **Backend:** Node.js, Express 5, SQLite (better-sqlite3), Multer, JWT, Google Drive API, SheetJS (xlsx)
+- **Backend:** Node.js 20+, Express 5, SQLite (better-sqlite3), Multer, JWT, Google Drive API, SheetJS (xlsx 0.20, desde el sitio oficial de SheetJS)
 - **Frontend:** HTML, CSS y JavaScript sin frameworks
+- **Despliegue:** GitHub Pages (demo) y Render (sistema completo)
 
 ## Instalación
 
 Requisitos: Node.js 20 o superior.
 
 ```bash
-cd backend
-npm install
+npm install        # en la raíz: instala también las dependencias de backend/
 ```
 
 Creá el archivo `.env` en la raíz del proyecto a partir de `.env.example` y completá `JWT_SECRET` con un valor aleatorio:
@@ -58,18 +72,40 @@ Iniciá el servidor y abrí <http://localhost:3000>:
 npm start
 ```
 
+### Variables de entorno
+
+| Variable | Para qué sirve |
+|---|---|
+| `JWT_SECRET` | **Obligatoria** en modo prueba. Clave para firmar las sesiones (32 caracteres o más). |
+| `AUTH_MODO` | `prueba` (login propio, por defecto) o `externo` (token del sistema principal). |
+| `ANIO_LECTIVO` | Año que usan por defecto el formulario y el dashboard. |
+| `PORT` | Puerto del servidor (3000 por defecto). |
+| `MAX_PDF_MB` | Tamaño máximo de cada PDF (10 por defecto). |
+| `TRUST_PROXY` | `1` si el servidor está detrás de un proxy (Render). Hace que el límite de intentos de login use la IP real. |
+| `DATOS_DIR` | Carpeta para la base y los PDF locales, por ejemplo un disco persistente. La primera vez se copian ahí los del repositorio. |
+| `GOOGLE_OAUTH_JSON`, `GOOGLE_TOKEN_JSON` | Contenido de `backend/oauth.json` y `backend/token.json`, para usar Drive en un hosting sin esos archivos. |
+| `DRIVE_CARPETA_RAIZ` | ID de la carpeta de Drive donde se guardan los programas. |
+| `CORS_ORIGIN` | Otros dominios que pueden usar la API (vacío = sólo el mismo servidor). |
+| `EXTERNO_*`, `ROL_*` | Datos del sistema principal para `AUTH_MODO=externo` (ver `.env.example`). |
+
 ### Google Drive (opcional)
 
-Colocá las credenciales OAuth de Google en `backend/oauth.json` y autorizá la cuenta:
+Colocá las credenciales OAuth de Google en `backend/oauth.json` y autorizá la cuenta de la escuela:
 
 ```bash
+cd backend
 node scripts/autorizar_drive.js
 ```
+
+Mientras la app de Google esté en modo "Testing", el permiso vence a los 7 días. Para evitarlo, pasala a
+"En producción" en la pantalla de consentimiento de OAuth (usa las páginas de privacidad y condiciones de arriba).
 
 ## Administración
 
 ```bash
-# Importar las planillas de horarios (una hoja por curso) → backend/data/asignaciones.xlsx
+cd backend
+
+# Importar las planillas de horarios (una hoja por curso) → data/asignaciones.xlsx
 node scripts/importar_horarios.js "Horarios_T.Mañana.xlsx" "Horarios_T.Tarde.xlsx"
 
 # Cuentas de prueba (sólo con AUTH_MODO=prueba)
@@ -90,32 +126,50 @@ GitHub Pages sólo sirve archivos estáticos, así que la demo no usa el servido
 mismas rutas `/api/...` dentro del navegador, con las mismas reglas de permisos, a partir de los datos de la
 base y de `asignaciones.xlsx`. Los cambios (subir, borrar, confirmar docentes) quedan sólo en el navegador de
 quien la usa y se pueden restablecer. Se publica sola en cada push a `main`
-(`.github/workflows/pages.yml`).
+(`.github/workflows/pages.yml`), junto con las páginas de privacidad y condiciones.
 
 Cuentas de la demo: `asesor@test.com` / `asesor123`, `prof@test.com` / `prof123`,
 `docente2@test.com` / `docente123` (docente sin vincular), `preceptor@test.com` / `preceptor123`, `alumno@test.com` / `alumno123`.
 
-Para probarla en la compu: `cd backend && npm ci`, después `node demo/construir_sitio.js` y servir la carpeta `_site`.
+Para probarla en la compu: `npm install`, después `node demo/construir_sitio.js` y servir la carpeta `_site`.
 
 ### Sistema completo en Render
 
 `render.yaml` configura el servidor real: en render.com → **New → Blueprint** → elegir este repositorio.
-Render genera `JWT_SECRET` y vuelve a desplegar en cada push. En el plan gratis los datos guardados se
-pierden al reiniciar; para conservarlos hace falta un disco persistente (`DATOS_DIR`, ver el archivo) o Google Drive.
+Render vuelve a desplegar en cada push a `main`.
+
+Si el servicio se crea a mano: Build Command `npm install`, Start Command `npm start`, y en **Environment**
+cargar `JWT_SECRET`, `AUTH_MODO=prueba`, `ANIO_LECTIVO` y `TRUST_PROXY=1`. Para Drive, agregar
+`GOOGLE_OAUTH_JSON` y `GOOGLE_TOKEN_JSON` con el contenido de esos archivos.
+
+En el plan gratis el disco se borra al reiniciar: los PDF guardados en el servidor se pierden. Para conservarlos
+hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 
 ## Estructura
 
 ```
 ├── index.html               Página principal (listado, login y subida)
-├── frontend/                Estilos, scripts y dashboard de la asesora
+├── privacidad.html          Política de privacidad (pantalla de consentimiento de Google OAuth)
+├── terminos.html            Condiciones del servicio
+├── package.json             Arranque desde la raíz (instala backend/ con postinstall)
+├── render.yaml              Despliegue en Render
+├── .github/workflows/       Publicación de la demo en GitHub Pages
+├── demo/                    Demo estática: datos exportados y API simulada en el navegador
+├── frontend/
+│   ├── styles.css           Estilos y paleta (modo claro y oscuro)
+│   ├── tema.js              Cambio de modo claro / oscuro
+│   ├── common.js            Utilidades compartidas, sesión e íconos
+│   ├── app.js               Página principal
+│   └── dashboard.html/.js   Dashboard de la asesora
 └── backend/
     ├── server.js            API y servidor de archivos
-    ├── config.js            Configuración (.env)
+    ├── config.js            Configuración (.env y variables de entorno)
     ├── db.js                Base SQLite y migraciones
     ├── auth.js              Identidad del usuario (sistema principal o login de prueba)
     ├── docentes.js          Vinculación cuenta ↔ nombre en la lista oficial
     ├── asignaciones.js      Lectura de la lista oficial
     ├── store.js             Programas cargados
+    ├── almacenamiento.js    Guardado de PDF (Drive o servidor)
     ├── drive.js             Google Drive
     ├── lib/                 Importador de horarios y utilidades
     ├── scripts/             Herramientas de línea de comandos
@@ -125,8 +179,25 @@ pierden al reiniciar; para conservarlos hace falta un disco persistente (`DATOS_
 
 ## Seguridad
 
-- El token del sistema principal se verifica con su firma; en modo prueba, contraseñas con scrypt y límite de intentos.
+- El token del sistema principal se verifica con su firma; en modo prueba, contraseñas con scrypt y límite de
+  10 intentos por IP y correo cada 15 minutos (con `TRUST_PROXY`, usando la IP real detrás de Render).
 - Un docente sólo puede cargar programas de sus materias, y sólo después de que la asesora confirme su cuenta.
-- Sólo se aceptan PDF válidos (hasta 10 MB por defecto).
+- Sólo se aceptan PDF válidos (se revisa el contenido, no sólo la extensión; hasta 10 MB por defecto).
 - Todo el contenido cargado por usuarios se escapa antes de mostrarse, con una política CSP que bloquea scripts externos.
-- Las credenciales (`.env`, `oauth.json`, `token.json`, `clave.json`) están excluidas del repositorio.
+- La exportación a CSV neutraliza textos que Excel interpretaría como fórmulas.
+- Las credenciales (`.env`, `oauth.json`, `token.json`, `clave.json`) están excluidas del repositorio; en un hosting
+  se pasan como variables de entorno.
+- Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
+
+## Historial de cambios
+
+### 27 de octubre de 2026
+
+- Demo pública en GitHub Pages con la API simulada en el navegador y publicación automática.
+- Despliegue del sistema completo en Render (`render.yaml`, `DATOS_DIR`, credenciales de Drive por variables de entorno).
+- Páginas de política de privacidad y condiciones del servicio, enlazadas desde el pie.
+- Íconos SVG en lugar de emojis.
+- Nueva paleta institucional y modo oscuro.
+- Mejoras de seguridad: dependencias actualizadas (Express, Multer y SheetJS sin vulnerabilidades conocidas),
+  `TRUST_PROXY` para el límite de intentos detrás de un proxy, limpieza del registro de intentos y CSV sin fórmulas.
+- Arreglos: los filtros ya no se aplastan en el celular y el botón de ver contraseña queda centrado.

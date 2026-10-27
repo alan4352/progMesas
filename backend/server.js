@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 
-import { PORT, ANIO_LECTIVO, CORS_ORIGENES, MAX_PDF_MB, RUTAS, AUTH_MODO, EXTERNO } from './config.js';
+import { PORT, ANIO_LECTIVO, CORS_ORIGENES, MAX_PDF_MB, RUTAS, AUTH_MODO, EXTERNO, TRUST_PROXY } from './config.js';
 import { login, auth, authOpcional, rol } from './auth.js';
 import {
     registrarAcceso, vinculoDe, docenteConfirmado, solicitarVinculo, confirmarVinculo, desvincular, resumenVinculos
@@ -23,6 +23,7 @@ const app = express();
 // ================= SEGURIDAD BÁSICA =================
 
 app.disable('x-powered-by');
+if (TRUST_PROXY !== false) app.set('trust proxy', TRUST_PROXY);
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'same-origin');

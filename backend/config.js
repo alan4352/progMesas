@@ -82,6 +82,15 @@ export const JWT_DURACION = process.env.JWT_DURACION || '8h';
 export const PORT = Number(process.env.PORT) || 3000;
 export const ANIO_LECTIVO = Number(process.env.ANIO_LECTIVO) || new Date().getFullYear();
 
+// Detrás de un proxy (Render, Nginx, etc.) la IP real del visitante llega en X-Forwarded-For.
+// TRUST_PROXY=1 confía en un proxy; sin esto todos los visitantes parecen tener la IP del proxy
+// y el límite de intentos de login los bloquearía a todos juntos.
+export const TRUST_PROXY = (() => {
+    const v = (process.env.TRUST_PROXY || '').trim();
+    if (!v || v === '0' || v === 'false') return false;
+    return /^\d+$/.test(v) ? Number(v) : v;
+})();
+
 // Orígenes permitidos para CORS (separados por coma). Vacío = sólo el mismo servidor.
 export const CORS_ORIGENES = (process.env.CORS_ORIGIN || '')
     .split(',')

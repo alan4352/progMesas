@@ -10,6 +10,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import xlsx from 'xlsx';
+
+xlsx.set_fs(fs); // SheetJS como módulo ES necesita el fs de Node
 import { interpretarHoja, unificarDocentes } from '../lib/parser_horarios.js';
 import { escribirAsignaciones } from '../lib/asignaciones_excel.js';
 import { claveTexto } from '../lib/normalizar.js';

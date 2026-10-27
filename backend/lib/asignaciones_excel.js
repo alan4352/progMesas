@@ -1,7 +1,11 @@
 // Formato del archivo data/asignaciones.xlsx: la lista oficial de qué programa
 // tiene que entregar cada curso. La asesora puede editarlo con Excel.
 
+import fs from 'fs';
 import xlsx from 'xlsx';
+
+// SheetJS como módulo ES necesita el fs de Node para leer y escribir archivos
+xlsx.set_fs(fs);
 import { claveCompacta, cursoClave } from './normalizar.js';
 
 export const HOJA_ASIGNACIONES = 'Asignaciones';

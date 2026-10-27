@@ -81,6 +81,12 @@ const VENTANA_MS = 15 * 60 * 1000;
 const MAX_INTENTOS = 10;
 const intentos = new Map();
 
+// Limpieza periódica: sin esto el registro de intentos crece sin límite
+setInterval(() => {
+    const ahora = Date.now();
+    for (const [clave, r] of intentos) if (ahora - r.desde > VENTANA_MS) intentos.delete(clave);
+}, VENTANA_MS).unref();
+
 export async function login(req, res) {
     if (AUTH_MODO !== 'prueba') {
         return res.status(404).json({ error: 'El inicio de sesión se hace desde el sistema principal' });

@@ -275,7 +275,12 @@ function renderFaltantes() {
 
 function exportarCsv() {
     const lista = pendientesFiltrados();
-    const celda = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    // Un texto que empieza con = + - @ Excel lo toma como fórmula: se antepone ' para que quede como texto
+    const celda = (v) => {
+        let t = String(v ?? '');
+        if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+        return `"${t.replace(/"/g, '""')}"`;
+    };
     const filas = [['Curso', 'Turno', 'Materia', 'Docentes'], ...lista.map((a) => [a.curso, a.turno, a.materia, a.docentes.join(' / ')])];
     const csv = '﻿' + filas.map((f) => f.map(celda).join(';')).join('\r\n');
     const enlace = document.createElement('a');

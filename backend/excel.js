@@ -3,6 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import xlsx from 'xlsx';
 
+xlsx.set_fs(fs); // SheetJS como módulo ES necesita el fs de Node
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
