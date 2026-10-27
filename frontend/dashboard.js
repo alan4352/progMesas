@@ -56,11 +56,6 @@ async function cargar() {
 
 function renderEstadoSistema() {
     const avisos = [];
-    const porConfirmar = vinculos.usuarios.filter((u) => u.estado === 'pendiente').length;
-    if (porConfirmar) {
-        avisos.push(`Hay <b>${porConfirmar}</b> docente(s) esperando que confirmes su nombre. ` +
-            'Están en la sección <b>Cuentas de docentes</b>, más abajo.');
-    }
     const drive = datos.estado?.drive;
     if (drive && !drive.disponible) {
         avisos.push(`<b>Google Drive no está disponible:</b> ${esc(drive.error || 'sin conexión')}. ` +
@@ -322,10 +317,11 @@ function renderUltimos() {
 // ================= CUENTAS DE DOCENTES =================
 
 const ESTADOS = {
-    pendiente: 'Esperando confirmación',
     sin_vincular: 'Entró pero no eligió su nombre',
-    confirmado: 'Vinculado'
+    confirmado: 'Vinculados'
 };
+
+const VINCULADO_POR = { 'automático': 'automáticamente', 'el docente': 'por el docente', 'migración': 'en la migración' };
 
 function fechaCorta(iso) {
     return iso ? new Date(iso).toLocaleDateString('es-AR') : '-';
@@ -341,19 +337,15 @@ function filaCuenta(u) {
     let detalle = '';
     let acciones = '';
 
-    if (u.estado === 'pendiente') {
-        detalle = `Eligió <b>${esc(u.docente)}</b> (${u.asignaciones} materia(s)) el ${fechaCorta(u.solicitado)}`;
-        acciones = esAsesora ? `${campoNombre(u, u.docente)}
-            <button type="button" class="btn-ver" data-accion="confirmar-docente" data-usuario="${esc(u.usuarioId)}">${icono('confirmar')}Confirmar</button>
-            <button type="button" class="btn-delete" data-accion="desvincular-docente" data-usuario="${esc(u.usuarioId)}">Rechazar</button>` : '';
-    } else if (u.estado === 'sin_vincular') {
+    if (u.estado !== 'confirmado') {
         detalle = `Último ingreso: ${fechaCorta(u.ultimoAcceso)}`;
         acciones = esAsesora ? `${campoNombre(u, '')}
             <button type="button" class="btn-ver" data-accion="confirmar-docente" data-usuario="${esc(u.usuarioId)}">Asignar</button>` : '';
     } else {
         const alerta = u.asignaciones === 0
             ? ' <span class="marca-revisar" title="El nombre ya no aparece en data/asignaciones.xlsx">sin materias</span>' : '';
-        detalle = `<b>${esc(u.docente)}</b> — ${u.asignaciones} materia(s)${alerta} · confirmado por ${esc(u.confirmadoPor || '-')}`;
+        const por = VINCULADO_POR[u.confirmadoPor] || (u.confirmadoPor ? `por ${u.confirmadoPor}` : '');
+        detalle = `<b>${esc(u.docente)}</b> — ${u.asignaciones} materia(s)${alerta}${por ? ` · vinculado ${esc(por)}` : ''}`;
         acciones = esAsesora ? `${campoNombre(u, u.docente)}
             <button type="button" class="btn-secondary-auth btn-chico" data-accion="confirmar-docente" data-usuario="${esc(u.usuarioId)}">Cambiar</button>
             <button type="button" class="btn-delete" data-accion="desvincular-docente" data-usuario="${esc(u.usuarioId)}" data-confirmar="si">Desvincular</button>` : '';
@@ -366,9 +358,10 @@ function filaCuenta(u) {
 }
 
 function renderVinculos() {
-    const grupos = ['pendiente', 'sin_vincular', 'confirmado'].map((estado) => ({
+    // "pendiente" ya no se usa: si quedara alguno, se muestra con los que no eligieron nombre
+    const grupos = ['sin_vincular', 'confirmado'].map((estado) => ({
         estado,
-        lista: vinculos.usuarios.filter((u) => u.estado === estado)
+        lista: vinculos.usuarios.filter((u) => (estado === 'confirmado') === (u.estado === 'confirmado'))
     }));
 
     $('listaDocentesLibres').innerHTML = vinculos.sinCuenta
@@ -388,7 +381,7 @@ function renderVinculos() {
 
     $('panelDocentes').innerHTML = html;
     $('resumenCuentas').textContent =
-        `${grupos[2].lista.length} vinculados · ${grupos[0].lista.length} por confirmar`;
+        `${grupos[1].lista.length} vinculados · ${grupos[0].lista.length} sin nombre`;
 }
 
 async function confirmarDocente(usuarioId) {

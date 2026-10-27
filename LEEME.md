@@ -28,11 +28,13 @@ No hace falta iniciar sesión.
 **La primera vez:**
 
 1. Iniciá sesión (en la escuela, desde el sistema principal; en modo prueba, con **Acceso docentes**).
-2. Aparece **Elegí tu nombre en la lista de docentes**: escribí tu apellido, elegí tu nombre tal como figura en los horarios y tocá **Enviar**.
-3. Queda pendiente: la asesora tiene que confirmarlo. Hasta entonces no podés cargar programas.
-   Si te equivocaste de nombre, tocá **Elegir otro nombre**.
+2. Si tu nombre en el sistema principal coincide con el de la lista de horarios, la cuenta se vincula sola y ya podés
+   cargar programas: no tenés que hacer nada más.
+3. Si no coincide, aparece **Elegí tu nombre en la lista de docentes**: escribí tu apellido, elegí tu nombre tal como
+   figura en los horarios y tocá **Confirmar**. Queda vinculado en el momento, sin esperar a nadie.
+   Si te equivocaste, pedile a la asesora que lo corrija.
 
-**Cargar un programa** (una vez confirmada tu cuenta):
+**Cargar un programa:**
 
 1. En **Subir programa de examen**, elegí en **Curso y materia** el curso y la materia. Sólo aparecen las que tenés asignadas;
    si das la misma materia en varios cursos, cada curso aparece por separado y lleva su propio programa.
@@ -58,15 +60,17 @@ El botón **Dashboard Asesora** abre el panel de control:
 - **Estado por curso** y **Estado por docente:** avance de cada uno.
 - **Programas pendientes:** lista filtrable por docente, materia y curso. **Descargar pendientes (CSV)** la baja para abrir con Excel.
 - **Cuentas de docentes:**
-  - *Esperando confirmación:* revisá el nombre que eligió el docente (podés corregirlo) y tocá **Confirmar**, o **Rechazar**.
+  No hace falta aprobar a nadie: las cuentas ya vienen verificadas del sistema principal. Esta sección sirve para controlar
+  y corregir con qué nombre de la lista quedó cada uno.
   - *Entró pero no eligió su nombre:* podés escribirlo vos y tocar **Asignar**.
-  - *Vinculado:* **Cambiar** corrige el nombre y **Desvincular** le quita la posibilidad de cargar programas.
+  - *Vinculados:* indica si se vinculó automáticamente, lo eligió el docente o lo corregiste vos.
+    **Cambiar** corrige el nombre y **Desvincular** le quita la posibilidad de cargar programas.
 - **Últimos programas cargados:** los más recientes del año, con su PDF.
 
 ### Preceptores y directivos
 
 Con el botón del dashboard ven el mismo panel que la asesora, pero sin poder modificar nada
-(no confirman cuentas ni borran programas).
+(no corrigen vinculaciones ni borran programas).
 
 ### Modo claro / oscuro
 
@@ -76,7 +80,8 @@ La página usa el modo de la computadora o el celular. El botón del sol / luna,
 
 - **No aparece mi materia para cargar:** tu nombre no figura en esa materia en la lista oficial, o te vinculaste con otro nombre.
   Pedile a la asesora que lo revise.
-- **"Tu cuenta todavía no está vinculada":** falta que la asesora confirme tu nombre.
+- **"Tu cuenta todavía no está vinculada":** todavía no elegiste tu nombre en la lista; aparece arriba en la página principal.
+- **Me vinculé con el nombre equivocado:** la asesora lo corrige desde **Cuentas de docentes** en el dashboard.
 - **"El archivo no es un PDF válido":** el archivo está dañado o no es un PDF aunque termine en .pdf. Exportalo de nuevo como PDF.
 - **"Se guardó en el servidor porque Google Drive no está disponible":** el programa quedó guardado igual; hay que
   renovar el permiso de Drive (ver [Google Drive](#5-google-drive)).
@@ -230,11 +235,17 @@ y **alumno** (ve los programas).
 
 ### Vinculación de docentes
 
-El sistema principal identifica a cada docente con un usuario único, pero no sabe qué materias dicta. Por eso:
+El sistema principal ya verifica las cuentas, pero no sabe qué materias dicta cada docente. Por eso cada cuenta se une
+con un nombre de `asignaciones.xlsx`:
 
-1. La primera vez que un docente entra, elige su nombre tal como figura en `asignaciones.xlsx`.
-2. La asesora lo confirma en el dashboard (sección **Cuentas de docentes**). Recién ahí el docente puede cargar programas.
-3. La asesora también puede asignar, corregir o desvincular nombres desde esa sección.
+1. **Automática:** al entrar, si el nombre de la cuenta tiene las mismas palabras que **un solo** nombre de la lista
+   (sin importar el orden ni los acentos: "Valeria Grimberg" = "Grimberg Valeria"), se vincula sola.
+   Un apellido suelto, un nombre repetido o un nombre que ya usa otra cuenta no se vinculan solos.
+2. **Elegida por el docente:** si no hubo coincidencia, el docente elige su nombre una vez y queda vinculado en el momento.
+   No puede elegir un nombre que ya tiene otra cuenta.
+3. **Corrección:** la asesora puede asignar, cambiar o desvincular nombres desde **Cuentas de docentes**.
+
+Las solicitudes que habían quedado esperando aprobación con la versión anterior se confirman solas al arrancar el servidor.
 
 ## 5. Google Drive
 
@@ -277,8 +288,8 @@ desde la página, su archivo en Drive hay que borrarlo a mano. Para volver atrá
 npm test
 ```
 
-Corren 27 pruebas en unos segundos: funciones de normalización, contraseñas, roles y planilla de asignaciones, y la API
-completa con cada rol (ingreso y límite de intentos, permisos, vinculación de docentes, subida y reemplazo de PDF,
+Corren 29 pruebas en unos segundos: funciones de normalización, contraseñas, roles y planilla de asignaciones, y la API
+completa con cada rol (ingreso y límite de intentos, permisos, vinculación de docentes (elegida y automática), subida y reemplazo de PDF,
 subidas simultáneas de varios cursos, cobertura y borrado). Usan una **copia temporal** de la base y no tocan Google Drive,
 así que no modifican los datos reales.
 

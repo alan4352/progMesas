@@ -72,6 +72,16 @@ before(async () => {
         const { crearUsuario } = await import('./backend/usuarios.js');
         crearUsuario({ email: 'nuevo@test.com', contrasena: 'nuevo123', rol: 'teacher', nombre: 'Docente Nuevo' });
         crearUsuario({ email: 'preceptor@test.com', contrasena: 'preceptor123', rol: 'viewer', nombre: 'Preceptor' });
+        // Coincide con "Grimberg Valeria" de la lista: se tiene que vincular sola
+        crearUsuario({ email: 'valeria@test.com', contrasena: 'valeria123', rol: 'teacher', nombre: 'Valeria Grimberg' });
+        // Nombre de otro docente ya vinculado: no se tiene que vincular sola
+        crearUsuario({ email: 'otra@test.com', contrasena: 'otra12345', rol: 'teacher', nombre: 'Lucrecia Fernández' });
+        // Solicitud que quedó "pendiente" con la versión anterior (cuando la asesora tenía que aprobar)
+        crearUsuario({ email: 'viejo@test.com', contrasena: 'viejo12345', rol: 'teacher', nombre: 'Docente Viejo' });
+        const { default: db } = await import('./backend/db.js');
+        await import('./backend/docentes.js');
+        db.prepare("INSERT INTO docentes_usuarios (usuario_id, nombre_usuario, email, docente, estado, solicitado_at) " +
+            "VALUES ('viejo@test.com', 'Docente Viejo', 'viejo@test.com', 'Begue José Luis', 'pendiente', '2026-10-01T12:00:00Z')").run();
     `], { cwd: RAIZ, env: ENTORNO, stdio: 'pipe' });
 
     servidor = spawn(process.execPath, ['backend/server.js'], { cwd: RAIZ, env: ENTORNO, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -210,35 +220,66 @@ test('un docente sólo ve y sube los programas de sus materias', async () => {
     assert.ok(visibles.some((p) => p.id === ok.datos.id));
 });
 
-test('vinculación: el docente nuevo elige su nombre, la asesora confirma y recién ahí puede subir', async () => {
+test('vinculación: el docente elige su nombre y puede subir en el momento, sin aprobación', async () => {
     const nuevo = await ingresar('nuevo@test.com', 'nuevo123');
     const asesora = await ingresar('asesor@test.com', 'asesor123');
 
     const yo = await pedir('/yo', { token: nuevo });
-    assert.equal(yo.datos.vinculo.estado, 'sin_vincular');
-    assert.equal((await subir(nuevo, { asignacion: '1-1_ingles' })).status, 403, 'sin vincular no sube');
+    assert.equal(yo.datos.vinculo.estado, 'sin_vincular', '"Docente Nuevo" no está en la lista: no se vincula solo');
+    assert.equal((await subir(nuevo, { asignacion: '1-1_ingles' })).status, 403, 'sin nombre no sube');
 
     const nombres = (await pedir('/docentes/nombres', { token: nuevo })).datos;
     assert.ok(nombres.some((n) => n.nombre === 'Mattiassi' && n.disponible));
     const tomado = nombres.find((n) => n.nombre === 'Fernandez Lucrecia');
-    assert.equal(tomado.disponible, false, 'un nombre ya confirmado no está disponible');
+    assert.equal(tomado.disponible, false, 'un nombre ya vinculado no está disponible');
 
     const inexistente = await pedir('/docentes/vinculo', { method: 'POST', json: { docente: 'Nadie Inventado' }, token: nuevo });
     assert.equal(inexistente.status, 400);
+    const ajeno = await pedir('/docentes/vinculo', { method: 'POST', json: { docente: 'Fernandez Lucrecia' }, token: nuevo });
+    assert.equal(ajeno.status, 409, 'no puede elegir el nombre de otro docente ya vinculado');
 
     const pedido = await pedir('/docentes/vinculo', { method: 'POST', json: { docente: 'mattiassi' }, token: nuevo });
     assert.equal(pedido.status, 200);
-    assert.deepEqual(pedido.datos.vinculo, { docente: 'Mattiassi', estado: 'pendiente' });
-    assert.equal((await subir(nuevo, { asignacion: '1-1_ingles' })).status, 403, 'pendiente no sube');
-
-    const confirmar = await pedir('/docentes/vinculos/nuevo%40test.com/confirmar', { method: 'POST', json: {}, token: asesora });
-    assert.equal(confirmar.status, 200);
+    assert.deepEqual(pedido.datos.vinculo, { docente: 'Mattiassi', estado: 'confirmado' });
 
     const sube = await subir(nuevo, { asignacion: '1-1_ingles' });
-    assert.equal(sube.status, 200, JSON.stringify(sube.datos));
+    assert.equal(sube.status, 200, 'sube enseguida, sin esperar a la asesora: ' + JSON.stringify(sube.datos));
+
+    const otraVez = await pedir('/docentes/vinculo', { method: 'POST', json: { docente: 'Acevedo' }, token: nuevo });
+    assert.equal(otraVez.status, 409, 'una vez vinculado, el nombre lo corrige la asesora');
+
+    const cuentas = (await pedir('/docentes/vinculos', { token: asesora })).datos.usuarios;
+    assert.equal(cuentas.find((u) => u.usuarioId === 'nuevo@test.com').confirmadoPor, 'el docente');
 
     const robar = await pedir('/docentes/vinculos/prof%40test.com/confirmar', { method: 'POST', json: { docente: 'Mattiassi' }, token: asesora });
     assert.equal(robar.status, 409, 'un nombre no puede quedar vinculado a dos cuentas');
+});
+
+test('vinculación automática: si el nombre de la cuenta coincide con la lista, se vincula al entrar', async () => {
+    const valeria = await ingresar('valeria@test.com', 'valeria123');
+    const yo = await pedir('/yo', { token: valeria });
+    assert.deepEqual(yo.datos.vinculo, { docente: 'Grimberg Valeria', estado: 'confirmado' }, 'mismo nombre en otro orden');
+
+    const mias = (await pedir('/asignaciones/mias?anio=2026', { token: valeria })).datos.asignaciones;
+    assert.ok(mias.length > 0);
+    assert.equal((await subir(valeria, { asignacion: mias[0].id })).status, 200);
+
+    const asesora = await ingresar('asesor@test.com', 'asesor123');
+    const cuentas = (await pedir('/docentes/vinculos', { token: asesora })).datos.usuarios;
+    assert.equal(cuentas.find((u) => u.usuarioId === 'valeria@test.com').confirmadoPor, 'automático');
+
+    // "Lucrecia Fernández" coincide, pero ese nombre ya es de otra cuenta: no se vincula sola
+    const otra = await ingresar('otra@test.com', 'otra12345');
+    assert.equal((await pedir('/yo', { token: otra })).datos.vinculo.estado, 'sin_vincular');
+});
+
+test('las solicitudes que quedaron pendientes de aprobación se confirman solas', async () => {
+    const viejo = await ingresar('viejo@test.com', 'viejo12345');
+    const yo = await pedir('/yo', { token: viejo });
+    assert.deepEqual(yo.datos.vinculo, { docente: 'Begue José Luis', estado: 'confirmado' });
+    const asesora = await ingresar('asesor@test.com', 'asesor123');
+    const cuentas = (await pedir('/docentes/vinculos', { token: asesora })).datos.usuarios;
+    assert.ok(!cuentas.some((u) => u.estado === 'pendiente'), 'no queda ninguna cuenta esperando aprobación');
 });
 
 // ================= SUBIDA DE PROGRAMAS =================

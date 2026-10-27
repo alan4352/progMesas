@@ -18,11 +18,14 @@
         'asesor@test.com': 'asesor123',
         'alumno@test.com': 'alumno123',
         'preceptor@test.com': 'preceptor123',
-        'docente2@test.com': 'docente123'
+        'docente2@test.com': 'docente123',
+        'docente3@test.com': 'docente123'
     };
     const CUENTAS_EXTRA = [
         { email: 'preceptor@test.com', nombre: 'Preceptor (demo)', rol: 'viewer' },
-        { email: 'docente2@test.com', nombre: 'Docente nuevo (demo)', rol: 'teacher' }
+        { email: 'docente2@test.com', nombre: 'Docente nuevo (demo)', rol: 'teacher' },
+        // Su nombre coincide con la lista de horarios ("Grimberg Valeria"): se vincula sola al entrar
+        { email: 'docente3@test.com', nombre: 'Valeria Grimberg', rol: 'teacher' }
     ];
 
     // ================= UTILIDADES =================
@@ -173,6 +176,16 @@
         const k = claveTexto(docente);
         return estado.vinculos.find((v) => v.estado === 'confirmado' && v.usuario_id !== id && claveTexto(v.docente) === k) || null;
     }
+    // Igual que backend/docentes.js: mismas palabras en cualquier orden, y una sola coincidencia
+    function clavePalabras(nombre) {
+        return claveTexto(nombre).split(' ').filter(Boolean).sort().join(' ');
+    }
+    function nombreOficialPara(nombreCuenta) {
+        const clave = clavePalabras(nombreCuenta);
+        if (!clave.includes(' ')) return null;
+        const coincidencias = datos.docentesOficiales.filter((d) => clavePalabras(d) === clave);
+        return coincidencias.length === 1 ? coincidencias[0] : null;
+    }
     function registrarAcceso(u) {
         let v = vinculoDe(u.id);
         if (!v) {
@@ -183,6 +196,12 @@
             estado.vinculos.push(v);
         }
         v.ultimo_acceso = ahora();
+        if (v.estado === 'sin_vincular') {
+            const docente = nombreOficialPara(u.nombre);
+            if (docente && !confirmadoPorOtro(docente, u.id)) {
+                Object.assign(v, { docente, estado: 'confirmado', confirmado_at: ahora(), confirmado_por: 'automático' });
+            }
+        }
         guardarEstado();
         return v;
     }
@@ -284,7 +303,7 @@
             const docente = docenteOficial(body?.docente);
             if (!docente) throw errorHttp('Ese nombre no figura en la lista de asignaciones');
             if (confirmadoPorOtro(docente, user.id)) throw errorHttp('Ese nombre ya está vinculado a otra cuenta. Hablá con la asesora.', 409);
-            Object.assign(v, { docente, estado: 'pendiente', solicitado_at: ahora(), confirmado_at: null, confirmado_por: null });
+            Object.assign(v, { docente, estado: 'confirmado', solicitado_at: ahora(), confirmado_at: ahora(), confirmado_por: 'el docente' });
             guardarEstado();
             return { ok: true, vinculo: vinculoPublico(v) };
         }
@@ -478,6 +497,7 @@
             '<li><b>asesor@test.com</b> / asesor123 — asesora (dashboard, confirma docentes)</li>' +
             '<li><b>prof@test.com</b> / prof123 — docente vinculado</li>' +
             '<li><b>docente2@test.com</b> / docente123 — docente nuevo (elige su nombre)</li>' +
+            '<li><b>docente3@test.com</b> / docente123 — docente que se vincula sola por su nombre</li>' +
             '<li><b>preceptor@test.com</b> / preceptor123 — consulta</li>' +
             '<li><b>alumno@test.com</b> / alumno123 — alumno</li>' +
             '</ul></details>' +

@@ -16,7 +16,7 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 |---|---|
 | **Visitante / alumno** | Ver y buscar todos los programas cargados (por materia, curso, año o docente) y abrir el PDF en el visor. |
 | **Docente** | Subir el programa de sus materias (sólo las asignadas a su nombre) y reemplazarlo por una versión nueva. |
-| **Asesora** | Subir para cualquier materia, eliminar programas, confirmar las cuentas de docentes y usar el dashboard de control. |
+| **Asesora** | Subir para cualquier materia, eliminar programas, corregir la vinculación de los docentes y usar el dashboard de control. |
 | **Consulta** (preceptor, directivo) | Ver el dashboard sin modificar nada. |
 
 **Dashboard de asesoría**
@@ -25,7 +25,7 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 - Avance por curso y por docente.
 - Lista de pendientes con filtros y exportación a CSV.
 - Aviso cuando Google Drive no está disponible o hay asignaciones para revisar.
-- Confirmación, corrección y desvinculación de las cuentas de docentes.
+- Control y corrección de la vinculación de las cuentas de docentes.
 - Vinculación manual de programas viejos que no coinciden con ninguna materia oficial.
 
 **Interfaz**
@@ -39,7 +39,8 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 
 - **Integrado a un sistema más grande** — los usuarios y el inicio de sesión vienen del sistema principal
   (token firmado). Mientras tanto se puede usar un login de prueba (`AUTH_MODO=prueba`).
-- **Vinculación de docentes** — la primera vez que entra, cada docente elige su nombre en la lista oficial y la asesora lo confirma.
+- **Vinculación de docentes** — las cuentas vienen verificadas del sistema principal. Si el nombre de la cuenta coincide con
+  uno de la lista oficial, se vincula solo; si no, el docente lo elige una vez y ya puede cargar. No hace falta aprobación.
 - **Lista oficial de asignaciones** — `backend/data/asignaciones.xlsx` indica qué programa tiene que entregar cada curso
   (curso + materia + docentes). Se genera a partir de las planillas de horarios y la asesoría la puede editar con Excel:
   el servidor la relee al guardarla.
@@ -110,7 +111,7 @@ Mientras la app de Google esté en modo "Testing", el permiso vence a los 7 día
 npm test
 ```
 
-27 pruebas con `node:test` (sin dependencias extra): utilidades, contraseñas, roles, planilla de asignaciones y la API
+29 pruebas con `node:test` (sin dependencias extra): utilidades, contraseñas, roles, planilla de asignaciones y la API
 completa contra un servidor real que usa una copia temporal de la base y no toca Google Drive.
 GitHub Actions las corre en cada cambio (`.github/workflows/pruebas.yml`, Node 20 y 22) y antes de publicar la demo:
 si alguna falla, no se publica.
@@ -139,12 +140,12 @@ En la escuela se usa `AUTH_MODO=externo`. Más detalles en [LEEME.md](LEEME.md).
 
 GitHub Pages sólo sirve archivos estáticos, así que la demo no usa el servidor: `demo/demo.js` atiende las
 mismas rutas `/api/...` dentro del navegador, con las mismas reglas de permisos, a partir de los datos de la
-base y de `asignaciones.xlsx`. Los cambios (subir, borrar, confirmar docentes) quedan sólo en el navegador de
+base y de `asignaciones.xlsx`. Los cambios (subir, borrar, vincular docentes) quedan sólo en el navegador de
 quien la usa y se pueden restablecer. Se publica sola en cada push a `main`
 (`.github/workflows/pages.yml`), junto con las páginas de privacidad y condiciones.
 
 Cuentas de la demo: `asesor@test.com` / `asesor123`, `prof@test.com` / `prof123`,
-`docente2@test.com` / `docente123` (docente sin vincular), `preceptor@test.com` / `preceptor123`, `alumno@test.com` / `alumno123`.
+`docente2@test.com` / `docente123` (elige su nombre), `docente3@test.com` / `docente123` (se vincula solo), `preceptor@test.com` / `preceptor123`, `alumno@test.com` / `alumno123`.
 
 Para probarla en la compu: `npm install`, después `node demo/construir_sitio.js` y servir la carpeta `_site`.
 
@@ -202,7 +203,8 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 
 - El token del sistema principal se verifica con su firma; en modo prueba, contraseñas con scrypt y límite de
   10 intentos por IP y correo cada 15 minutos (con `TRUST_PROXY`, usando la IP real detrás de Render).
-- Un docente sólo puede cargar programas de sus materias, y sólo después de que la asesora confirme su cuenta.
+- Un docente sólo puede cargar programas de las materias del nombre con el que está vinculado, y no puede tomar un nombre
+  que ya usa otra cuenta.
 - Sólo se aceptan PDF válidos (se revisa el contenido, no sólo la extensión; hasta 10 MB por defecto).
 - Todo el contenido cargado por usuarios se escapa antes de mostrarse, con una política CSP que bloquea scripts externos.
 - La exportación a CSV neutraliza textos que Excel interpretaría como fórmulas.
@@ -211,6 +213,16 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 27 de octubre de 2026 (mediodía)
+
+- La asesora ya no tiene que aprobar a los docentes (las cuentas vienen verificadas del sistema principal):
+  - vinculación automática cuando el nombre de la cuenta coincide con uno solo de la lista de horarios;
+  - si no coincide, el docente elige su nombre y puede cargar en el momento;
+  - la asesora sigue pudiendo asignar, cambiar o desvincular nombres; las solicitudes pendientes se confirmaron solas.
+- Demo: cuenta `docente3@test.com` para ver la vinculación automática.
+- Pruebas automáticas: 29 (vinculación elegida, automática y migración de pendientes).
+- Política de privacidad y condiciones del servicio actualizadas.
 
 ### 27 de octubre de 2026 (tarde)
 

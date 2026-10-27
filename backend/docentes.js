@@ -1,11 +1,13 @@
 // Vinculación entre la cuenta de un docente (ID único del sistema principal) y su nombre
 // en la lista oficial de asignaciones (data/asignaciones.xlsx).
 //
+// Las cuentas ya vienen verificadas por el sistema principal, así que no hace falta que la asesora apruebe nada.
 // Flujo:
 //   1. El docente entra por primera vez → queda registrado como "sin_vincular".
-//   2. Elige su nombre de la lista → "pendiente".
-//   3. La asesora lo confirma en el dashboard → "confirmado". Recién ahí puede subir programas.
-// La asesora también puede asignar o corregir el nombre directamente.
+//      Si su nombre coincide con UNO SOLO de la lista oficial, se vincula automáticamente.
+//   2. Si no, elige su nombre de la lista una vez → "confirmado" y ya puede subir programas.
+// La asesora puede asignar, corregir o desvincular el nombre desde el dashboard.
+// (El estado "pendiente" quedó de la versión anterior, cuando la asesora tenía que aprobar.)
 
 import db from './db.js';
 import { claveTexto } from './lib/normalizar.js';
@@ -63,6 +65,21 @@ const stmtDesvincular = db.prepare(`
     WHERE usuario_id = ?
 `);
 
+// Las solicitudes que quedaron esperando la aprobación de la asesora (versión anterior) se confirman
+db.transaction(() => {
+    const pendientes = db.prepare("SELECT * FROM docentes_usuarios WHERE estado = 'pendiente'").all();
+    for (const v of pendientes) {
+        const tomado = v.docente && db.prepare(
+            "SELECT 1 FROM docentes_usuarios WHERE estado = 'confirmado' AND usuario_id <> ? AND docente = ?"
+        ).get(v.usuario_id, v.docente);
+        if (v.docente && !tomado) {
+            stmtConfirmar.run(v.docente, v.solicitado_at || new Date().toISOString(), 'el docente', v.usuario_id);
+        } else {
+            stmtDesvincular.run(v.usuario_id);
+        }
+    }
+})();
+
 function error(mensaje, status = 400) {
     return Object.assign(new Error(mensaje), { status });
 }
@@ -73,10 +90,34 @@ function confirmadoPorOtro(docente, usuarioId) {
     return stmtTodos.all().find((v) => v.estado === 'confirmado' && v.usuario_id !== usuarioId && claveTexto(v.docente) === k) || null;
 }
 
-/** Registra (o actualiza) a un docente cada vez que entra. */
+/** Palabras del nombre, sin acentos y en cualquier orden ("Lucrecia Fernández" = "Fernandez Lucrecia"). */
+function clavePalabras(nombre) {
+    return claveTexto(nombre).split(' ').filter(Boolean).sort().join(' ');
+}
+
+/**
+ * Nombre de la lista oficial que corresponde al nombre de la cuenta, sólo si coincide con uno solo
+ * y completo (mismas palabras). Un apellido suelto o un nombre repetido no se vinculan solos.
+ */
+export function nombreOficialPara(nombreCuenta) {
+    const clave = clavePalabras(nombreCuenta);
+    if (!clave.includes(' ')) return null;
+    const coincidencias = listaDocentes().filter((d) => clavePalabras(d) === clave);
+    return coincidencias.length === 1 ? coincidencias[0] : null;
+}
+
+/** Registra (o actualiza) a un docente cada vez que entra, y lo vincula solo si su nombre coincide. */
 export function registrarAcceso(usuario) {
     stmtRegistrar.run({ id: usuario.id, nombre: usuario.nombre || '', email: usuario.email || '', ahora: new Date().toISOString() });
-    return stmtPorId.get(usuario.id);
+    const v = stmtPorId.get(usuario.id);
+    if (v.estado === 'sin_vincular') {
+        const docente = nombreOficialPara(usuario.nombre);
+        if (docente && !confirmadoPorOtro(docente, usuario.id)) {
+            stmtConfirmar.run(docente, new Date().toISOString(), 'automático', usuario.id);
+            return stmtPorId.get(usuario.id);
+        }
+    }
+    return v;
 }
 
 export function vinculoDe(usuarioId) {
@@ -89,7 +130,7 @@ export function docenteConfirmado(usuarioId) {
     return v && v.estado === 'confirmado' ? v.docente : '';
 }
 
-/** El docente elige su nombre de la lista. */
+/** El docente elige su nombre de la lista: queda vinculado en el momento (la cuenta ya viene verificada). */
 export function solicitarVinculo(usuario, nombre) {
     const v = registrarAcceso(usuario);
     if (v.estado === 'confirmado') {
@@ -100,7 +141,9 @@ export function solicitarVinculo(usuario, nombre) {
     if (confirmadoPorOtro(docente, usuario.id)) {
         throw error('Ese nombre ya está vinculado a otra cuenta. Hablá con la asesora.', 409);
     }
-    stmtSolicitar.run(docente, new Date().toISOString(), usuario.id);
+    const ahora = new Date().toISOString();
+    stmtSolicitar.run(docente, ahora, usuario.id);
+    stmtConfirmar.run(docente, ahora, 'el docente', usuario.id);
     return vinculoDe(usuario.id);
 }
 

@@ -48,18 +48,8 @@ function aplicarRol() {
 
 // ================= VINCULACIÓN DEL DOCENTE =================
 
-function mostrarEstadoVinculo(forzarFormulario = false) {
-    const v = usuario.vinculo;
-    const pendiente = v?.estado === 'pendiente' && !forzarFormulario;
-    const aviso = $('vinculoPendiente');
-    if (pendiente) {
-        aviso.innerHTML = `Elegiste <b>${esc(v.docente)}</b>. La asesora tiene que confirmarlo; ` +
-            'cuando lo haga vas a poder cargar tus programas desde esta página.';
-    }
-    mostrar(aviso, pendiente);
-    mostrar($('formVinculo'), !pendiente);
-    mostrar($('btnCambiarNombre'), pendiente);
-    if (!pendiente) cargarNombres();
+function mostrarEstadoVinculo() {
+    cargarNombres();
 }
 
 let nombresCargados = false;
@@ -85,8 +75,9 @@ async function enviarVinculo(evento) {
         const r = await api('/docentes/vinculo', { method: 'POST', json: { docente } });
         usuario.vinculo = r.vinculo;
         $('nombreDocente').value = '';
-        showToast('Listo. Queda pendiente de confirmación de la asesora.', 'success');
+        showToast(`Listo, ${r.vinculo.docente}. Ya podés cargar tus programas.`, 'success');
         aplicarRol();
+        await Promise.all([cargarProgramas(), cargarAsignaciones()]);
     } catch (err) {
         showToast(err.message, 'danger');
     }
@@ -358,7 +349,6 @@ function conectarEventos() {
     });
     $('btnLogout').addEventListener('click', logout);
     $('formVinculo').addEventListener('submit', enviarVinculo);
-    $('btnCambiarNombre').addEventListener('click', () => mostrarEstadoVinculo(true));
     $('formLogin').addEventListener('submit', login);
     $('btnVerPassword').addEventListener('click', () => {
         const input = $('password');
