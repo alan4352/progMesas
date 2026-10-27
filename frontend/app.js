@@ -38,7 +38,7 @@ function aplicarRol() {
     const banner = $('bannerDocente');
     if (esDocente) {
         const como = usuario.vinculo?.estado === 'confirmado' ? ` (<b>${esc(usuario.vinculo.docente)}</b>)` : '';
-        banner.innerHTML = `🧑‍🏫 <b>Mis programas:</b> sesión iniciada como <u>${esc(usuario.nombre)}</u>${como}. ` +
+        banner.innerHTML = `${icono('docente')}<b>Mis programas:</b> sesión iniciada como <u>${esc(usuario.nombre)}</u>${como}. ` +
             'Acá se muestran sólo los programas de tus materias.';
         mostrar(banner, true);
     } else {
@@ -187,7 +187,7 @@ function render(lista) {
         return `
         <details class="sub-collapsible bloque-anio" ${i === 0 ? 'open' : ''}>
             <summary>
-                <span>📅 Programas del año <b>${esc(anio)}</b></span>
+                <span>${icono('calendario')}Programas del año <b>${esc(anio)}</b></span>
                 <span class="coverage-badge coverage-high badge-chico">${items.length} cargado(s)</span>
             </summary>
             <div class="bloque-contenido">
@@ -199,7 +199,7 @@ function render(lista) {
 
 function tarjeta(p) {
     const borrar = usuario?.role === 'advisor'
-        ? `<button type="button" class="btn-delete" data-accion="eliminar" data-id="${esc(p.id)}">🗑️ Eliminar</button>`
+        ? `<button type="button" class="btn-delete" data-accion="eliminar" data-id="${esc(p.id)}">${icono('eliminar')}Eliminar</button>`
         : '';
     return `
     <div class="card">
@@ -209,7 +209,7 @@ function tarjeta(p) {
             <small>Docente: ${esc(p.profesor || 'Sin datos')} | Fecha: ${esc(p.fecha || 'Sin fecha')}</small>
         </div>
         <div class="card-actions">
-            <button type="button" class="btn-ver" data-accion="ver" data-id="${esc(p.id)}">👁️ Ver PDF</button>
+            <button type="button" class="btn-ver" data-accion="ver" data-id="${esc(p.id)}">${icono('documento')}Ver PDF</button>
             ${borrar}
         </div>
     </div>`;
@@ -287,7 +287,7 @@ async function cargarAsignaciones() {
     select.innerHTML = '<option value="">Elegí curso y materia…</option>' + cursos.map((c) => {
         const items = porCurso.get(c).sort((a, b) => a.materia.localeCompare(b.materia, 'es'));
         return `<optgroup label="${esc(c)}${items[0].turno ? ' — ' + esc(items[0].turno) : ''}">` +
-            items.map((a) => `<option value="${esc(a.id)}">${esc(a.materia)}${a.programa ? ' ✓ cargado' : ''}</option>`).join('') +
+            items.map((a) => `<option value="${esc(a.id)}">${esc(a.materia)}${a.programa ? ' (ya cargado)' : ''}</option>`).join('') +
             '</optgroup>';
     }).join('');
     if (asignaciones.some((a) => a.id === elegido)) select.value = elegido;
@@ -363,6 +363,7 @@ function conectarEventos() {
     $('btnVerPassword').addEventListener('click', () => {
         const input = $('password');
         input.type = input.type === 'password' ? 'text' : 'password';
+        $('btnVerPassword').innerHTML = icono(input.type === 'password' ? 'ojo' : 'ojoTachado');
     });
     $('btnCerrarVisor').addEventListener('click', cerrarVisor);
     $('formSubida').addEventListener('submit', subir);

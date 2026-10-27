@@ -23,7 +23,7 @@ function barra(pct) {
 
 function botonMas(cantidad, accion, texto) {
     return cantidad > 0
-        ? `<button type="button" class="btn-load-more" data-accion="${accion}">▼ ${esc(texto)} (${cantidad} más)</button>`
+        ? `<button type="button" class="btn-load-more" data-accion="${accion}">${icono('abajo')}${esc(texto)} (${cantidad} más)</button>`
         : '';
 }
 
@@ -257,7 +257,7 @@ function renderFaltantes() {
         cursos.slice(0, limiteFaltantes).map((curso, i) => {
             const items = porCurso.get(curso).sort((a, b) => a.materia.localeCompare(b.materia, 'es'));
             return `<details class="sub-collapsible" ${i === 0 ? 'open' : ''}>
-                <summary><span>📚 <b>${esc(curso)}</b></span>
+                <summary><span>${icono('curso')}<b>${esc(curso)}</b></span>
                     <span class="coverage-badge coverage-low badge-chico">${items.length} pendiente(s)</span></summary>
                 <div class="bloque-contenido">
                     <table class="custom-table">
@@ -308,7 +308,7 @@ function renderUltimos() {
                 <small>Docente(s): ${esc(a.docentes.join(' / '))} | Fecha: ${esc(a.programa.fecha)}${a.programa.almacenamiento === 'local' ? ' | guardado en el servidor' : ''}</small>
             </div>
             <div class="card-actions">
-                ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-ver">👁️ Ver PDF</a>` : ''}
+                ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-ver">${icono('documento')}Ver PDF</a>` : ''}
             </div>
         </div>`;
     }).join('');
@@ -339,7 +339,7 @@ function filaCuenta(u) {
     if (u.estado === 'pendiente') {
         detalle = `Eligió <b>${esc(u.docente)}</b> (${u.asignaciones} materia(s)) el ${fechaCorta(u.solicitado)}`;
         acciones = esAsesora ? `${campoNombre(u, u.docente)}
-            <button type="button" class="btn-ver" data-accion="confirmar-docente" data-usuario="${esc(u.usuarioId)}">✓ Confirmar</button>
+            <button type="button" class="btn-ver" data-accion="confirmar-docente" data-usuario="${esc(u.usuarioId)}">${icono('confirmar')}Confirmar</button>
             <button type="button" class="btn-delete" data-accion="desvincular-docente" data-usuario="${esc(u.usuarioId)}">Rechazar</button>` : '';
     } else if (u.estado === 'sin_vincular') {
         detalle = `Último ingreso: ${fechaCorta(u.ultimoAcceso)}`;
