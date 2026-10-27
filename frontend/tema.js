@@ -36,9 +36,8 @@
         raiz.dataset.tema = tema;
         if (boton) {
             const otro = tema === 'oscuro' ? 'claro' : 'oscuro';
-            boton.innerHTML = tema === 'oscuro' ? SOL : LUNA;
+            boton.innerHTML = `${tema === 'oscuro' ? SOL : LUNA}Modo ${otro}`;
             boton.title = `Cambiar a modo ${otro}`;
-            boton.setAttribute('aria-label', `Cambiar a modo ${otro}`);
         }
     }
 
@@ -57,11 +56,12 @@
     }
 
     function crearBoton() {
-        const lugar = document.querySelector('header .header-actions');
+        // En el menú lateral (como el resto de las opciones); si una página no lo tiene, en el encabezado
+        const lugar = document.getElementById('lugarTema') || document.querySelector('.page-header-extra');
         if (!lugar || boton) return;
         boton = document.createElement('button');
         boton.type = 'button';
-        boton.className = 'btn-secondary-auth btn-tema';
+        boton.className = 'nav-link btn-tema';
         boton.addEventListener('click', alternar);
         lugar.appendChild(boton);
         aplicar();

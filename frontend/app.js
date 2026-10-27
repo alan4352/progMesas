@@ -19,6 +19,10 @@ function docenteVinculado() {
 
 function aplicarRol() {
     const logueado = Boolean(usuario);
+    mostrarPerfil(usuario);
+    $('subtituloPagina').textContent = logueado
+        ? `Bienvenido/a, ${usuario.nombre || usuario.email}.`
+        : 'Consultá los programas de examen de todos los cursos y años.';
     const esDocente = usuario?.role === 'teacher';
     const puedeSubir = usuario?.role === 'advisor' || docenteVinculado();
 

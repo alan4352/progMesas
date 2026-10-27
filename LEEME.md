@@ -32,7 +32,7 @@ No hace falta iniciar sesión.
 
 **La primera vez:**
 
-1. Iniciá sesión (en la escuela, desde el sistema principal; en modo prueba, con **Acceso docentes**).
+1. Iniciá sesión (en la escuela, desde el sistema principal; en modo prueba, con **Acceso docentes** en el menú).
 2. Si tu nombre en el sistema principal coincide con el de la lista de horarios, la cuenta se vincula sola y ya podés
    cargar programas: no tenés que hacer nada más.
 3. Si no coincide, aparece **Elegí tu nombre en la lista de docentes**: escribí tu apellido, elegí tu nombre tal como
@@ -64,9 +64,9 @@ En la lista de abajo ves sólo los programas de tus materias.
 ### Asesora pedagógica
 
 Tiene todo lo de los docentes, para **cualquier** curso y materia, y además puede **Eliminar** programas desde la lista.
-El botón **Dashboard Asesora** abre el panel de control:
+**Dashboard**, en el menú, abre el panel de control:
 
-- **Año** (arriba a la derecha): elegí el año lectivo que querés controlar.
+- **Año** (en el encabezado, arriba a la derecha): elegí el año lectivo que querés controlar.
 - **Avisos** (arriba de todo): si Google Drive no está disponible o hay programas guardados en el servidor y no en Drive.
   Esos programas pasan solos a Drive cuando vuelve (al arrancar el servidor y cada 6 horas); **Pasar a Drive ahora** lo hace en el momento.
 - **Cobertura general:** programas requeridos, entregados, pendientes y porcentaje.
@@ -93,12 +93,17 @@ El botón **Dashboard Asesora** abre el panel de control:
 
 ### Preceptores y directivos
 
-Con el botón del dashboard ven el mismo panel que la asesora, incluido el registro de actividad, pero sin poder modificar
+Con **Dashboard**, en el menú, ven el mismo panel que la asesora, incluido el registro de actividad, pero sin poder modificar
 nada (no fijan la fecha límite, no corrigen vinculaciones ni borran programas).
 
-### Modo claro / oscuro
+### Menú y modo oscuro
 
-La página usa el modo de la computadora o el celular. El botón del sol / luna, arriba a la derecha, lo cambia y lo recuerda.
+Todas las opciones (Programas, Dashboard, Acceso docentes, Cerrar sesión, privacidad y condiciones) están en el
+**menú lateral**, como en el sistema principal de la escuela. En el celular el menú se abre con el botón **Menú**
+de arriba a la derecha.
+
+La página usa el modo claro u oscuro de la computadora o el celular. **Modo oscuro / Modo claro**, al final del menú,
+lo cambia y lo recuerda.
 
 ### Preguntas frecuentes
 

@@ -741,6 +741,7 @@
             .demo-barra button { font:inherit; padding:.2rem .7rem; border-radius:6px; border:1px solid #9d6a00;
                 background:#fffaf0; color:#3a1a00; cursor:pointer; }
             :root[data-tema="oscuro"] .demo-barra { background:#2e2410; color:#ecd9b0; border-bottom-color:#5a4520; }
+            @media (min-width: 901px) { .demo-barra { margin-left: var(--ancho-menu, 270px); } }
             :root[data-tema="oscuro"] .demo-barra ul,
             :root[data-tema="oscuro"] .demo-barra button { background:#221b10; color:#ecd9b0; border-color:#6b5226; }`;
         document.head.appendChild(estilo);

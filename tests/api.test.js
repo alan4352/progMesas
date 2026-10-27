@@ -57,7 +57,7 @@ test('el servidor manda las cabeceras de seguridad', async () => {
 });
 
 test('las páginas y los PDF guardados se sirven; no se puede salir de la carpeta uploads', async () => {
-    for (const pagina of ['/', '/privacidad.html', '/terminos.html', '/frontend/dashboard.html', '/frontend/tema.js']) {
+    for (const pagina of ['/', '/privacidad.html', '/terminos.html', '/frontend/dashboard.html', '/frontend/tema.js', '/frontend/marco.js', '/frontend/img/escudo.png']) {
         const r = await fetch(`http://127.0.0.1:${PUERTO}${pagina}`);
         assert.equal(r.status, 200, pagina);
     }

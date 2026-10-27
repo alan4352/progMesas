@@ -108,14 +108,20 @@ function renderResumen() {
         ? datos.asignaciones.filter((a) => a.programa?.created_at && new Date(a.programa.created_at) > limite).length
         : 0;
 
-    $('dashboardResumen').innerHTML = `
-        <div class="dash-card"><h3>Programas requeridos</h3><p>${total}</p></div>
-        <div class="dash-card"><h3>Entregados</h3><p>${entregados}</p>
-            ${fueraDeTermino ? `<small>${fueraDeTermino} fuera de término</small>` : ''}</div>
-        <div class="dash-card"><h3>${vencida ? 'Atrasados' : 'Pendientes'}</h3><p class="numero-pendiente">${pendientes.length}</p>
-            ${vencida && pendientes.length ? '<small>la fecha límite ya pasó</small>' : ''}</div>
-        <div class="dash-card"><h3>Cobertura ${esc(datos.anio)}</h3><p>${pct}%</p>
-            <span class="coverage-badge ${clase}">${texto}</span></div>`;
+    // Tarjetas de estadísticas como las del sistema principal (número grande e ícono a la derecha)
+    const tarjeta = (clase, titulo, valor, iconoNombre, extra = '') => `
+        <div class="dash-card ${clase}">
+            <div><h3>${titulo}</h3><p>${valor}</p>${extra}</div>
+            <span class="dash-icono">${icono(iconoNombre)}</span>
+        </div>`;
+    $('dashboardResumen').innerHTML =
+        tarjeta('stat-primario', 'Programas requeridos', total, 'lista') +
+        tarjeta('stat-exito', 'Entregados', entregados, 'confirmar',
+            fueraDeTermino ? `<small>${fueraDeTermino} fuera de término</small>` : '') +
+        tarjeta('stat-peligro', vencida ? 'Atrasados' : 'Pendientes', pendientes.length, vencida ? 'reloj' : 'pendiente',
+            vencida && pendientes.length ? '<small>la fecha límite ya pasó</small>' : '') +
+        tarjeta('stat-info', `Cobertura ${esc(datos.anio)}`, `${pct}%`, 'porcentaje',
+            `<span class="coverage-badge ${clase}">${texto}</span>`);
 }
 
 // ================= FECHA LÍMITE =================
@@ -639,7 +645,13 @@ async function init() {
         return;
     }
     esAsesora = usuario.role === 'advisor';
-    if (!esAsesora) $('tituloDashboard').textContent = 'Dashboard de programas';
+    if (!esAsesora) $('tituloDashboard').innerHTML = `${icono('tablero')}Dashboard de programas`;
+    mostrarPerfil(usuario);
+    $('subtituloDashboard').textContent = `Bienvenido/a, ${usuario.nombre || usuario.email}.`;
+    $('btnLogout').addEventListener('click', () => {
+        cerrarSesion();
+        location.href = '../';
+    });
     mostrarAvisoPendiente();
 
     let anio = new Date().getFullYear();

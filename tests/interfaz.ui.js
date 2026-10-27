@@ -51,11 +51,13 @@ async function nuevaPagina({ ancho = 1280, alto = 900, tema = 'light' } = {}) {
 
 async function ingresar(pagina, email, password) {
     await pagina.goto(srv.base + '/');
+    // En el celular las opciones están en el menú lateral
+    if (await pagina.locator('#btnMenu').isVisible()) await pagina.click('#btnMenu');
     await pagina.click('#btnToggleLogin');
     await pagina.fill('#email', email);
     await pagina.fill('#password', password);
     await pagina.click('#formLogin button[type=submit]');
-    await pagina.waitForSelector('#btnLogout:not(.hidden)');
+    await pagina.waitForSelector('#btnLogout:not(.hidden)', { state: 'attached' });
 }
 
 /** Revisa accesibilidad (WCAG 2.1 A y AA) y devuelve los problemas graves. */
@@ -204,6 +206,13 @@ test('en el celular no hay desplazamiento horizontal', async () => {
     const pg = await nuevaPagina({ ancho: 375, alto: 800 });
     await ingresar(pg, 'asesor@test.com', 'asesor123');
     assert.equal(await pg.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'inicio');
+    // En el celular el menú está cerrado: se abre con "Menú", se cierra con Escape
+    assert.equal(await pg.locator('#btnDashboard').isVisible(), false);
+    await pg.click('#btnMenu');
+    assert.equal(await pg.getAttribute('#btnMenu', 'aria-expanded'), 'true');
+    await pg.keyboard.press('Escape');
+    assert.equal(await pg.getAttribute('#btnMenu', 'aria-expanded'), 'false');
+    await pg.click('#btnMenu');
     await pg.click('#btnDashboard');
     await pg.waitForSelector('#dashboardResumen .dash-card');
     assert.equal(await pg.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'dashboard');

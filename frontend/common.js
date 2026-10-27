@@ -30,6 +30,11 @@ const ICONOS = {
     reloj: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
     nube: '<path d="M12 13v8"/><path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24"/><path d="m8 17 4-4 4 4"/>',
     copiar: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    menu: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
+    escuela: '<path d="M14 22v-4a2 2 0 1 0-4 0v4"/><path d="m18 10 3.45 1.97A2 2 0 0 1 22.5 13.7V20a2 2 0 0 1-2 2h-17a2 2 0 0 1-2-2v-6.3a2 2 0 0 1 1.05-1.76L6 10"/><path d="M18 5v17"/><path d="m4 6 7.1-3.79a2 2 0 0 1 1.8 0L20 6"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/>',
+    escudo: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+    pendiente: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+    porcentaje: '<path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
     lista: '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>'
 };
 
@@ -283,4 +288,21 @@ function enlaceListado(filtros, raiz = './') {
     url.hash = '';
     for (const [clave, valor] of Object.entries(filtros)) if (valor) url.searchParams.set(clave, valor);
     return url.href;
+}
+
+// ================= PERFIL EN EL MENÚ LATERAL =================
+
+const NOMBRES_DE_ROL = {
+    teacher: 'Docente',
+    advisor: 'Asesora pedagógica',
+    viewer: 'Preceptor / directivo',
+    student: 'Alumno'
+};
+
+/** Muestra en el menú quién inició sesión (o "Visitante"). */
+function mostrarPerfil(usuario) {
+    const nombre = document.getElementById('perfilNombre');
+    const rol = document.getElementById('perfilRol');
+    if (nombre) nombre.textContent = usuario ? usuario.nombre || usuario.email || 'Usuario' : 'Visitante';
+    if (rol) rol.textContent = usuario ? NOMBRES_DE_ROL[usuario.role] || '' : 'Consulta pública';
 }

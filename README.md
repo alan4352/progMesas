@@ -42,8 +42,12 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 
 **Interfaz**
 
-- Modo claro y modo oscuro: sigue la preferencia del sistema y se puede cambiar con el botón del encabezado (se recuerda).
-- Paleta institucional (bordó y dorado) definida con variables en `frontend/styles.css`.
+- Mismo diseño que el sistema principal de la escuela ([PROJECT_ASIST](https://github.com/moshi-azz/PROJECT_ASIST)):
+  fondo bordó con el escudo de marca de agua, menú lateral beige con el escudo, el perfil y las secciones,
+  encabezado con degradé bordó, tarjetas beige con borde bordó y encabezado degradé, tarjetas de estadísticas
+  y tablas con cabecera bordó. En el celular, el menú se abre con el botón **Menú**.
+- Modo oscuro como variante del mismo diseño: sigue la preferencia del sistema y se cambia desde el menú (se recuerda).
+- Colores en variables al principio de `frontend/styles.css`.
 - Íconos SVG propios, sin librerías externas.
 - Adaptada a celulares y revisada con axe-core (WCAG 2.1 AA) en los dos modos.
 
@@ -214,6 +218,8 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 ├── frontend/
 │   ├── styles.css           Estilos y paleta (modo claro y oscuro)
 │   ├── tema.js              Cambio de modo claro / oscuro
+│   ├── marco.js             Menú lateral (en el celular) y fecha del encabezado
+│   ├── img/escudo.png       Escudo de la escuela (menú y marca de agua)
 │   ├── common.js            Utilidades compartidas, sesión, íconos, descargas y fechas
 │   ├── app.js               Página principal
 │   └── dashboard.html/.js   Dashboard de la asesora
@@ -252,6 +258,15 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 27/10/2026 — Diseño del sistema principal
+
+- Las páginas usan el mismo diseño que el sistema principal de la escuela (PROJECT_ASIST): menú lateral beige con
+  escudo, perfil y secciones; encabezado con degradé bordó; fondo bordó con el escudo de marca de agua; tarjetas beige
+  con encabezado degradé; tarjetas de estadísticas con ícono; tablas con cabecera bordó.
+- En el celular: encabezado con escudo y botón **Menú** que abre el menú lateral (se cierra con Escape o tocando afuera).
+- El botón de modo oscuro y los enlaces a privacidad y condiciones pasan al menú lateral.
+- Enlace "Saltar al contenido" para teclado y lectores de pantalla.
 
 ### 27/10/2026 — Mejoras de uso, control y mantenimiento
 
