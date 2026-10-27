@@ -54,6 +54,7 @@ app.use(express.json({ limit: '100kb' }));
 
 app.get(['/', '/index.html'], (req, res) => res.sendFile(RUTAS.index));
 app.get('/privacidad.html', (req, res) => res.sendFile(RUTAS.privacidad));
+app.get('/terminos.html', (req, res) => res.sendFile(RUTAS.terminos));
 app.use('/frontend', express.static(RUTAS.frontend));
 app.use(
     '/uploads',

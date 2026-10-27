@@ -111,7 +111,8 @@ export const RUTAS = {
     token: path.join(BACKEND, 'token.json'),
     frontend: path.join(RAIZ, 'frontend'),
     index: path.join(RAIZ, 'index.html'),
-    privacidad: path.join(RAIZ, 'privacidad.html')
+    privacidad: path.join(RAIZ, 'privacidad.html'),
+    terminos: path.join(RAIZ, 'terminos.html')
 };
 
 // ID de la carpeta raíz de Drive donde se guardan los programas

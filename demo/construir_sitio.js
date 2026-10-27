@@ -28,8 +28,8 @@ fs.cpSync(path.join(RAIZ, 'frontend'), path.join(SALIDA, 'frontend'), { recursiv
 copiarPagina('index.html', 'index.html', 'demo/demo.js');
 copiarPagina('frontend/dashboard.html', 'frontend/dashboard.html', '../demo/demo.js');
 
-// Política de privacidad (la pide la pantalla de consentimiento de Google OAuth)
-fs.copyFileSync(path.join(RAIZ, 'privacidad.html'), path.join(SALIDA, 'privacidad.html'));
+// Política de privacidad y condiciones del servicio (las pide la pantalla de consentimiento de Google OAuth)
+for (const pagina of ['privacidad.html', 'terminos.html']) fs.copyFileSync(path.join(RAIZ, pagina), path.join(SALIDA, pagina));
 
 // Script de la demo y datos exportados de la base
 fs.mkdirSync(path.join(SALIDA, 'demo'), { recursive: true });
