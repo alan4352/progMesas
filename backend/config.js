@@ -137,5 +137,25 @@ for (const [variable, ruta] of [['GOOGLE_OAUTH_JSON', RUTAS.oauth], ['GOOGLE_TOK
     }
 }
 
-// ID de la carpeta raíz de Drive donde se guardan los programas
-export const DRIVE_CARPETA_RAIZ = process.env.DRIVE_CARPETA_RAIZ || '1EY74DSygnNwaxm6hWhKm5-alO-0X0Lnl';
+// ================= GOOGLE DRIVE =================
+// DRIVE_ALCANCE=completo (por defecto) → permiso "drive": usa la carpeta DRIVE_CARPETA_RAIZ creada a mano.
+// DRIVE_ALCANCE=archivos → permiso "drive.file": la app sólo ve lo que ella misma crea, así que guarda
+//   todo en una carpeta propia (DRIVE_CARPETA_NOMBRE) que crea sola. Google no lo considera un permiso
+//   "restringido", así que no hace falta la evaluación de seguridad para pasar la app a producción.
+//   Al cambiar de alcance hay que volver a autorizar: node scripts/autorizar_drive.js
+export const DRIVE_ALCANCE = (process.env.DRIVE_ALCANCE || 'completo').trim().toLowerCase();
+if (!['completo', 'archivos'].includes(DRIVE_ALCANCE)) {
+    console.error(`[Config] DRIVE_ALCANCE inválido: "${DRIVE_ALCANCE}" (usá "completo" o "archivos")`);
+    process.exit(1);
+}
+export const DRIVE_PERMISO = DRIVE_ALCANCE === 'archivos'
+    ? 'https://www.googleapis.com/auth/drive.file'
+    : 'https://www.googleapis.com/auth/drive';
+
+// Carpeta raíz donde se guardan los programas. Con alcance "archivos", si no se indica, la crea la app.
+export const DRIVE_CARPETA_RAIZ = process.env.DRIVE_CARPETA_RAIZ ||
+    (DRIVE_ALCANCE === 'completo' ? '1EY74DSygnNwaxm6hWhKm5-alO-0X0Lnl' : '');
+export const DRIVE_CARPETA_NOMBRE = process.env.DRIVE_CARPETA_NOMBRE || 'ProgMesas - Programas de examen';
+
+// DRIVE_DESACTIVADO=1 guarda todo en el servidor aunque haya credenciales (lo usan las pruebas automáticas)
+export const DRIVE_DESACTIVADO = ['1', 'true', 'si', 'sí'].includes(String(process.env.DRIVE_DESACTIVADO || '').toLowerCase());

@@ -8,6 +8,7 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 - **Demo:** <https://alan4352.github.io/progMesas/>
 - **Política de privacidad:** <https://alan4352.github.io/progMesas/privacidad.html>
 - **Condiciones del servicio:** <https://alan4352.github.io/progMesas/terminos.html>
+- **Guía de uso para cada rol e instalación en el servidor de la escuela:** [LEEME.md](LEEME.md)
 
 ## Funciones
 
@@ -85,6 +86,9 @@ npm start
 | `DATOS_DIR` | Carpeta para la base y los PDF locales, por ejemplo un disco persistente. La primera vez se copian ahí los del repositorio. |
 | `GOOGLE_OAUTH_JSON`, `GOOGLE_TOKEN_JSON` | Contenido de `backend/oauth.json` y `backend/token.json`, para usar Drive en un hosting sin esos archivos. |
 | `DRIVE_CARPETA_RAIZ` | ID de la carpeta de Drive donde se guardan los programas. |
+| `DRIVE_ALCANCE` | `completo` (permiso `drive`, por defecto) o `archivos` (permiso `drive.file`, carpeta propia de la app). Ver [LEEME.md](LEEME.md#5-google-drive). |
+| `DRIVE_CARPETA_NOMBRE` | Nombre de la carpeta propia con `DRIVE_ALCANCE=archivos`. |
+| `DRIVE_DESACTIVADO` | `1` guarda todo en el servidor aunque haya credenciales (lo usan las pruebas). |
 | `CORS_ORIGIN` | Otros dominios que pueden usar la API (vacío = sólo el mismo servidor). |
 | `EXTERNO_*`, `ROL_*` | Datos del sistema principal para `AUTH_MODO=externo` (ver `.env.example`). |
 
@@ -99,6 +103,17 @@ node scripts/autorizar_drive.js
 
 Mientras la app de Google esté en modo "Testing", el permiso vence a los 7 días. Para evitarlo, pasala a
 "En producción" en la pantalla de consentimiento de OAuth (usa las páginas de privacidad y condiciones de arriba).
+
+## Pruebas automáticas
+
+```bash
+npm test
+```
+
+27 pruebas con `node:test` (sin dependencias extra): utilidades, contraseñas, roles, planilla de asignaciones y la API
+completa contra un servidor real que usa una copia temporal de la base y no toca Google Drive.
+GitHub Actions las corre en cada cambio (`.github/workflows/pruebas.yml`, Node 20 y 22) y antes de publicar la demo:
+si alguna falla, no se publica.
 
 ## Administración
 
@@ -133,9 +148,14 @@ Cuentas de la demo: `asesor@test.com` / `asesor123`, `prof@test.com` / `prof123`
 
 Para probarla en la compu: `npm install`, después `node demo/construir_sitio.js` y servir la carpeta `_site`.
 
-### Sistema completo en Render
+### Servidor de la escuela (instalación definitiva)
 
-`render.yaml` configura el servidor real: en render.com → **New → Blueprint** → elegir este repositorio.
+Los pasos (servicio que arranca solo en Linux o Windows, HTTPS con Nginx, copias de seguridad y actualizaciones)
+están en [LEEME.md](LEEME.md#2-instalación-en-el-servidor-de-la-escuela).
+
+### Sistema completo en Render (temporal)
+
+Render se usa mientras tanto, hasta instalarlo en el servidor de la escuela. `render.yaml` configura el servidor real: en render.com → **New → Blueprint** → elegir este repositorio.
 Render vuelve a desplegar en cada push a `main`.
 
 Si el servicio se crea a mano: Build Command `npm install`, Start Command `npm start`, y en **Environment**
@@ -153,7 +173,8 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 ├── terminos.html            Condiciones del servicio
 ├── package.json             Arranque desde la raíz (instala backend/ con postinstall)
 ├── render.yaml              Despliegue en Render
-├── .github/workflows/       Publicación de la demo en GitHub Pages
+├── .github/workflows/       Pruebas automáticas y publicación de la demo en GitHub Pages
+├── tests/                   Pruebas automáticas (node:test)
 ├── demo/                    Demo estática: datos exportados y API simulada en el navegador
 ├── frontend/
 │   ├── styles.css           Estilos y paleta (modo claro y oscuro)
@@ -191,7 +212,16 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 
 ## Historial de cambios
 
-### 27 de octubre de 2026
+### 27 de octubre de 2026 (tarde)
+
+- Pruebas automáticas (`npm test`): 27 pruebas de utilidades y de la API con cada rol, corridas por GitHub Actions
+  en cada cambio y antes de publicar la demo.
+- Opción `DRIVE_ALCANCE=archivos` para probar el permiso reducido `drive.file` de Google Drive (carpeta propia de la app).
+- `DRIVE_DESACTIVADO` para guardar todo en el servidor aunque haya credenciales.
+- LEEME: guía de uso para cada rol, preguntas frecuentes e instalación en el servidor de la escuela
+  (systemd / NSSM, Nginx con HTTPS, copias de seguridad y actualizaciones).
+
+### 27 de octubre de 2026 (mañana)
 
 - Demo pública en GitHub Pages con la API simulada en el navegador y publicación automática.
 - Despliegue del sistema completo en Render (`render.yaml`, `DATOS_DIR`, credenciales de Drive por variables de entorno).

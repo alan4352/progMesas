@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { Readable } from 'stream';
 import { google } from 'googleapis';
-import { RUTAS, DRIVE_CARPETA_RAIZ } from './config.js';
+import { RUTAS, DRIVE_CARPETA_RAIZ, DRIVE_CARPETA_NOMBRE, DRIVE_DESACTIVADO } from './config.js';
 import { escaparConsultaDrive } from './lib/normalizar.js';
 
 // ================= CREDENCIALES =================
@@ -14,14 +14,14 @@ function leerJson(ruta) {
     }
 }
 
-const credenciales = leerJson(RUTAS.oauth);
+const credenciales = DRIVE_DESACTIVADO ? null : leerJson(RUTAS.oauth);
 const app = credenciales?.installed || credenciales?.web || null;
 
 export const oAuth2Client = app
     ? new google.auth.OAuth2(app.client_id, app.client_secret, app.redirect_uris?.[0] || 'http://localhost')
     : null;
 
-let ultimoError = app ? null : 'Falta backend/oauth.json';
+let ultimoError = app ? null : DRIVE_DESACTIVADO ? 'Drive desactivado (DRIVE_DESACTIVADO)' : 'Falta backend/oauth.json';
 
 if (oAuth2Client) {
     const token = leerJson(RUTAS.token);
@@ -79,13 +79,21 @@ async function obtenerOCrearCarpeta(nombre, padre) {
     return carpeta.data.id;
 }
 
+/** Carpeta raíz: la configurada, o (con alcance "archivos") una carpeta propia en "Mi unidad". */
+let raizCreada = null;
+async function carpetaRaiz() {
+    if (DRIVE_CARPETA_RAIZ) return DRIVE_CARPETA_RAIZ;
+    raizCreada ||= await obtenerOCrearCarpeta(DRIVE_CARPETA_NOMBRE, 'root');
+    return raizCreada;
+}
+
 // ================= ARCHIVOS =================
 
 /** Sube el PDF a Año/Curso/Materia y lo deja público (sólo lectura). Devuelve el id del archivo. */
 export async function subirArchivo(buffer, anio, materia, curso, profesor) {
     if (!drive) throw new Error(ultimoError || 'Google Drive no está configurado');
     try {
-        const carpetaAnio = await obtenerOCrearCarpeta(String(anio), DRIVE_CARPETA_RAIZ);
+        const carpetaAnio = await obtenerOCrearCarpeta(String(anio), await carpetaRaiz());
         const carpetaCurso = await obtenerOCrearCarpeta(curso, carpetaAnio);
         const carpetaMateria = await obtenerOCrearCarpeta(materia, carpetaCurso);
 

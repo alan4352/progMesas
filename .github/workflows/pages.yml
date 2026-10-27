@@ -33,6 +33,10 @@ jobs:
         run: npm ci
         working-directory: backend
 
+      # Si alguna prueba falla, la demo no se publica
+      - name: Pruebas automáticas
+        run: node --test
+
       - name: Armar el sitio
         run: node demo/construir_sitio.js _site
 

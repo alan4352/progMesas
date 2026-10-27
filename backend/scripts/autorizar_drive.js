@@ -12,7 +12,7 @@
 import fs from 'fs';
 import readline from 'readline';
 import { oAuth2Client } from '../drive.js';
-import { RUTAS } from '../config.js';
+import { RUTAS, DRIVE_ALCANCE, DRIVE_PERMISO } from '../config.js';
 
 if (!oAuth2Client) {
     console.error('No se encontró backend/oauth.json con las credenciales de la app de Google.');
@@ -22,9 +22,10 @@ if (!oAuth2Client) {
 const url = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: ['https://www.googleapis.com/auth/drive']
+    scope: [DRIVE_PERMISO]
 });
 
+console.log(`\nPermiso pedido: ${DRIVE_PERMISO} (DRIVE_ALCANCE=${DRIVE_ALCANCE})`);
 console.log('\nAbrí este enlace en el navegador:\n');
 console.log(url, '\n');
 

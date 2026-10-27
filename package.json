@@ -10,6 +10,7 @@
   },
   "scripts": {
     "postinstall": "npm ci --prefix backend",
-    "start": "node backend/server.js"
+    "start": "node backend/server.js",
+    "test": "node --test"
   }
 }
