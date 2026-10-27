@@ -11,13 +11,16 @@ let pendientes = [];
 let limiteCursos = 8;
 let limiteDocentes = 10;
 let limiteFaltantes = 5;
+let registro = [];
+let registroCargado = false;
 
 function porcentaje(a, b) {
     return b > 0 ? Math.round((a / b) * 100) : 0;
 }
 
-function barra(pct) {
-    return `<div class="barra" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+function barra(pct, nombre) {
+    return `<div class="barra" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"
+        aria-label="Avance de ${esc(nombre)}: ${pct}%">
         <div class="barra-fill" style="width:${pct}%"></div></div>`;
 }
 
@@ -41,6 +44,7 @@ async function cargar() {
         return;
     }
     pendientes = datos.asignaciones.filter((a) => !a.programa);
+    renderFechaLimite();
     renderEstadoSistema();
     renderResumen();
     renderNotificaciones();
@@ -50,6 +54,7 @@ async function cargar() {
     renderFaltantes();
     renderUltimos();
     renderVinculos();
+    if ($('seccionRegistro').open) cargarRegistro();
 }
 
 // ================= ESTADO DEL SISTEMA =================
@@ -59,7 +64,15 @@ function renderEstadoSistema() {
     const drive = datos.estado?.drive;
     if (drive && !drive.disponible) {
         avisos.push(`<b>Google Drive no está disponible:</b> ${esc(drive.error || 'sin conexión')}. ` +
-            'Los programas nuevos se guardan en el servidor (carpeta backend/uploads).');
+            'Los programas nuevos se guardan en el servidor.');
+    }
+    const locales = datos.estado?.locales || 0;
+    if (locales > 0) {
+        const boton = esAsesora && drive?.disponible !== false
+            ? ` <button type="button" class="btn-secondary-auth btn-chico" data-accion="pasar-drive">${icono('nube')}Pasar a Drive ahora</button>`
+            : '';
+        avisos.push(`Hay <b>${locales}</b> archivo(s) de programas guardados en el servidor y no en Google Drive. ` +
+            `Se pasan solos a Drive cuando está disponible (al arrancar y cada 6 horas).${boton}`);
     }
     const asig = datos.estado?.asignaciones;
     if (asig?.error === 'falta') {
@@ -77,18 +90,76 @@ function renderEstadoSistema() {
 
 // ================= RESUMEN =================
 
+/** Fin del día de la fecha límite, en hora local. */
+function finDeFecha(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999) : null;
+}
+
 function renderResumen() {
     const total = datos.asignaciones.length;
     const entregados = total - pendientes.length;
     const pct = porcentaje(entregados, total);
     const [clase, texto] = pct >= 80 ? ['coverage-high', 'Alta'] : pct >= 50 ? ['coverage-mid', 'Media'] : ['coverage-low', 'Baja'];
 
+    const limite = finDeFecha(datos.fechaLimite);
+    const vencida = limite && new Date() > limite;
+    const fueraDeTermino = limite
+        ? datos.asignaciones.filter((a) => a.programa?.created_at && new Date(a.programa.created_at) > limite).length
+        : 0;
+
     $('dashboardResumen').innerHTML = `
         <div class="dash-card"><h3>Programas requeridos</h3><p>${total}</p></div>
-        <div class="dash-card"><h3>Entregados</h3><p>${entregados}</p></div>
-        <div class="dash-card"><h3>Pendientes</h3><p class="numero-pendiente">${pendientes.length}</p></div>
+        <div class="dash-card"><h3>Entregados</h3><p>${entregados}</p>
+            ${fueraDeTermino ? `<small>${fueraDeTermino} fuera de término</small>` : ''}</div>
+        <div class="dash-card"><h3>${vencida ? 'Atrasados' : 'Pendientes'}</h3><p class="numero-pendiente">${pendientes.length}</p>
+            ${vencida && pendientes.length ? '<small>la fecha límite ya pasó</small>' : ''}</div>
         <div class="dash-card"><h3>Cobertura ${esc(datos.anio)}</h3><p>${pct}%</p>
             <span class="coverage-badge ${clase}">${texto}</span></div>`;
+}
+
+// ================= FECHA LÍMITE =================
+
+function renderFechaLimite() {
+    const fecha = datos.fechaLimite;
+    const dias = diasHasta(fecha);
+    const estado = fecha
+        ? `<span class="info-fecha ${dias < 0 ? 'info-fecha-vencida' : dias <= 7 ? 'info-fecha-cerca' : ''}">${icono('reloj')}` +
+          `Fecha límite de ${esc(datos.anio)}: <b>${esc(fechaLegible(fecha))}</b> (${esc(textoFechaLimite(fecha))})</span>`
+        : `<span class="info-fecha">${icono('reloj')}Sin fecha límite para ${esc(datos.anio)}.</span>`;
+    const controles = esAsesora
+        ? `<label class="form-label sr-only" for="campoFechaLimite">Fecha límite de entrega</label>
+           <input type="date" id="campoFechaLimite" class="form-control" value="${esc(fecha || '')}">
+           <button type="button" class="btn-ver btn-chico" data-accion="guardar-fecha">Guardar fecha</button>
+           ${fecha ? '<button type="button" class="btn-secondary-auth btn-chico" data-accion="quitar-fecha">Quitar</button>' : ''}`
+        : '';
+    $('fechaLimite').innerHTML = estado + controles;
+}
+
+async function guardarFecha(quitar = false) {
+    const fecha = quitar ? '' : $('campoFechaLimite').value;
+    if (!quitar && !fecha) return showToast('Elegí una fecha', 'danger');
+    try {
+        await api('/fecha-limite', { method: 'PUT', json: { anio: Number(datos.anio), fecha } });
+        showToast(quitar ? 'Se quitó la fecha límite' : `Fecha límite: ${fechaLegible(fecha)}`, 'success');
+        cargar();
+    } catch (err) {
+        showToast(err.message, 'danger');
+    }
+}
+
+async function pasarADrive(boton) {
+    boton.disabled = true;
+    try {
+        const r = await api('/drive/sincronizar', { method: 'POST' });
+        if (r.pasados) showToast(`${r.pasados} archivo(s) pasaron a Google Drive`, 'success');
+        if (r.errores.length) showToast(`No se pudieron pasar ${r.pendientes}: ${r.errores[0]}`, 'warning', 8000);
+        if (!r.pasados && !r.errores.length) showToast('No había nada para pasar');
+        cargar();
+    } catch (err) {
+        showToast(err.message, 'danger');
+        boton.disabled = false;
+    }
 }
 
 // ================= NOTIFICACIONES =================
@@ -161,15 +232,41 @@ function renderCursos() {
         const pct = porcentaje(c.completos, c.total);
         return `<div class="curso-box">
             <div class="fila-titulo"><h3>${esc(nombre)} <small>${esc(c.turno)}</small></h3><span><b>${c.completos} / ${c.total}</b> entregados</span></div>
-            ${barra(pct)}
+            ${barra(pct, nombre)}
             <small class="texto-suave">${pct}% completo (${c.total - c.completos} pendientes)</small>
+            <div class="acciones-caja">
+                <button type="button" class="btn-secondary-auth" data-accion="enlace-curso" data-curso="${esc(nombre)}"
+                    title="Enlace a los programas de este curso, de todos los años">${icono('enlace')}Copiar enlace para alumnos</button>
+                <button type="button" class="btn-secondary-auth" data-accion="zip-curso" data-curso="${esc(nombre)}">${icono('zip')}Descargar todo (ZIP)</button>
+            </div>
         </div>`;
     }).join('') + botonMas(lista.length - limiteCursos, 'mas-cursos', 'Mostrar más cursos');
 }
 
 // ================= POR DOCENTE =================
 
+/** Correos de los docentes vinculados, por nombre de la lista oficial. */
+function correosPorDocente() {
+    const correos = new Map();
+    for (const u of vinculos.usuarios) {
+        if (u.estado === 'confirmado' && u.docente && u.email) correos.set(u.docente, u.email);
+    }
+    return correos;
+}
+
+/** Enlace mailto con el recordatorio de los programas que le faltan a un docente. */
+function enlaceRecordatorio(docente, email) {
+    const suyos = pendientes.filter((a) => a.docentes.includes(docente));
+    const lineas = suyos.map((a) => `- ${a.materia} (${a.curso})`).join('\n');
+    const fecha = datos.fechaLimite ? `\nLa fecha límite es el ${fechaLegible(datos.fechaLimite)}.` : '';
+    const asunto = `Programas de examen ${datos.anio} pendientes`;
+    const cuerpo = `Hola, ${docente}:\n\nTe recordamos que falta cargar en ProgMesas el programa de examen ${datos.anio} de:\n` +
+        `${lineas}\n${fecha}\nSe cargan desde ${enlaceListado({}, '../')}\n\nGracias.`;
+    return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+}
+
 function renderDocentes() {
+    const correos = correosPorDocente();
     const docentes = new Map();
     for (const a of datos.asignaciones) {
         for (const d of a.docentes.length ? a.docentes : ['Sin docente']) {
@@ -187,9 +284,14 @@ function renderDocentes() {
 
     $('estadoProfesores').innerHTML = lista.slice(0, limiteDocentes).map(([nombre, x]) => {
         const pct = porcentaje(x.completos, x.total);
+        const email = correos.get(nombre);
+        const recordar = x.completos < x.total && email
+            ? `<div class="acciones-caja"><a class="btn-secondary-auth" href="${esc(enlaceRecordatorio(nombre, email))}">${icono('correo')}Enviar recordatorio</a></div>`
+            : '';
         return `<div class="prof-box">
             <div class="fila-titulo"><h3>${esc(nombre)}</h3><span><b>${x.completos} / ${x.total}</b> entregados</span></div>
-            ${barra(pct)}
+            ${barra(pct, nombre)}
+            ${recordar}
         </div>`;
     }).join('') + botonMas(lista.length - limiteDocentes, 'mas-docentes', 'Mostrar más docentes') ||
         '<p>No hay docentes que coincidan.</p>';
@@ -285,6 +387,93 @@ function exportarCsv() {
     enlace.click();
     enlace.remove();
     setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+}
+
+function copiarCorreos() {
+    const correos = correosPorDocente();
+    const conPendientes = new Set(pendientesFiltrados().flatMap((a) => a.docentes));
+    const lista = [...conPendientes].map((d) => correos.get(d)).filter(Boolean);
+    const sinCorreo = [...conPendientes].filter((d) => !correos.has(d)).length;
+    if (lista.length === 0) {
+        return showToast('Ninguno de esos docentes tiene una cuenta con correo todavía', 'warning', 6000);
+    }
+    copiarTexto([...new Set(lista)].join(', '),
+        `Se copiaron ${lista.length} correo(s)` + (sinCorreo ? `; ${sinCorreo} docente(s) todavía no tienen cuenta con correo` : ''));
+}
+
+function zipCurso(curso) {
+    showToast('Preparando el ZIP…');
+    descargar(`/cursos/zip?curso=${encodeURIComponent(curso)}`, `Programas ${curso}.zip`)
+        .catch((err) => showToast(err.message, 'danger'));
+}
+
+// ================= REGISTRO DE ACTIVIDAD =================
+
+const ACCIONES = {
+    'programa.subido': ['Subió un programa', ''],
+    'programa.reemplazado': ['Reemplazó un programa', ''],
+    'programa.reutilizado': ['Reutilizó un programa', ''],
+    'programa.eliminado': ['Eliminó un programa', 'peligro'],
+    'programa.vinculado': ['Asignó un programa a una materia', ''],
+    'docente.vinculado': ['Vinculó una cuenta', 'exito'],
+    'docente.corregido': ['Corrigió una vinculación', ''],
+    'docente.desvinculado': ['Desvinculó una cuenta', 'peligro'],
+    'ajustes.fecha_limite': ['Cambió la fecha límite', ''],
+    'drive.sincronizado': ['Pasó archivos a Drive', 'exito'],
+    'respaldo.hecho': ['Copia de seguridad', 'exito'],
+    'respaldo.error': ['Falló la copia de seguridad', 'peligro']
+};
+
+function detalleRegistro(r) {
+    const d = r.detalle || {};
+    const programa = d.materia ? `${d.materia} (${d.curso}) ${d.anio || ''}`.trim() : '';
+    switch (r.accion) {
+        case 'programa.subido':
+        case 'programa.reemplazado':
+        case 'programa.vinculado':
+            return `${programa}${d.titulo ? ` — "${d.titulo}"` : ''}${d.almacenamiento === 'local' ? ' · guardado en el servidor' : ''}`;
+        case 'programa.reutilizado': return `${programa}, el de ${d.desde}`;
+        case 'programa.eliminado':
+            return `${programa} — "${d.titulo}"${d.versiones ? ` y ${d.versiones} versión(es) anterior(es)` : ''}`;
+        case 'docente.vinculado': return `${d.docente}${d.por === 'automático' ? ' (automático, por coincidencia de nombre)' : ''}`;
+        case 'docente.corregido': return `${d.cuenta}: ${d.anterior ? `${d.anterior} → ` : ''}${d.docente}`;
+        case 'docente.desvinculado': return `${d.cuenta}${d.docente ? ` (era ${d.docente})` : ''}`;
+        case 'ajustes.fecha_limite': return `${d.anio}: ${d.fecha ? fechaLegible(d.fecha) : 'sin fecha'}${d.anterior ? ` (antes ${fechaLegible(d.anterior)})` : ''}`;
+        case 'drive.sincronizado': return `${d.pasados} archivo(s)`;
+        case 'respaldo.hecho': return d.carpeta || '';
+        case 'respaldo.error': return d.error || '';
+        default: return JSON.stringify(d);
+    }
+}
+
+async function cargarRegistro() {
+    try {
+        registro = await api('/registro?limite=300');
+        registroCargado = true;
+        renderRegistro();
+    } catch (err) {
+        $('registro').innerHTML = `<p class="texto-aviso">${esc(err.message)}</p>`;
+    }
+}
+
+function renderRegistro() {
+    const filtro = $('busquedaRegistro').value.trim().toLowerCase();
+    const filas = registro
+        .map((r) => ({ r, etiqueta: ACCIONES[r.accion] || [r.accion, ''], detalle: detalleRegistro(r) }))
+        .filter(({ r, etiqueta, detalle }) => !filtro ||
+            [r.usuario.nombre, r.usuario.id, etiqueta[0], detalle].some((v) => String(v || '').toLowerCase().includes(filtro)));
+    if (filas.length === 0) {
+        $('registro').innerHTML = `<p class="texto-suave">${registro.length ? 'No hay acciones que coincidan.' : 'Todavía no hay acciones registradas.'}</p>`;
+        return;
+    }
+    $('registro').innerHTML = `<div class="tabla-scroll"><table class="custom-table tabla-registro">
+        <thead><tr><th>Fecha</th><th>Quién</th><th>Acción</th><th>Detalle</th></tr></thead>
+        <tbody>${filas.map(({ r, etiqueta, detalle }) => `<tr>
+            <td>${esc(new Date(r.fecha).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }))}</td>
+            <td>${esc(r.usuario.nombre || r.usuario.id)}${r.usuario.nombre && r.usuario.id !== 'sistema' ? `<br><small>${esc(r.usuario.id)}</small>` : ''}</td>
+            <td><span class="etiqueta-accion ${etiqueta[1]}">${esc(etiqueta[0])}</span></td>
+            <td>${esc(detalle)}</td></tr>`).join('')}
+        </tbody></table></div>`;
 }
 
 // ================= ÚLTIMOS =================
@@ -417,6 +606,11 @@ function conectarEventos() {
     $('busquedaFaltantes').addEventListener('input', refiltrar);
     for (const id of ['filtroProfesorFaltantes', 'filtroMateriaFaltantes', 'filtroCursoFaltantes']) $(id).addEventListener('change', refiltrar);
     $('btnExportar').addEventListener('click', exportarCsv);
+    $('btnCorreos').addEventListener('click', copiarCorreos);
+    $('busquedaRegistro').addEventListener('input', renderRegistro);
+    $('seccionRegistro').addEventListener('toggle', () => {
+        if ($('seccionRegistro').open && !registroCargado) cargarRegistro();
+    });
 
     document.addEventListener('click', (e) => {
         const b = e.target.closest('button[data-accion]');
@@ -428,6 +622,11 @@ function conectarEventos() {
             case 'vincular': vincular(b.dataset.id); break;
             case 'confirmar-docente': confirmarDocente(b.dataset.usuario); break;
             case 'desvincular-docente': desvincularDocente(b.dataset.usuario, b.dataset.confirmar === 'si'); break;
+            case 'guardar-fecha': guardarFecha(); break;
+            case 'quitar-fecha': guardarFecha(true); break;
+            case 'pasar-drive': pasarADrive(b); break;
+            case 'enlace-curso': copiarTexto(enlaceListado({ curso: b.dataset.curso }, '../'), `Enlace de ${b.dataset.curso} copiado`); break;
+            case 'zip-curso': zipCurso(b.dataset.curso); break;
         }
     });
 }

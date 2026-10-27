@@ -35,10 +35,10 @@
     --barra-fondo: #ddd5ca;
     --codigo-fondo: rgba(43, 37, 34, 0.08);
 
-    --exito: #2f7a4b;
+    --exito: #276a40;
     --exito-fondo: #e1eee4;
     --exito-borde: #b3d6bf;
-    --aviso: #9a5b00;
+    --aviso: #8a5100;
     --aviso-fondo: #f8ead3;
     --aviso-borde: #e8cc9c;
     --aviso-texto: #5c3a06;
@@ -574,6 +574,8 @@ header .form-select {
     display: flex;
     gap: 0.6rem;
     flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 /* ================= DASHBOARD GRID Y METRICAS DE COBERTURA ================= */
@@ -959,3 +961,98 @@ select optgroup { font-weight: 700; }
 /* Botón de modo claro / oscuro */
 .btn-tema { padding: 8px 10px; }
 .btn-tema .icono { width: 1.15rem; height: 1.15rem; }
+
+/* ================= FUNCIONES DE OCTUBRE 2026 ================= */
+
+/* Acciones bajo los filtros (enlace y ZIP del curso) */
+.acciones-filtro { display: flex; gap: 0.6rem; flex-wrap: wrap; margin: -0.6rem 0 1rem; }
+.acciones-filtro:empty { display: none; }
+
+/* Versiones anteriores de un programa */
+.lista-versiones {
+    margin: -0.4rem 0 0.9rem 1.2rem;
+    padding: 0.6rem 1rem;
+    background: var(--superficie-2);
+    border: 1px solid var(--borde);
+    border-left: 3px solid var(--borde-fuerte);
+    border-radius: 0 8px 8px 0;
+}
+.lista-versiones > p { margin: 0.2rem 0 0.4rem; }
+.fila-version {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--borde);
+    line-height: 1.45;
+}
+.fila-version small { color: var(--texto-suave); }
+
+/* Fecha límite */
+.info-fecha {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin: -0.3rem 0 1rem;
+    color: var(--texto-suave);
+}
+.info-fecha .icono { margin-right: 0; }
+.info-fecha-cerca { color: var(--aviso); }
+.info-fecha-vencida { color: var(--peligro); }
+.fecha-limite {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.2rem;
+}
+.fecha-limite input[type="date"] { width: auto; height: 38px; }
+.fecha-limite .info-fecha { margin: 0; }
+.dash-card small { display: block; margin-top: 0.35rem; color: var(--texto-suave); }
+
+/* Reutilizar el programa de otro año */
+.fila-reutilizar { display: inline-flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.4rem; }
+
+/* Acciones dentro de las cajas de curso y docente */
+.acciones-caja { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.7rem; }
+.acciones-caja .btn-secondary-auth { padding: 5px 11px; font-size: 0.82rem; }
+.botones-fila { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+
+/* Registro de actividad */
+.tabla-registro td { vertical-align: top; }
+.tabla-registro td:first-child { white-space: nowrap; color: var(--texto-suave); font-size: 0.88rem; }
+.tabla-registro small { color: var(--texto-suave); }
+.etiqueta-accion {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: var(--resalte);
+    color: var(--enlace);
+    border: 1px solid var(--resalte-borde);
+    white-space: nowrap;
+}
+.etiqueta-accion.peligro { background: var(--peligro-fondo); color: var(--peligro); border-color: var(--peligro-borde); }
+.etiqueta-accion.exito { background: var(--exito-fondo); color: var(--exito); border-color: var(--exito-borde); }
+.tabla-scroll { overflow-x: auto; }
+
+@media (max-width: 768px) {
+    .fila-version { flex-direction: column; align-items: flex-start; }
+    .lista-versiones { margin-left: 0.4rem; }
+}
+
+/* Texto sólo para lectores de pantalla */
+.sr-only {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

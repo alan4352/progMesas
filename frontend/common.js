@@ -22,7 +22,15 @@ const ICONOS = {
     eliminar: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/>',
     confirmar: '<path d="M20 6 9 17l-5-5"/>',
     descargar: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
-    curso: '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>'
+    curso: '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>',
+    historial: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+    enlace: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+    zip: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+    correo: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    reloj: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+    nube: '<path d="M12 13v8"/><path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24"/><path d="m8 17 4-4 4 4"/>',
+    copiar: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    lista: '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>'
 };
 
 /** Devuelve el SVG de un ícono para insertar en HTML. */
@@ -193,4 +201,86 @@ function mostrarAvisoPendiente() {
         /* nada */
     }
     if (aviso) showToast(aviso, 'warning', 6000);
+}
+
+// ================= DESCARGAS, PORTAPAPELES Y FECHAS =================
+
+/** Descarga un archivo de la API (por ejemplo el ZIP de un curso) con la sesión actual. */
+async function descargar(ruta, nombre) {
+    const token = leerToken();
+    let res;
+    try {
+        res = await fetch(API + ruta, { headers: token ? { Authorization: 'Bearer ' + token } : {}, credentials: 'same-origin' });
+    } catch {
+        throw new Error('No se pudo conectar con el servidor');
+    }
+    if (!res.ok) {
+        const datos = await res.json().catch(() => ({}));
+        throw new Error(datos.error || `Error ${res.status}`);
+    }
+    const blob = await res.blob();
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = nombre;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(enlace.href), 2000);
+}
+
+/** Copia texto al portapapeles (con alternativa para navegadores viejos o sin HTTPS). */
+async function copiarTexto(texto, aviso = 'Copiado') {
+    try {
+        await navigator.clipboard.writeText(texto);
+    } catch {
+        const area = document.createElement('textarea');
+        area.value = texto;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        const ok = document.execCommand('copy');
+        area.remove();
+        if (!ok) {
+            prompt('Copiá este texto:', texto);
+            return;
+        }
+    }
+    showToast(aviso, 'success');
+}
+
+/** "2026-11-20" → "20/11/2026" */
+function fechaLegible(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    return m ? `${Number(m[3])}/${Number(m[2])}/${m[1]}` : '';
+}
+
+/** Días desde hoy hasta la fecha (negativo si ya pasó). La fecha límite vale hasta el final de ese día. */
+function diasHasta(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    if (!m) return null;
+    const hoy = new Date();
+    const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const limite = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return Math.round((limite - inicioHoy) / 86400000);
+}
+
+/** Texto sobre la fecha límite: "Faltan 5 días", "Vence hoy", "Venció hace 3 días". */
+function textoFechaLimite(iso) {
+    const dias = diasHasta(iso);
+    if (dias === null) return '';
+    if (dias > 1) return `faltan ${dias} días`;
+    if (dias === 1) return 'vence mañana';
+    if (dias === 0) return 'vence hoy';
+    return dias === -1 ? 'venció ayer' : `venció hace ${-dias} días`;
+}
+
+/** Dirección de la página principal con filtros, para compartir (por ejemplo, la de un curso). */
+function enlaceListado(filtros, raiz = './') {
+    const url = new URL(raiz, location.href);
+    url.search = '';
+    url.hash = '';
+    for (const [clave, valor] of Object.entries(filtros)) if (valor) url.searchParams.set(clave, valor);
+    return url.href;
 }

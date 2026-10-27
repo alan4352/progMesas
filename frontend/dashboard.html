@@ -28,6 +28,7 @@
 
         <section class="section-box">
             <h2>Cobertura general</h2>
+            <div id="fechaLimite" class="fecha-limite"></div>
             <div id="dashboardResumen" class="dashboard-grid"></div>
         </section>
 
@@ -62,7 +63,10 @@
                     <select id="filtroMateriaFaltantes" class="form-select" aria-label="Materia"></select>
                     <select id="filtroCursoFaltantes" class="form-select" aria-label="Curso"></select>
                 </div>
-                <button type="button" id="btnExportar" class="btn-secondary-auth btn-chico"><span data-icono="descargar"></span>Descargar pendientes (CSV)</button>
+                <div class="botones-fila">
+                    <button type="button" id="btnExportar" class="btn-secondary-auth btn-chico"><span data-icono="descargar"></span>Descargar pendientes (CSV)</button>
+                    <button type="button" id="btnCorreos" class="btn-secondary-auth btn-chico"><span data-icono="correo"></span>Copiar correos de los docentes con pendientes</button>
+                </div>
                 <div id="faltantes"></div>
             </div>
         </details>
@@ -75,6 +79,16 @@
                     Desde acá podés asignar, corregir o desvincular un nombre.</p>
                 <datalist id="listaDocentesLibres"></datalist>
                 <div id="panelDocentes"></div>
+            </div>
+        </details>
+
+        <details class="collapsible-box" id="seccionRegistro">
+            <summary>Registro de actividad</summary>
+            <div class="collapsible-content">
+                <p class="texto-suave">Quién subió, reemplazó, reutilizó o eliminó programas, quién cambió vinculaciones de docentes y
+                    la fecha límite, y las tareas automáticas (copias de seguridad, paso a Drive).</p>
+                <input id="busquedaRegistro" class="form-control campo-busqueda" placeholder="Buscar por persona, materia, curso o acción…" aria-label="Buscar en el registro">
+                <div id="registro"></div>
             </div>
         </details>
 

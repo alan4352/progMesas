@@ -1,5 +1,6 @@
 # Publica la demo estática de ProgMesas en GitHub Pages en cada push a main.
 # La demo corre en el navegador (demo/demo.js) con los datos de la base y de asignaciones.xlsx.
+# Sólo se publica si pasan las pruebas de la API y las de la interfaz.
 
 name: Demo en GitHub Pages
 
@@ -27,15 +28,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
 
-      - name: Instalar dependencias del backend
+      # En la raíz: instala también backend/ (postinstall)
+      - name: Instalar dependencias
         run: npm ci
-        working-directory: backend
 
-      # Si alguna prueba falla, la demo no se publica
-      - name: Pruebas automáticas
-        run: node --test
+      - name: Pruebas de la API
+        run: npm test
 
       - name: Armar el sitio
         run: node demo/construir_sitio.js _site
@@ -46,8 +48,30 @@ jobs:
         with:
           path: _site
 
+  interfaz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar el navegador
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas de interfaz y accesibilidad
+        run: npm run test:ui
+
   publicar:
-    needs: construir
+    needs: [construir, interfaz]
     runs-on: ubuntu-latest
     environment:
       name: github-pages

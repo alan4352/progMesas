@@ -11,6 +11,11 @@
   "scripts": {
     "postinstall": "npm ci --prefix backend",
     "start": "node backend/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "test:ui": "node --test --test-concurrency=1 tests/interfaz.ui.js"
+  },
+  "devDependencies": {
+    "axe-core": "^4.14.0",
+    "playwright": "1.63.0"
   }
 }

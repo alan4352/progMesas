@@ -1,110 +1,37 @@
-// Pruebas de la API completa: levanta el servidor real sobre una COPIA de la base y de los PDF
-// (carpeta temporal, con DATOS_DIR) y sin Google Drive, así no toca los datos del proyecto.
+// Pruebas de la API: ingreso, permisos, vinculación de docentes, subida de programas y cobertura.
+// Usan el servidor real sobre una copia temporal de la base (ver servidor.js).
 // Ejecutar con:  npm test
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { spawn, execFileSync } from 'node:child_process';
+import { iniciarServidor, PDF } from './servidor.js';
 
-const RAIZ = path.join(import.meta.dirname, '..');
-const DATOS = fs.mkdtempSync(path.join(os.tmpdir(), 'progmesas-api-'));
-const PUERTO = 3900 + Math.floor(Math.random() * 90);
-const API = `http://127.0.0.1:${PUERTO}/api`;
-
-const ENTORNO = {
-    ...process.env,
-    PORT: String(PUERTO),
-    JWT_SECRET: 'prueba-api-'.padEnd(48, 'x'),
-    AUTH_MODO: 'prueba',
-    ANIO_LECTIVO: '2026',
-    MAX_PDF_MB: '1',
-    DATOS_DIR: DATOS,
-    DRIVE_DESACTIVADO: '1',
-    TRUST_PROXY: '1',
-    // Que no herede credenciales de Drive de quien corre las pruebas
-    GOOGLE_OAUTH_JSON: '',
-    GOOGLE_TOKEN_JSON: ''
-};
-
-const PDF = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(2000, 32), Buffer.from('\n%%EOF\n')]);
-let servidor;
-
-// ================= AYUDANTES =================
-
-async function pedir(ruta, { token, ip = '10.0.0.1', ...opciones } = {}) {
-    const headers = { 'X-Forwarded-For': ip, ...(opciones.headers || {}) };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (opciones.json !== undefined) {
-        headers['Content-Type'] = 'application/json';
-        opciones.body = JSON.stringify(opciones.json);
-    }
-    const res = await fetch(API + ruta, { ...opciones, headers });
-    const datos = await res.json().catch(() => null);
-    return { status: res.status, datos, headers: res.headers };
-}
-
-async function ingresar(email, password, ip) {
-    const r = await pedir('/login', { method: 'POST', json: { email, password }, ip });
-    assert.equal(r.status, 200, `no pudo ingresar ${email}: ${JSON.stringify(r.datos)}`);
-    return r.datos.token;
-}
-
-function subir(token, { asignacion, anio = 2026, archivo = PDF, nombre = 'programa.pdf', titulo = '' }) {
-    const form = new FormData();
-    form.append('asignacion_id', asignacion);
-    form.append('anio', String(anio));
-    form.append('titulo', titulo);
-    form.append('pdf', new Blob([archivo], { type: 'application/pdf' }), nombre);
-    return pedir('/programas/subir', { method: 'POST', body: form, token });
-}
-
-const cantidadDe = async (asignacion, anio = 2026) =>
-    (await pedir('/programas')).datos.filter((p) => p.asignacion_id === asignacion && p.year === anio).length;
-
-// ================= SERVIDOR =================
+let srv;
+let PUERTO, pedir, ingresar, subir, cantidadDe;
 
 before(async () => {
-    // Un docente nuevo, sin vincular, en la copia de la base
-    execFileSync(process.execPath, ['--input-type=module', '-e', `
-        const { crearUsuario } = await import('./backend/usuarios.js');
-        crearUsuario({ email: 'nuevo@test.com', contrasena: 'nuevo123', rol: 'teacher', nombre: 'Docente Nuevo' });
-        crearUsuario({ email: 'preceptor@test.com', contrasena: 'preceptor123', rol: 'viewer', nombre: 'Preceptor' });
-        // Coincide con "Grimberg Valeria" de la lista: se tiene que vincular sola
-        crearUsuario({ email: 'valeria@test.com', contrasena: 'valeria123', rol: 'teacher', nombre: 'Valeria Grimberg' });
-        // Nombre de otro docente ya vinculado: no se tiene que vincular sola
-        crearUsuario({ email: 'otra@test.com', contrasena: 'otra12345', rol: 'teacher', nombre: 'Lucrecia Fernández' });
-        // Solicitud que quedó "pendiente" con la versión anterior (cuando la asesora tenía que aprobar)
-        crearUsuario({ email: 'viejo@test.com', contrasena: 'viejo12345', rol: 'teacher', nombre: 'Docente Viejo' });
-        const { default: db } = await import('./backend/db.js');
-        await import('./backend/docentes.js');
-        db.prepare("INSERT INTO docentes_usuarios (usuario_id, nombre_usuario, email, docente, estado, solicitado_at) " +
-            "VALUES ('viejo@test.com', 'Docente Viejo', 'viejo@test.com', 'Begue José Luis', 'pendiente', '2026-10-01T12:00:00Z')").run();
-    `], { cwd: RAIZ, env: ENTORNO, stdio: 'pipe' });
-
-    servidor = spawn(process.execPath, ['backend/server.js'], { cwd: RAIZ, env: ENTORNO, stdio: ['ignore', 'pipe', 'pipe'] });
-    let salida = '';
-    await new Promise((resolve, reject) => {
-        const limite = setTimeout(() => reject(new Error('El servidor no arrancó:\n' + salida)), 15000);
-        const leer = (d) => {
-            salida += d;
-            if (salida.includes('Servidor corriendo')) {
-                clearTimeout(limite);
-                resolve();
-            }
-        };
-        servidor.stdout.on('data', leer);
-        servidor.stderr.on('data', leer);
-        servidor.on('exit', (code) => reject(new Error(`El servidor terminó (código ${code}):\n${salida}`)));
+    srv = await iniciarServidor({
+        preparar: `
+            const { crearUsuario } = await import('./backend/usuarios.js');
+            // Un docente nuevo, sin vincular
+            crearUsuario({ email: 'nuevo@test.com', contrasena: 'nuevo123', rol: 'teacher', nombre: 'Docente Nuevo' });
+            crearUsuario({ email: 'preceptor@test.com', contrasena: 'preceptor123', rol: 'viewer', nombre: 'Preceptor' });
+            // Coincide con "Grimberg Valeria" de la lista: se tiene que vincular sola
+            crearUsuario({ email: 'valeria@test.com', contrasena: 'valeria123', rol: 'teacher', nombre: 'Valeria Grimberg' });
+            // Nombre de otro docente ya vinculado: no se tiene que vincular sola
+            crearUsuario({ email: 'otra@test.com', contrasena: 'otra12345', rol: 'teacher', nombre: 'Lucrecia Fernández' });
+            // Solicitud que quedó "pendiente" con la versión anterior (cuando la asesora tenía que aprobar)
+            crearUsuario({ email: 'viejo@test.com', contrasena: 'viejo12345', rol: 'teacher', nombre: 'Docente Viejo' });
+            const { default: db } = await import('./backend/db.js');
+            await import('./backend/docentes.js');
+            db.prepare("INSERT INTO docentes_usuarios (usuario_id, nombre_usuario, email, docente, estado, solicitado_at) " +
+                "VALUES ('viejo@test.com', 'Docente Viejo', 'viejo@test.com', 'Begue José Luis', 'pendiente', '2026-10-01T12:00:00Z')").run();
+        `
     });
+    ({ puerto: PUERTO, pedir, ingresar, subir, cantidadDe } = srv);
 });
 
-after(() => {
-    servidor?.kill();
-    fs.rmSync(DATOS, { recursive: true, force: true });
-});
+after(() => srv?.cerrar());
 
 // ================= PÚBLICO =================
 

@@ -59,9 +59,31 @@
             version: datos.generado,
             programas: datos.programas.map((p) => ({ ...p })),
             vinculos: datos.vinculos.map((v) => ({ ...v })),
-            sigId: Math.max(0, ...datos.programas.map((p) => p.id)) + 1
+            versiones: [],
+            registro: [],
+            fechasLimite: {},
+            sigId: Math.max(0, ...datos.programas.map((p) => p.id)) + 1,
+            sigVersion: 1,
+            sigRegistro: 1
         };
     }
+
+    /** Anota una acción en el registro de la demo (igual que backend/registro.js). */
+    function registrar(user, accion, detalle = {}) {
+        estado.registro.unshift({
+            id: estado.sigRegistro++,
+            fecha: ahora(),
+            usuario: { id: user?.id || 'sistema', nombre: user?.nombre || (user ? '' : 'Sistema'), rol: user?.role || '' },
+            accion,
+            detalle
+        });
+        estado.registro.length = Math.min(estado.registro.length, 300);
+        guardarEstado();
+    }
+
+    const fechaLimite = (anio) => estado.fechasLimite[anio] || null;
+    const usosDeArchivo = (url) =>
+        estado.programas.filter((p) => p.file_url === url).length + estado.versiones.filter((v) => v.file_url === url).length;
 
     function guardarEstado() {
         try {
@@ -75,7 +97,7 @@
         try {
             const e = JSON.parse(localStorage.getItem(CLAVE_ESTADO));
             // Si se desplegaron datos nuevos, se empieza de cero
-            if (e && e.version === datos.generado) return e;
+            if (e && e.version === datos.generado && Array.isArray(e.versiones)) return e;
         } catch {
             /* nada */
         }
@@ -200,6 +222,7 @@
             const docente = nombreOficialPara(u.nombre);
             if (docente && !confirmadoPorOtro(docente, u.id)) {
                 Object.assign(v, { docente, estado: 'confirmado', confirmado_at: ahora(), confirmado_por: 'automático' });
+                registrar(u, 'docente.vinculado', { docente, por: 'automático' });
             }
         }
         guardarEstado();
@@ -246,6 +269,75 @@
         return { anio, asignaciones, sinAsignacion };
     }
 
+    /** Agrega el programa o reemplaza el del mismo curso, materia y año, guardando la versión anterior. */
+    function guardarPrograma(a, anio, nuevo, user) {
+        const anterior = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year === anio);
+        if (anterior) {
+            estado.versiones.push({
+                id: estado.sigVersion++, programa_id: anterior.id, title: anterior.title, profesor: anterior.profesor,
+                fecha: anterior.fecha, created_at: anterior.created_at, file_url: anterior.file_url,
+                almacenamiento: anterior.almacenamiento, reemplazado_at: nuevo.created_at, reemplazado_por: user.nombre || user.id
+            });
+            Object.assign(anterior, nuevo);
+            guardarEstado();
+            return anterior.id;
+        }
+        const id = estado.sigId++;
+        estado.programas.push({ id, ...nuevo });
+        guardarEstado();
+        return id;
+    }
+
+    // ================= ZIP (igual que backend/lib/zip.js, sin compresión) =================
+
+    const TABLA_CRC = (() => {
+        const t = new Uint32Array(256);
+        for (let n = 0; n < 256; n++) {
+            let c = n;
+            for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+            t[n] = c >>> 0;
+        }
+        return t;
+    })();
+    function crc32(bytes) {
+        let c = 0xffffffff;
+        for (let i = 0; i < bytes.length; i++) c = TABLA_CRC[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+        return (c ^ 0xffffffff) >>> 0;
+    }
+    function crearZip(archivos) {
+        const partes = [];
+        const centrales = [];
+        let desplazamiento = 0;
+        const enc = new TextEncoder();
+        for (const { nombre, datos: bytes } of archivos) {
+            const n = enc.encode(nombre);
+            const crc = crc32(bytes);
+            const local = new DataView(new ArrayBuffer(30));
+            local.setUint32(0, 0x04034b50, true); local.setUint16(4, 20, true); local.setUint16(6, 0x0800, true);
+            local.setUint32(14, crc, true); local.setUint32(18, bytes.length, true); local.setUint32(22, bytes.length, true);
+            local.setUint16(26, n.length, true);
+            partes.push(local, n, bytes);
+            const central = new DataView(new ArrayBuffer(46));
+            central.setUint32(0, 0x02014b50, true); central.setUint16(4, 20, true); central.setUint16(6, 20, true);
+            central.setUint16(8, 0x0800, true); central.setUint32(16, crc, true); central.setUint32(20, bytes.length, true);
+            central.setUint32(24, bytes.length, true); central.setUint16(28, n.length, true); central.setUint32(42, desplazamiento, true);
+            centrales.push(central, n);
+            desplazamiento += 30 + n.length + bytes.length;
+        }
+        const tamCentral = centrales.reduce((t, x) => t + x.byteLength, 0);
+        const fin = new DataView(new ArrayBuffer(22));
+        fin.setUint32(0, 0x06054b50, true); fin.setUint16(8, archivos.length, true); fin.setUint16(10, archivos.length, true);
+        fin.setUint32(12, tamCentral, true); fin.setUint32(16, desplazamiento, true);
+        return new Blob([...partes, ...centrales, fin], { type: 'application/zip' });
+    }
+    async function leerPdfDemo(fileUrl) {
+        const u = window.urlPdfSegura(fileUrl);
+        if (!u || u.startsWith('https://drive.google.com/')) throw new Error('está en Google Drive (en la demo no se puede descargar)');
+        const r = await fetchOriginal(u);
+        if (!r.ok) throw new Error(`no se encontró (${r.status})`);
+        return new Uint8Array(await r.arrayBuffer());
+    }
+
     // ================= SESIÓN =================
 
     function usuarioDelToken(headers) {
@@ -282,7 +374,7 @@
             return { token: 'demo.' + btoa(correo) };
         }
 
-        if (metodo === 'GET' && ruta === '/config') return datos.config;
+        if (metodo === 'GET' && ruta === '/config') return { ...datos.config, fechaLimite: fechaLimite(datos.config.anioLectivo) };
 
         if (metodo === 'GET' && ruta === '/yo') {
             if (!user) return { autenticado: false };
@@ -305,6 +397,7 @@
             if (confirmadoPorOtro(docente, user.id)) throw errorHttp('Ese nombre ya está vinculado a otra cuenta. Hablá con la asesora.', 409);
             Object.assign(v, { docente, estado: 'confirmado', solicitado_at: ahora(), confirmado_at: ahora(), confirmado_por: 'el docente' });
             guardarEstado();
+            registrar(user, 'docente.vinculado', { docente, por: 'el docente' });
             return { ok: true, vinculo: vinculoPublico(v) };
         }
 
@@ -322,8 +415,10 @@
             if (!docente) throw errorHttp('Ese nombre no figura en la lista de asignaciones');
             const otro = confirmadoPorOtro(docente, id);
             if (otro) throw errorHttp(`"${docente}" ya está vinculado a ${otro.nombre_usuario || otro.usuario_id}`, 409);
+            const anterior = v.estado === 'confirmado' ? v.docente : null;
             Object.assign(v, { docente, estado: 'confirmado', confirmado_at: ahora(), confirmado_por: user.nombre || user.id });
             guardarEstado();
+            registrar(user, 'docente.corregido', { cuenta: v.nombre_usuario || v.usuario_id, docente, anterior });
             return { ok: true, vinculo: vinculoPublico(v) };
         }
 
@@ -331,18 +426,39 @@
             exigir(user, 'advisor');
             const v = vinculoDe(decodeURIComponent(m[1]));
             if (!v) throw errorHttp('No existe ese usuario', 404);
+            const era = v.docente;
             Object.assign(v, { docente: null, estado: 'sin_vincular', solicitado_at: null, confirmado_at: null, confirmado_por: null });
             guardarEstado();
+            registrar(user, 'docente.desvinculado', { cuenta: v.nombre_usuario || v.usuario_id, docente: era });
             return { ok: true };
         }
 
         if (metodo === 'GET' && ruta === '/programas') {
             const lista = programasOrdenados();
+            const conVersiones = user?.role === 'advisor' || user?.role === 'teacher'
+                ? (p) => ({ ...p, versiones: estado.versiones.filter((v) => v.programa_id === p.id).length })
+                : (p) => p;
             if (user?.role === 'teacher') {
                 const ids = new Set(asignacionesDeDocente(docenteConfirmado(user.id)).map((a) => a.id));
-                return lista.filter((p) => ids.has(p.asignacion_id) || p.uploaded_by === user.id).map((p) => programaPublico(p, false));
+                return lista.filter((p) => ids.has(p.asignacion_id) || p.uploaded_by === user.id).map((p) => conVersiones(programaPublico(p, false)));
             }
-            return lista.map((p) => programaPublico(p, user?.role === 'advisor'));
+            return lista.map((p) => conVersiones(programaPublico(p, user?.role === 'advisor')));
+        }
+
+        if (metodo === 'GET' && (m = /^\/programas\/(\d+)\/versiones$/.exec(ruta))) {
+            exigir(user, 'teacher', 'advisor');
+            const p = estado.programas.find((x) => x.id === Number(m[1]));
+            if (!p) throw errorHttp('Programa no encontrado', 404);
+            if (user.role === 'teacher') {
+                const a = asignacionPorId(p.asignacion_id);
+                const docente = docenteConfirmado(user.id);
+                if (!((a && docente && docenteDicta(docente, a)) || p.uploaded_by === user.id)) throw errorHttp('No tenés permiso para esta acción', 403);
+            }
+            return {
+                programa: programaPublico(p, user.role === 'advisor'),
+                versiones: estado.versiones.filter((v) => v.programa_id === p.id)
+                    .sort((a, b) => String(b.reemplazado_at).localeCompare(String(a.reemplazado_at)) || b.id - a.id)
+            };
         }
 
         if (metodo === 'GET' && ruta === '/asignaciones/mias') {
@@ -352,15 +468,22 @@
             const docente = esAsesora ? '' : docenteConfirmado(user.id);
             const lista = esAsesora ? datos.asignaciones : asignacionesDeDocente(docente);
             const cargados = new Map();
-            for (const p of programasOrdenados()) if (p.year === anio && p.asignacion_id && !cargados.has(p.asignacion_id)) cargados.set(p.asignacion_id, p);
+            const anteriores = new Map();
+            for (const p of programasOrdenados()) {
+                if (!p.asignacion_id) continue;
+                if (p.year === anio && !cargados.has(p.asignacion_id)) cargados.set(p.asignacion_id, p);
+                if (p.year < anio && !anteriores.has(p.asignacion_id)) anteriores.set(p.asignacion_id, p);
+            }
             return {
-                anio, docente,
+                anio, docente, fechaLimite: fechaLimite(anio),
                 vinculo: esAsesora ? null : vinculoPublico(vinculoDe(user.id)),
                 asignaciones: lista.map((a) => {
                     const p = cargados.get(a.id);
+                    const ant = anteriores.get(a.id);
                     return {
                         id: a.id, curso: a.curso, turno: a.turno, materia: a.materia, docentes: a.docentes, requiere: a.requiere,
-                        programa: p ? { id: p.id, title: p.title, fecha: p.fecha } : null
+                        programa: p ? { id: p.id, title: p.title, fecha: p.fecha } : null,
+                        anterior: ant ? { id: ant.id, year: ant.year, title: ant.title, fecha: ant.fecha } : null
                     };
                 })
             };
@@ -390,30 +513,54 @@
                 fecha: new Date().toLocaleDateString('es-AR'), uploaded_by: user.id, asignacion_id: a.id,
                 almacenamiento: 'demo', created_at: ahora()
             };
-            const anterior = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year === anio);
-            let id;
-            if (anterior) {
-                await borrarPdfLocal(anterior.file_url);
-                Object.assign(anterior, nuevo);
-                id = anterior.id;
-            } else {
-                id = estado.sigId++;
-                estado.programas.push({ id, ...nuevo });
-            }
-            guardarEstado();
+            const id = guardarPrograma(a, anio, nuevo, user);
+            const reemplazado = estado.versiones.some((v) => v.programa_id === id && v.reemplazado_at === nuevo.created_at);
+            registrar(user, reemplazado ? 'programa.reemplazado' : 'programa.subido', {
+                id, curso: a.curso, materia: a.materia, anio, titulo, almacenamiento: 'demo'
+            });
             return {
-                ok: true, id, reemplazado: Boolean(anterior), almacenamiento: 'demo',
+                ok: true, id, reemplazado, almacenamiento: 'demo',
                 aviso: 'Modo demostración: el PDF quedó guardado sólo en este navegador.'
             };
+        }
+
+        if (metodo === 'POST' && ruta === '/programas/reutilizar') {
+            exigir(user, 'teacher', 'advisor');
+            const esAsesora = user.role === 'advisor';
+            const docente = esAsesora ? '' : docenteConfirmado(user.id);
+            if (!esAsesora && !docente) throw errorHttp('Tu cuenta todavía no está vinculada con tu nombre en la lista de docentes', 403);
+            const a = asignacionPorId(body?.asignacion_id);
+            const anio = anioValido(body?.anio);
+            if (!a) throw errorHttp('Elegí la materia y el curso del programa');
+            if (!anio) throw errorHttp('El año lectivo no es válido');
+            if (!esAsesora && !docenteDicta(docente, a)) throw errorHttp('Esa materia no figura entre tus asignaciones', 403);
+            const origen = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year < anio);
+            if (!origen) throw errorHttp('No hay un programa de años anteriores para ese curso y materia', 404);
+            const nuevo = {
+                title: String(origen.title).replace(new RegExp(`\\b${origen.year}\\b`, 'g'), String(anio)),
+                materia: a.materia, year: anio, curso: a.curso,
+                profesor: esAsesora ? origen.profesor || a.docentes.join(' / ') : docente,
+                file_url: origen.file_url, fecha: new Date().toLocaleDateString('es-AR'), uploaded_by: user.id,
+                asignacion_id: a.id, almacenamiento: origen.almacenamiento, created_at: ahora()
+            };
+            const actual = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year === anio);
+            const id = guardarPrograma(a, anio, nuevo, user);
+            registrar(user, 'programa.reutilizado', { id, curso: a.curso, materia: a.materia, anio, desde: origen.year, titulo: nuevo.title });
+            return { ok: true, id, reemplazado: Boolean(actual), desde: origen.year };
         }
 
         if (metodo === 'DELETE' && (m = /^\/programas\/(\d+)$/.exec(ruta))) {
             exigir(user, 'advisor');
             const i = estado.programas.findIndex((p) => p.id === Number(m[1]));
             if (i < 0) throw errorHttp('Programa no encontrado', 404);
-            await borrarPdfLocal(estado.programas[i].file_url);
-            estado.programas.splice(i, 1);
+            const [p] = estado.programas.splice(i, 1);
+            const versiones = estado.versiones.filter((v) => v.programa_id === p.id);
+            estado.versiones = estado.versiones.filter((v) => v.programa_id !== p.id);
+            for (const r of [p, ...versiones]) if (usosDeArchivo(r.file_url) === 0) await borrarPdfLocal(r.file_url);
             guardarEstado();
+            registrar(user, 'programa.eliminado', {
+                id: p.id, curso: p.curso, materia: p.materia, anio: p.year, titulo: p.title, versiones: versiones.length
+            });
             return { ok: true };
         }
 
@@ -425,6 +572,7 @@
             if (!a) throw errorHttp('Asignación inexistente');
             Object.assign(p, { asignacion_id: a.id, curso: a.curso, materia: a.materia });
             guardarEstado();
+            registrar(user, 'programa.vinculado', { id: p.id, titulo: p.title, curso: a.curso, materia: a.materia, anio: p.year });
             return { ok: true };
         }
 
@@ -433,8 +581,72 @@
             const anio = anioValido(query.get('anio')) || datos.config.anioLectivo;
             return {
                 ...calcularCobertura(anio),
-                estado: { drive: { disponible: true, error: null }, asignaciones: { cantidad: datos.asignaciones.length, error: null } }
+                fechaLimite: fechaLimite(anio),
+                estado: { drive: { disponible: true, error: null }, asignaciones: { cantidad: datos.asignaciones.length, error: null }, locales: 0 }
             };
+        }
+
+        if (metodo === 'GET' && ruta === '/fecha-limite') {
+            const anio = anioValido(query.get('anio')) || datos.config.anioLectivo;
+            return { anio, fecha: fechaLimite(anio) };
+        }
+
+        if (metodo === 'PUT' && ruta === '/fecha-limite') {
+            exigir(user, 'advisor');
+            const anio = anioValido(body?.anio);
+            if (!anio) throw errorHttp('El año lectivo no es válido');
+            const anterior = fechaLimite(anio);
+            const fecha = String(body?.fecha || '').trim();
+            if (fecha) {
+                const mm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha);
+                const d = mm && new Date(Date.UTC(Number(mm[1]), Number(mm[2]) - 1, Number(mm[3])));
+                if (!d || d.toISOString().slice(0, 10) !== fecha) throw errorHttp('La fecha límite no es válida (formato AAAA-MM-DD)');
+                estado.fechasLimite[anio] = fecha;
+            } else {
+                delete estado.fechasLimite[anio];
+            }
+            guardarEstado();
+            registrar(user, 'ajustes.fecha_limite', { anio, fecha: fecha || null, anterior });
+            return { ok: true, anio, fecha: fecha || null };
+        }
+
+        if (metodo === 'GET' && ruta === '/registro') {
+            exigir(user, 'advisor', 'viewer');
+            return estado.registro.slice(0, Math.min(Number(query.get('limite')) || 200, 300));
+        }
+
+        if (metodo === 'POST' && ruta === '/drive/sincronizar') {
+            exigir(user, 'advisor');
+            return { ok: true, pasados: 0, pendientes: 0, errores: [] };
+        }
+
+        if (metodo === 'GET' && ruta === '/cursos/zip') {
+            const curso = String(query.get('curso') || '').trim();
+            if (!curso) throw errorHttp('Indicá el curso');
+            const anio = query.get('anio') ? anioValido(query.get('anio')) : null;
+            const clave = claveTexto(curso);
+            const lista = programasOrdenados().filter((p) => claveTexto(p.curso) === clave && (!anio || p.year === anio));
+            if (lista.length === 0) throw errorHttp('No hay programas cargados para ese curso', 404);
+            const archivos = [];
+            const faltantes = [];
+            const usados = new Set();
+            for (const p of lista) {
+                let nombre = `${p.year}/${p.materia}`;
+                for (let i = 2; usados.has(nombre); i++) nombre = `${p.year}/${p.materia} (${i})`;
+                usados.add(nombre);
+                try {
+                    archivos.push({ nombre: `${nombre}.pdf`, datos: await leerPdfDemo(p.file_url) });
+                } catch (err) {
+                    faltantes.push(`${p.year} - ${p.materia}: ${err.message}`);
+                }
+            }
+            if (faltantes.length) {
+                archivos.push({
+                    nombre: 'NO INCLUIDOS.txt',
+                    datos: new TextEncoder().encode('Estos programas no se pudieron descargar:\r\n\r\n' + faltantes.join('\r\n') + '\r\n')
+                });
+            }
+            return new Response(crearZip(archivos), { status: 200, headers: { 'Content-Type': 'application/zip' } });
         }
 
         if (metodo === 'GET' && ruta === '/programas/faltantes') {
@@ -469,7 +681,8 @@
             new Response(JSON.stringify(cuerpo), { status, headers: { 'Content-Type': 'application/json' } });
         try {
             const user = usuarioDelToken(opciones.headers || {});
-            return json(await atender(metodo, ruta, url.searchParams, body, user));
+            const respuesta = await atender(metodo, ruta, url.searchParams, body, user);
+            return respuesta instanceof Response ? respuesta : json(respuesta);
         } catch (err) {
             const status = err.status || 500;
             return json({ error: status >= 500 ? 'Error interno de la demo' : err.message }, status);

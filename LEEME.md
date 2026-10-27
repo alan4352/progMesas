@@ -19,9 +19,14 @@ Para probar sin instalar nada está la demo: <https://alan4352.github.io/progMes
 
 No hace falta iniciar sesión.
 
-1. Entrá a la página principal: aparecen los programas cargados, agrupados por año.
+1. Entrá a la página principal: aparecen los programas cargados, agrupados por año. Están **todos los años**, así que
+   también se encuentran los programas de materias que se deben de años anteriores.
 2. Para encontrar uno, escribí en el buscador (materia, curso, docente o título) o usá los filtros de **materia**, **curso** y **año**.
 3. Tocá **Ver PDF** para abrir el programa en el visor de la página. **Cerrar visor** lo oculta.
+4. **Compartir:** lo que filtrás queda en la dirección de la página. **Copiar enlace a esta búsqueda** copia esa dirección,
+   por ejemplo para mandar al grupo de un curso el enlace con sus programas.
+5. **Descargar todos los de un curso:** elegí el curso (y, si querés, el año) y tocá **Descargar los programas de … (ZIP)**.
+   El ZIP trae una carpeta por año.
 
 ### Docentes
 
@@ -42,8 +47,17 @@ No hace falta iniciar sesión.
 3. El **Título** es opcional: si lo dejás vacío se completa solo (por ejemplo, "Programa de Matemática - 2° 1° - 2026").
 4. Elegí el **archivo PDF** (hasta 10 MB) y tocá **Guardar programa**.
 
+Arriba del formulario aparece la **fecha límite** de entrega del año, si la asesora la fijó, y cuántos días faltan.
+
+**Usar el programa del año anterior:** si para ese curso y materia hay un programa de un año anterior, al elegirlo aparece
+**Usar el de 2025** (o el año que corresponda). Tocalo y queda cargado para este año sin volver a subir el PDF; si el título
+mencionaba el año anterior, se cambia solo.
+
 **Reemplazar un programa:** subí el nuevo PDF para el mismo curso, materia y año. La página avisa que ya hay uno cargado
-y, si confirmás, lo reemplaza (el anterior se borra).
+y, si confirmás, lo reemplaza. La versión anterior **no se borra**: queda en **Versiones anteriores**.
+
+**Versiones anteriores:** en la lista, los programas que se reemplazaron muestran **Versiones anteriores (n)**. Al tocarlo
+aparecen las versiones viejas, con quién las reemplazó y cuándo, y se pueden abrir.
 
 En la lista de abajo ves sólo los programas de tus materias.
 
@@ -53,24 +67,34 @@ Tiene todo lo de los docentes, para **cualquier** curso y materia, y además pue
 El botón **Dashboard Asesora** abre el panel de control:
 
 - **Año** (arriba a la derecha): elegí el año lectivo que querés controlar.
+- **Avisos** (arriba de todo): si Google Drive no está disponible o hay programas guardados en el servidor y no en Drive.
+  Esos programas pasan solos a Drive cuando vuelve (al arrancar el servidor y cada 6 horas); **Pasar a Drive ahora** lo hace en el momento.
 - **Cobertura general:** programas requeridos, entregados, pendientes y porcentaje.
-- **Notificaciones y alertas:** avisos de Google Drive, asignaciones para revisar en la planilla, los primeros pendientes y los
+- **Fecha límite:** elegí la fecha y tocá **Guardar fecha** (**Quitar** la borra). Cada año tiene la suya. Los docentes la ven
+  al cargar; cuando pasa, los pendientes se muestran como **Atrasados** y se cuentan los entregados **fuera de término**.
+- **Notificaciones y alertas:** asignaciones para revisar en la planilla, los primeros pendientes y los
   **Programas sin asignación** (programas viejos que no coinciden con ninguna materia oficial): elegí a cuál corresponden
   y tocá **Vincular**.
-- **Estado por curso** y **Estado por docente:** avance de cada uno.
-- **Programas pendientes:** lista filtrable por docente, materia y curso. **Descargar pendientes (CSV)** la baja para abrir con Excel.
+- **Estado por curso:** avance de cada curso, con **Copiar enlace para alumnos** (los programas de ese curso, de todos los años)
+  y **Descargar todo (ZIP)**.
+- **Estado por docente:** avance de cada docente. A los que tienen pendientes y una cuenta con correo, **Enviar recordatorio**
+  abre un correo ya escrito con lo que les falta y la fecha límite.
+- **Programas pendientes:** lista filtrable por docente, materia y curso. **Descargar pendientes (CSV)** la baja para abrir con Excel
+  y **Copiar correos de los docentes con pendientes** copia sus direcciones para escribirles a todos juntos.
 - **Cuentas de docentes:**
   No hace falta aprobar a nadie: las cuentas ya vienen verificadas del sistema principal. Esta sección sirve para controlar
   y corregir con qué nombre de la lista quedó cada uno.
   - *Entró pero no eligió su nombre:* podés escribirlo vos y tocar **Asignar**.
   - *Vinculados:* indica si se vinculó automáticamente, lo eligió el docente o lo corregiste vos.
     **Cambiar** corrige el nombre y **Desvincular** le quita la posibilidad de cargar programas.
+- **Registro de actividad:** quién subió, reemplazó, reutilizó o eliminó programas, quién cambió vinculaciones o la fecha
+  límite, y las tareas automáticas (copias de seguridad, paso a Drive). Se puede buscar por persona, materia, curso o acción.
 - **Últimos programas cargados:** los más recientes del año, con su PDF.
 
 ### Preceptores y directivos
 
-Con el botón del dashboard ven el mismo panel que la asesora, pero sin poder modificar nada
-(no corrigen vinculaciones ni borran programas).
+Con el botón del dashboard ven el mismo panel que la asesora, incluido el registro de actividad, pero sin poder modificar
+nada (no fijan la fecha límite, no corrigen vinculaciones ni borran programas).
 
 ### Modo claro / oscuro
 
@@ -83,8 +107,10 @@ La página usa el modo de la computadora o el celular. El botón del sol / luna,
 - **"Tu cuenta todavía no está vinculada":** todavía no elegiste tu nombre en la lista; aparece arriba en la página principal.
 - **Me vinculé con el nombre equivocado:** la asesora lo corrige desde **Cuentas de docentes** en el dashboard.
 - **"El archivo no es un PDF válido":** el archivo está dañado o no es un PDF aunque termine en .pdf. Exportalo de nuevo como PDF.
-- **"Se guardó en el servidor porque Google Drive no está disponible":** el programa quedó guardado igual; hay que
-  renovar el permiso de Drive (ver [Google Drive](#5-google-drive)).
+- **"Se guardó en el servidor porque Google Drive no está disponible":** el programa quedó guardado igual y pasa solo a Drive
+  cuando vuelve. Si el aviso sigue, hay que renovar el permiso de Drive (ver [Google Drive](#5-google-drive)).
+- **Reemplacé un programa por error:** el anterior está en **Versiones anteriores**; se puede abrir y volver a subir.
+- **¿Quién borró un programa?** Está en el **Registro de actividad** del dashboard.
 
 ---
 
@@ -182,14 +208,31 @@ El certificado se saca con `sudo certbot --nginx -d programas.escuela.edu.ar`.
 
 ### Copias de seguridad
 
-Guardá periódicamente (por ejemplo, todas las noches):
+**Automáticas:** agregá al `.env` la carpeta donde guardarlas (mejor en otro disco):
 
-- `backend/database.sqlite` — programas cargados y cuentas de docentes. Para copiarla con el servidor andando:
-  `sqlite3 backend/database.sqlite ".backup respaldo.sqlite"` (o detené el servidor y copiá el archivo).
-- `backend/uploads/` — PDF guardados en el servidor (los que están en Drive ya quedan en Drive).
-- `backend/data/asignaciones.xlsx`, `.env`, `backend/oauth.json` y `backend/token.json`.
+```
+RESPALDOS_DIR=/var/respaldos/progmesas      # en Windows, por ejemplo D:\Respaldos\ProgMesas
+RESPALDO_HORA=3                             # hora de la copia diaria (3 de la mañana)
+RESPALDOS_CONSERVAR=14                      # cuántas copias guardar; las más viejas se borran
+```
 
-Si se usa `DATOS_DIR`, la base y `uploads` están en esa carpeta.
+Con eso el servidor hace una copia por día, en una carpeta con la fecha y la hora, con:
+
+- `database.sqlite` — programas, versiones, cuentas de docentes, fecha límite y registro de actividad
+  (se copia de forma segura con el servidor andando);
+- `uploads/` — PDF guardados en el servidor (los que están en Drive ya quedan en Drive);
+- `asignaciones.xlsx` — la lista oficial.
+
+Cada copia queda anotada en el **Registro de actividad** del dashboard.
+
+**A mano**, en cualquier momento: `cd backend` y `node scripts/respaldo.js` (o `node scripts/respaldo.js <carpeta>`).
+
+Además, guardá una vez en un lugar seguro `.env`, `backend/oauth.json` y `backend/token.json`, que no entran en la copia
+porque tienen claves.
+
+**Restaurar:** detené el servidor, copiá `database.sqlite`, `uploads/` y `asignaciones.xlsx` de la copia a `backend/`
+(y `backend/data/` para la planilla; borrá antes `database.sqlite-wal` y `database.sqlite-shm` si existen),
+y volvé a arrancarlo. Si se usa `DATOS_DIR`, la base y `uploads` van en esa carpeta.
 
 ### Actualizar a una versión nueva
 
@@ -247,10 +290,44 @@ con un nombre de `asignaciones.xlsx`:
 
 Las solicitudes que habían quedado esperando aprobación con la versión anterior se confirman solas al arrancar el servidor.
 
+### Probar el ingreso desde el sistema principal (modo externo)
+
+Mientras no esté la conexión real, `scripts/token_prueba.js` hace de sistema principal: genera un token firmado como el que
+mandaría y el enlace para entrar con esa identidad.
+
+1. En el `.env`: `AUTH_MODO=externo` y `EXTERNO_JWT_SECRET=<una clave larga>` (en la escuela, la que comparta el sistema principal).
+2. Arrancá el servidor y generá un token:
+
+   ```
+   cd backend
+   node scripts/token_prueba.js --rol docente --nombre "Valeria Grimberg" --id 1234 --email vgrimberg@escuela.edu.ar
+   ```
+
+3. Abrí el enlace que muestra. Con ese nombre, el docente se vincula solo con "Grimberg Valeria".
+   Probá también `--rol asesora`, `--rol preceptor` o `--rol alumno`.
+
+### Qué hay que pedirle al equipo del sistema principal
+
+Para conectar ProgMesas de verdad hacen falta estos datos (se cargan en el `.env`, sin tocar código):
+
+| Dato | Variable |
+|---|---|
+| Cómo firma el token: clave compartida (HS256) o clave pública (RS256) | `EXTERNO_JWT_SECRET` o `EXTERNO_JWT_CLAVE_PUBLICA` |
+| Cómo llega el token: en el enlace (`/?token=`), en el encabezado `Authorization` o en una cookie (¿cómo se llama?) | `EXTERNO_COOKIE` |
+| Nombre del campo con el identificador único del usuario (por ejemplo `sub` o `usuario.id`) | `EXTERNO_CLAIM_ID` |
+| Nombre del campo con el **nombre completo** (para la vinculación automática) | `EXTERNO_CLAIM_NOMBRE` |
+| Nombre del campo con el rol, y cómo se llaman los roles (docente, asesora, preceptor, directivo, alumno) | `EXTERNO_CLAIM_ROL`, `ROL_*` |
+| Nombre del campo con el correo (para los recordatorios) | `EXTERNO_CLAIM_EMAIL` |
+| Dirección de la página de ingreso del sistema principal | `EXTERNO_LOGIN_URL` |
+
+Las pruebas automáticas (`tests/externo.test.js`) ya comprueban este modo: roles, campos anidados, token en cookie,
+vinculación automática y rechazo de tokens con otra firma, vencidos, sin firma o con roles desconocidos.
+
 ## 5. Google Drive
 
 Los PDF se guardan en Google Drive, en carpetas Año / Curso / Materia. Si Drive no está disponible, se guardan en
-`backend/uploads` y el dashboard lo avisa.
+`backend/uploads` y el dashboard lo avisa. Cuando Drive vuelve, esos PDF **pasan solos a Drive** (al arrancar el servidor y
+cada 6 horas) y se borran del servidor; la asesora también puede hacerlo con **Pasar a Drive ahora**.
 
 ### Autorizar o renovar el permiso
 
@@ -285,13 +362,19 @@ desde la página, su archivo en Drive hay que borrarlo a mano. Para volver atrá
 ## 6. Pruebas automáticas
 
 ```
-npm test
+npm test             # API y funciones: 51 pruebas en unos segundos
+npm run test:ui      # interfaz en un navegador y accesibilidad: 11 pruebas
 ```
 
-Corren 29 pruebas en unos segundos: funciones de normalización, contraseñas, roles y planilla de asignaciones, y la API
-completa con cada rol (ingreso y límite de intentos, permisos, vinculación de docentes (elegida y automática), subida y reemplazo de PDF,
-subidas simultáneas de varios cursos, cobertura y borrado). Usan una **copia temporal** de la base y no tocan Google Drive,
-así que no modifican los datos reales.
+- **`npm test`** prueba utilidades, contraseñas, roles y la planilla de asignaciones, y la API completa con cada rol:
+  ingreso y límite de intentos, permisos, vinculación de docentes (elegida y automática), subida, reemplazo y versiones,
+  reutilizar, subidas simultáneas de varios cursos, fecha límite, registro, cobertura, ZIP por curso, copias de seguridad,
+  el modo externo y Google Drive **simulado** (subida, Drive caído, paso a Drive cuando vuelve y borrado).
+- **`npm run test:ui`** abre la página en un navegador (Chromium) y la recorre como visitante, asesora, docente, preceptor
+  y alumno; prueba el modo oscuro y el celular, y revisa la accesibilidad (WCAG 2.1 AA) en los dos modos.
+  La primera vez hay que instalar el navegador: `npx playwright install chromium`.
+
+Usan una **copia temporal** de la base y nunca tocan Google Drive, así que no modifican los datos reales.
 
 En GitHub se corren solas en cada cambio; si alguna falla, la demo no se publica.
 

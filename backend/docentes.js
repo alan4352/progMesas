@@ -12,6 +12,7 @@
 import db from './db.js';
 import { claveTexto } from './lib/normalizar.js';
 import { docenteOficial, listaDocentes, asignacionesDeDocente } from './asignaciones.js';
+import { registrar } from './registro.js';
 
 db.exec(`
     CREATE TABLE IF NOT EXISTS docentes_usuarios (
@@ -114,6 +115,7 @@ export function registrarAcceso(usuario) {
         const docente = nombreOficialPara(usuario.nombre);
         if (docente && !confirmadoPorOtro(docente, usuario.id)) {
             stmtConfirmar.run(docente, new Date().toISOString(), 'automático', usuario.id);
+            registrar(usuario, 'docente.vinculado', { docente, por: 'automático' });
             return stmtPorId.get(usuario.id);
         }
     }

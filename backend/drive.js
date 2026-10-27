@@ -1,8 +1,10 @@
 import fs from 'fs';
+import path from 'path';
 import { Readable } from 'stream';
 import { google } from 'googleapis';
 import { RUTAS, DRIVE_CARPETA_RAIZ, DRIVE_CARPETA_NOMBRE, DRIVE_DESACTIVADO } from './config.js';
 import { escaparConsultaDrive } from './lib/normalizar.js';
+import { crearDriveSimulado } from './lib/drive_simulado.js';
 
 // ================= CREDENCIALES =================
 
@@ -14,14 +16,19 @@ function leerJson(ruta) {
     }
 }
 
-const credenciales = DRIVE_DESACTIVADO ? null : leerJson(RUTAS.oauth);
+// DRIVE_SIMULADO=<carpeta>: Drive de mentira para las pruebas automáticas (no usar en la escuela)
+const simulado = !DRIVE_DESACTIVADO && process.env.DRIVE_SIMULADO
+    ? crearDriveSimulado(path.resolve(process.env.DRIVE_SIMULADO))
+    : null;
+
+const credenciales = DRIVE_DESACTIVADO || simulado ? null : leerJson(RUTAS.oauth);
 const app = credenciales?.installed || credenciales?.web || null;
 
 export const oAuth2Client = app
     ? new google.auth.OAuth2(app.client_id, app.client_secret, app.redirect_uris?.[0] || 'http://localhost')
     : null;
 
-let ultimoError = app ? null : DRIVE_DESACTIVADO ? 'Drive desactivado (DRIVE_DESACTIVADO)' : 'Falta backend/oauth.json';
+let ultimoError = app || simulado ? null : DRIVE_DESACTIVADO ? 'Drive desactivado (DRIVE_DESACTIVADO)' : 'Falta backend/oauth.json';
 
 if (oAuth2Client) {
     const token = leerJson(RUTAS.token);
@@ -37,7 +44,7 @@ if (oAuth2Client) {
     }
 }
 
-const drive = oAuth2Client ? google.drive({ version: 'v3', auth: oAuth2Client }) : null;
+const drive = simulado ? simulado.drive : oAuth2Client ? google.drive({ version: 'v3', auth: oAuth2Client }) : null;
 
 function traducirError(err) {
     const msg = String(err?.message || err);
@@ -49,9 +56,9 @@ function traducirError(err) {
 
 /** Comprueba al iniciar que el permiso de Drive siga vigente (no bloquea el arranque). */
 export async function verificarDrive() {
-    if (!drive || !leerJson(RUTAS.token)) return estadoDrive();
+    if (!drive || (!simulado && !leerJson(RUTAS.token))) return estadoDrive();
     try {
-        await oAuth2Client.getAccessToken();
+        await (simulado ? simulado.verificar() : oAuth2Client.getAccessToken());
         ultimoError = null;
     } catch (err) {
         ultimoError = traducirError(err);
@@ -114,6 +121,22 @@ export async function subirArchivo(buffer, anio, materia, curso, profesor) {
         ultimoError = traducirError(err);
         throw new Error(ultimoError);
     }
+}
+
+/** Descarga el contenido de un archivo de Drive (para armar el ZIP de un curso). */
+export async function descargarArchivo(fileId) {
+    if (!drive) throw new Error(ultimoError || 'Google Drive no está configurado');
+    try {
+        const r = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'arraybuffer' });
+        return Buffer.from(r.data);
+    } catch (err) {
+        throw new Error(traducirError(err));
+    }
+}
+
+/** Drive está configurado y su último uso no dio error. */
+export function driveDisponible() {
+    return Boolean(drive) && !ultimoError;
 }
 
 export async function eliminarArchivo(fileId) {

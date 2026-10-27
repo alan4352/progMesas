@@ -137,6 +137,14 @@ for (const [variable, ruta] of [['GOOGLE_OAUTH_JSON', RUTAS.oauth], ['GOOGLE_TOK
     }
 }
 
+// ================= COPIAS DE SEGURIDAD =================
+// RESPALDOS_DIR: carpeta donde el servidor guarda una copia por día (vacío = no hace copias automáticas)
+export const RESPALDOS = {
+    dir: process.env.RESPALDOS_DIR ? path.resolve(RAIZ, process.env.RESPALDOS_DIR) : '',
+    hora: Math.min(Math.max(parseInt(process.env.RESPALDO_HORA ?? '3', 10) || 0, 0), 23),
+    conservar: Math.max(parseInt(process.env.RESPALDOS_CONSERVAR ?? '14', 10) || 14, 1)
+};
+
 // ================= GOOGLE DRIVE =================
 // DRIVE_ALCANCE=completo (por defecto) → permiso "drive": usa la carpeta DRIVE_CARPETA_RAIZ creada a mano.
 // DRIVE_ALCANCE=archivos → permiso "drive.file": la app sólo ve lo que ella misma crea, así que guarda
