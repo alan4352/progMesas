@@ -817,3 +817,12 @@ select optgroup { font-weight: 700; }
         font-size: 0.9rem; 
     }
 }
+/* ================= PIE DE PÁGINA ================= */
+.pie {
+    margin-top: auto;
+    padding: 1.2rem 1rem 1.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+.pie a { color: var(--color-secondary); opacity: 0.85; }
+.pie a:hover { opacity: 1; }

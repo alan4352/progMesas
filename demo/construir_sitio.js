@@ -28,6 +28,9 @@ fs.cpSync(path.join(RAIZ, 'frontend'), path.join(SALIDA, 'frontend'), { recursiv
 copiarPagina('index.html', 'index.html', 'demo/demo.js');
 copiarPagina('frontend/dashboard.html', 'frontend/dashboard.html', '../demo/demo.js');
 
+// Política de privacidad (la pide la pantalla de consentimiento de Google OAuth)
+fs.copyFileSync(path.join(RAIZ, 'privacidad.html'), path.join(SALIDA, 'privacidad.html'));
+
 // Script de la demo y datos exportados de la base
 fs.mkdirSync(path.join(SALIDA, 'demo'), { recursive: true });
 fs.copyFileSync(path.join(RAIZ, 'demo', 'demo.js'), path.join(SALIDA, 'demo', 'demo.js'));

@@ -53,6 +53,7 @@ app.use(express.json({ limit: '100kb' }));
 // ================= FRONTEND Y ARCHIVOS =================
 
 app.get(['/', '/index.html'], (req, res) => res.sendFile(RUTAS.index));
+app.get('/privacidad.html', (req, res) => res.sendFile(RUTAS.privacidad));
 app.use('/frontend', express.static(RUTAS.frontend));
 app.use(
     '/uploads',
