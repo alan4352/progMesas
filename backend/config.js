@@ -115,5 +115,18 @@ export const RUTAS = {
     terminos: path.join(RAIZ, 'terminos.html')
 };
 
+// En un hosting sin esos archivos (por ejemplo Render), las credenciales de Google Drive pueden
+// venir en variables de entorno con el contenido completo de oauth.json y token.json.
+for (const [variable, ruta] of [['GOOGLE_OAUTH_JSON', RUTAS.oauth], ['GOOGLE_TOKEN_JSON', RUTAS.token]]) {
+    const valor = (process.env[variable] || '').trim();
+    if (!valor || fs.existsSync(ruta)) continue;
+    try {
+        JSON.parse(valor);
+        fs.writeFileSync(ruta, valor);
+    } catch {
+        console.error(`[Config] ${variable} no tiene un JSON válido: pegá el contenido completo del archivo`);
+    }
+}
+
 // ID de la carpeta raíz de Drive donde se guardan los programas
 export const DRIVE_CARPETA_RAIZ = process.env.DRIVE_CARPETA_RAIZ || '1EY74DSygnNwaxm6hWhKm5-alO-0X0Lnl';

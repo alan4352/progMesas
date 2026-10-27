@@ -29,6 +29,12 @@ services:
         value: prueba
       - key: ANIO_LECTIVO
         value: "2026"
+      # Google Drive: pegar en el panel de Render el contenido completo de
+      # backend/oauth.json y backend/token.json (no se suben al repositorio)
+      - key: GOOGLE_OAUTH_JSON
+        sync: false
+      - key: GOOGLE_TOKEN_JSON
+        sync: false
       # Con disco persistente:
       # - key: DATOS_DIR
       #   value: /var/data
