@@ -648,9 +648,17 @@ async function init() {
     if (!esAsesora) $('tituloDashboard').innerHTML = `${icono('tablero')}Dashboard de programas`;
     mostrarPerfil(usuario);
     $('subtituloDashboard').textContent = `Bienvenido/a, ${usuario.nombre || usuario.email}.`;
-    $('btnLogout').addEventListener('click', () => {
+    $('btnLogout').addEventListener('click', async () => {
         cerrarSesion();
-        location.href = '../';
+        // En modo externo también se cierra la sesión del sistema principal (campus)
+        let destino = '../';
+        try {
+            const c = await api('/config');
+            if (c.authModo === 'externo' && c.logoutUrl) destino = c.logoutUrl;
+        } catch {
+            /* sin configuración: vuelve al listado */
+        }
+        location.href = destino;
     });
     mostrarAvisoPendiente();
 

@@ -144,6 +144,7 @@ app.get('/api/config', (req, res) => {
         maxPdfMb: MAX_PDF_MB,
         authModo: AUTH_MODO,
         loginUrl: EXTERNO.loginUrl || null,
+        logoutUrl: EXTERNO.logoutUrl || EXTERNO.loginUrl || null,
         fechaLimite: fechaLimite(ANIO_LECTIVO)
     });
 });

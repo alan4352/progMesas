@@ -32,8 +32,9 @@ No hace falta iniciar sesión.
 
 **La primera vez:**
 
-1. Iniciá sesión (en la escuela, desde el sistema principal; en modo prueba, con **Acceso docentes** en el menú).
-2. Si tu nombre en el sistema principal coincide con el de la lista de horarios, la cuenta se vincula sola y ya podés
+1. Iniciá sesión en el **campus** de la escuela con tu código de profesor y abrí **Subir los programas de examen**
+   (en modo prueba, con **Acceso docentes** en el menú).
+2. Si tu nombre en el campus coincide con el de la lista de horarios, la cuenta se vincula sola y ya podés
    cargar programas: no tenés que hacer nada más.
 3. Si no coincide, aparece **Elegí tu nombre en la lista de docentes**: escribí tu apellido, elegí tu nombre tal como
    figura en los horarios y tocá **Confirmar**. Queda vinculado en el momento, sin esperar a nadie.
@@ -63,7 +64,8 @@ En la lista de abajo ves sólo los programas de tus materias.
 
 ### Asesora pedagógica
 
-Tiene todo lo de los docentes, para **cualquier** curso y materia, y además puede **Eliminar** programas desde la lista.
+Entra desde el **campus** como **directivo**, con **Control de programas de examen**. Tiene todo lo de los docentes,
+para **cualquier** curso y materia, y además puede **Eliminar** programas desde la lista.
 **Dashboard**, en el menú, abre el panel de control:
 
 - **Año** (en el encabezado, arriba a la derecha): elegí el año lectivo que querés controlar.
@@ -91,7 +93,7 @@ Tiene todo lo de los docentes, para **cualquier** curso y materia, y además pue
   límite, y las tareas automáticas (copias de seguridad, paso a Drive). Se puede buscar por persona, materia, curso o acción.
 - **Últimos programas cargados:** los más recientes del año, con su PDF.
 
-### Preceptores y directivos
+### Preceptores
 
 Con **Dashboard**, en el menú, ven el mismo panel que la asesora, incluido el registro de actividad, pero sin poder modificar
 nada (no fijan la fecha límite, no corrigen vinculaciones ni borran programas).
@@ -278,8 +280,42 @@ Todo lo relacionado está en un solo archivo, `backend/auth.js`, y se configura 
   en el encabezado `Authorization` o en una cookie. En `.env.example` están los datos a completar
   (clave para verificar el token, nombre de los campos y nombres de los roles).
 
-Roles: **docente** (carga sus programas), **asesora** (todo), **consulta** (preceptor/directivo: ve el dashboard sin modificar nada)
-y **alumno** (ve los programas).
+Roles: **docente** (carga sus programas), **asesora** (todo), **consulta** (preceptor: ve el dashboard sin modificar nada)
+y **alumno** (ve los programas). En el campus de la escuela, la asesoría entra como **directivo**.
+
+### Ingreso desde el campus de la escuela
+
+El sistema principal es el **campus virtual** de la escuela (PHP). Los usuarios inician sesión ahí y entran a ProgMesas
+desde el módulo **Programas de examen**, sin volver a escribir la contraseña:
+
+| En el campus | En ProgMesas |
+|---|---|
+| Profesor (código de profesor) | Docente: carga los programas de sus materias |
+| Directivo (correo y contraseña) | Asesora: dashboard, fecha límite, vinculaciones, registro |
+| Alumno (DNI y contraseña) | Alumno: consulta (también puede entrar sin sesión) |
+
+Cómo funciona: `programas.php` del campus arma un pase firmado (JWT HS256) con el nombre, el correo y el rol, y abre
+ProgMesas con `/?token=...`. ProgMesas lo verifica con la misma clave. El pase dura 8 horas (`PROGMESAS_HORAS`).
+**Ingresar** en ProgMesas lleva al campus, y **Cerrar sesión** cierra también la sesión del campus.
+
+Para instalarlo:
+
+1. Copiá al campus `integraciones/campus-escuela/programas.php` y `integraciones/campus-escuela/includes/progmesas.php`,
+   y hacé los cambios de [integraciones/campus-escuela/LEEME.md](integraciones/campus-escuela/LEEME.md) (configuración,
+   login, panel y módulo).
+2. Generá una clave: `php -r "echo bin2hex(random_bytes(32));"`. Ponela en `includes/config.php` del campus
+   (`PROGMESAS_SECRETO`) y la dirección de ProgMesas en `PROGMESAS_URL`.
+3. En el `.env` de ProgMesas:
+
+   ```
+   AUTH_MODO=externo
+   EXTERNO_JWT_SECRET=<la misma clave>
+   EXTERNO_LOGIN_URL=https://<campus>/programas.php
+   EXTERNO_LOGOUT_URL=https://<campus>/logout.php
+   ```
+
+4. Reiniciá ProgMesas. Las pruebas `tests/campus.test.js` generan pases con el mismo código PHP y comprueban los roles
+   y que un pase con otra clave o modificado se rechace.
 
 ### Vinculación de docentes
 
@@ -324,6 +360,7 @@ Para conectar ProgMesas de verdad hacen falta estos datos (se cargan en el `.env
 | Nombre del campo con el rol, y cómo se llaman los roles (docente, asesora, preceptor, directivo, alumno) | `EXTERNO_CLAIM_ROL`, `ROL_*` |
 | Nombre del campo con el correo (para los recordatorios) | `EXTERNO_CLAIM_EMAIL` |
 | Dirección de la página de ingreso del sistema principal | `EXTERNO_LOGIN_URL` |
+| Dirección que cierra la sesión del sistema principal | `EXTERNO_LOGOUT_URL` |
 
 Las pruebas automáticas (`tests/externo.test.js`) ya comprueban este modo: roles, campos anidados, token en cookie,
 vinculación automática y rechazo de tokens con otra firma, vencidos, sin firma o con roles desconocidos.

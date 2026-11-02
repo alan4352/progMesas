@@ -51,7 +51,7 @@ try {
 
 const datos = {
     generado: new Date().toISOString(),
-    config: { anioLectivo: ANIO_LECTIVO, maxPdfMb: MAX_PDF_MB, authModo: 'prueba', loginUrl: null },
+    config: { anioLectivo: ANIO_LECTIVO, maxPdfMb: MAX_PDF_MB, authModo: 'prueba', loginUrl: null, logoutUrl: null },
     asignaciones,
     programas,
     vinculos,

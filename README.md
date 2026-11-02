@@ -16,8 +16,8 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 |---|---|
 | **Visitante / alumno** | Ver y buscar los programas de todos los años (por materia, curso, año o docente), abrirlos en el visor, compartir el enlace de una búsqueda y descargar todos los de un curso en un ZIP. |
 | **Docente** | Subir el programa de sus materias, reemplazarlo (la versión anterior se conserva), reutilizar el del año anterior y ver la fecha límite. |
-| **Asesora** | Todo lo anterior para cualquier materia, eliminar programas, corregir la vinculación de los docentes, fijar la fecha límite y usar el dashboard. |
-| **Consulta** (preceptor, directivo) | Ver el dashboard y el registro de actividad sin modificar nada. |
+| **Asesora** (en el campus, *directivo*) | Todo lo anterior para cualquier materia, eliminar programas, corregir la vinculación de los docentes, fijar la fecha límite y usar el dashboard. |
+| **Consulta** (preceptor) | Ver el dashboard y el registro de actividad sin modificar nada. |
 
 **Programas**
 
@@ -53,8 +53,11 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 
 ## Cómo funciona
 
-- **Integrado a un sistema más grande** — los usuarios y el inicio de sesión vienen del sistema principal
-  (token firmado). Mientras tanto se puede usar un login de prueba (`AUTH_MODO=prueba`).
+- **Integrado al campus de la escuela** — los usuarios inician sesión en el campus virtual (PHP) y entran a ProgMesas
+  desde el módulo de programas de examen: `programas.php` del campus arma un pase firmado (JWT) y ProgMesas lo verifica
+  con la misma clave (`AUTH_MODO=externo`). Profesor → docente, directivo → asesora, alumno → alumno.
+  Los archivos y los cambios para el campus están en [integraciones/campus-escuela](integraciones/campus-escuela/LEEME.md).
+  Para desarrollo se puede usar un login de prueba (`AUTH_MODO=prueba`).
 - **Vinculación de docentes** — las cuentas vienen verificadas del sistema principal. Si el nombre de la cuenta coincide con
   uno de la lista oficial, se vincula solo; si no, el docente lo elige una vez y ya puede cargar. No hace falta aprobación.
 - **Lista oficial de asignaciones** — `backend/data/asignaciones.xlsx` indica qué programa tiene que entregar cada curso
@@ -115,7 +118,9 @@ npm start
 | `DRIVE_DESACTIVADO` | `1` guarda todo en el servidor aunque haya credenciales. |
 | `DRIVE_SIMULADO` | **Sólo para las pruebas:** carpeta donde un Drive simulado guarda los archivos. |
 | `CORS_ORIGIN` | Otros dominios que pueden usar la API (vacío = sólo el mismo servidor). |
-| `EXTERNO_*`, `ROL_*` | Datos del sistema principal para `AUTH_MODO=externo` (ver `.env.example` y [LEEME.md](LEEME.md#4-usuarios-e-ingreso)). |
+| `EXTERNO_JWT_SECRET` | Con `AUTH_MODO=externo`: la clave compartida con el campus (`PROGMESAS_SECRETO`). |
+| `EXTERNO_LOGIN_URL`, `EXTERNO_LOGOUT_URL` | Páginas del campus para ingresar (`programas.php`) y cerrar sesión (`logout.php`). |
+| Otros `EXTERNO_*`, `ROL_*` | Nombre de los datos dentro del token y de los roles (ver `.env.example` y [LEEME.md](LEEME.md#4-usuarios-e-ingreso)). |
 
 ### Google Drive (opcional)
 
@@ -132,7 +137,7 @@ Mientras la app de Google esté en modo "Testing", el permiso vence a los 7 día
 ## Pruebas automáticas
 
 ```bash
-npm test             # API y funciones: 51 pruebas, unos segundos
+npm test             # API y funciones: 54 pruebas, unos segundos (las del campus necesitan PHP)
 npm run test:ui      # interfaz en un navegador y accesibilidad: 11 pruebas
 ```
 
@@ -215,6 +220,8 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 ├── .github/workflows/       Pruebas automáticas y publicación de la demo en GitHub Pages
 ├── tests/                   Pruebas automáticas: API (*.test.js), interfaz (interfaz.ui.js) y servidor de prueba
 ├── demo/                    Demo estática: datos exportados y API simulada en el navegador
+├── integraciones/
+│   └── campus-escuela/      Puente de ingreso desde el campus de la escuela (PHP) y cambios a hacer en el campus
 ├── frontend/
 │   ├── styles.css           Estilos y paleta (modo claro y oscuro)
 │   ├── tema.js              Cambio de modo claro / oscuro
@@ -258,6 +265,17 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 02/11/2026 — Ingreso desde el campus de la escuela
+
+- El login viene del campus virtual de la escuela: `integraciones/campus-escuela/programas.php` arma un pase firmado
+  (JWT HS256) con la sesión del campus y abre ProgMesas sin pedir otra contraseña. Si no hay sesión, manda al login del
+  campus y vuelve solo.
+- Roles: profesor → docente, **directivo → asesora** (antes, consulta), alumno → alumno.
+- Nueva variable `EXTERNO_LOGOUT_URL`: **Cerrar sesión** (en la página principal y en el dashboard) cierra también la
+  sesión del campus.
+- Pruebas `tests/campus.test.js`: generan pases con el código PHP del campus y comprueban roles, configuración y el
+  rechazo de pases con otra clave o modificados.
 
 ### 27/10/2026 — Diseño del sistema principal
 

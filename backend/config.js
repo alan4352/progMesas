@@ -47,14 +47,17 @@ export const EXTERNO = {
     // Si el sistema principal deja el token en una cookie del mismo dominio
     cookie: process.env.EXTERNO_COOKIE || '',
     // Página de inicio de sesión del sistema principal (el botón "Ingresar" lleva ahí)
-    loginUrl: process.env.EXTERNO_LOGIN_URL || ''
+    loginUrl: process.env.EXTERNO_LOGIN_URL || '',
+    // Página que cierra la sesión del sistema principal ("Cerrar sesión" lleva ahí; si falta, al login)
+    logoutUrl: process.env.EXTERNO_LOGOUT_URL || ''
 };
 
 // Cómo se llaman los roles en el sistema principal → rol interno de ProgMesas
 export const ROLES = {
     teacher: lista(process.env.ROL_DOCENTE, 'docente,teacher,profesor'),
-    advisor: lista(process.env.ROL_ASESORA, 'asesora,asesor,advisor'),
-    viewer: lista(process.env.ROL_CONSULTA, 'preceptor,preceptora,directivo,director,directora'),
+    // En el campus de la escuela la asesoría entra como "directivo"
+    advisor: lista(process.env.ROL_ASESORA, 'asesora,asesor,advisor,directivo,directiva'),
+    viewer: lista(process.env.ROL_CONSULTA, 'preceptor,preceptora,director,directora'),
     student: lista(process.env.ROL_ALUMNO, 'alumno,alumna,student,estudiante')
 };
 

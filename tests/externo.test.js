@@ -39,6 +39,7 @@ test('en modo externo no hay login propio y el botón lleva al sistema principal
     const config = (await srv.pedir('/config')).datos;
     assert.equal(config.authModo, 'externo');
     assert.equal(config.loginUrl, 'https://sistema.escuela.edu.ar/ingresar');
+    assert.equal(config.logoutUrl, 'https://sistema.escuela.edu.ar/ingresar', 'sin EXTERNO_LOGOUT_URL, cerrar sesión lleva al login');
     const login = await srv.pedir('/login', { method: 'POST', json: { email: 'asesor@test.com', password: 'asesor123' } });
     assert.equal(login.status, 404);
 });
@@ -49,8 +50,11 @@ test('el token del sistema principal identifica al usuario y su rol', async () =
     assert.deepEqual([yo.autenticado, yo.role, yo.nombre, yo.id], [true, 'advisor', 'Ana Pérez', 'A-1']);
     assert.equal((await srv.pedir('/cobertura', { token: asesora })).status, 200);
 
-    const directivo = tokenDe({ rol: 'directivo', nombre: 'Director', id: 'D-1' });
-    assert.equal((await srv.pedir('/yo', { token: directivo })).datos.role, 'viewer');
+    // En el campus la asesoría entra como "directivo"; preceptores y directores sólo consultan
+    const directivo = tokenDe({ rol: 'directivo', nombre: 'Marta Rodríguez', id: 'D-1' });
+    assert.equal((await srv.pedir('/yo', { token: directivo })).datos.role, 'advisor');
+    const preceptor = tokenDe({ rol: 'preceptor', nombre: 'Preceptor', id: 'P-1' });
+    assert.equal((await srv.pedir('/yo', { token: preceptor })).datos.role, 'viewer');
 
     const alumno = tokenDe({ rol: 'alumno', nombre: 'Alumno', id: 'E-1' });
     assert.equal((await srv.pedir('/cobertura', { token: alumno })).status, 403);

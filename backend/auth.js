@@ -4,7 +4,7 @@
 //   AUTH_MODO=externo → el usuario llega autenticado desde el sistema principal con un token firmado
 //
 // El resto del sistema sólo usa req.user = { id, nombre, email, role }, donde role es uno de:
-//   teacher (docente) | advisor (asesora) | viewer (consulta: preceptor, directivo) | student (alumno)
+//   teacher (docente) | advisor (asesora; en el campus, directivo) | viewer (consulta: preceptor) | student (alumno)
 // Para conectar con el formato real del sistema principal sólo hace falta tocar este archivo y el .env.
 
 import jwt from 'jsonwebtoken';

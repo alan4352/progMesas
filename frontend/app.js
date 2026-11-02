@@ -2,7 +2,7 @@
 
 let programas = [];
 let usuario = null;          // null = visitante; si no, lo que devuelve /api/yo
-let config = { anioLectivo: new Date().getFullYear(), maxPdfMb: 10, authModo: 'prueba', loginUrl: null };
+let config = { anioLectivo: new Date().getFullYear(), maxPdfMb: 10, authModo: 'prueba', loginUrl: null, logoutUrl: null };
 let asignaciones = [];       // las que el usuario puede cargar
 
 const $ = (id) => document.getElementById(id);
@@ -108,7 +108,7 @@ async function login(evento) {
 
 function logout() {
     cerrarSesion();
-    if (config.authModo === 'externo' && config.loginUrl) location.href = config.loginUrl;
+    if (config.authModo === 'externo' && config.logoutUrl) location.href = config.logoutUrl;
     else location.reload();
 }
 
