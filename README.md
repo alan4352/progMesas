@@ -274,6 +274,7 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Roles: profesor → docente, **directivo → asesora** (antes, consulta), alumno → alumno.
 - Nueva variable `EXTERNO_LOGOUT_URL`: **Cerrar sesión** (en la página principal y en el dashboard) cierra también la
   sesión del campus.
+- La carpeta del proyecto (`Carpeta del Proyecto — ProgMesas.docx`) describe el ingreso desde el campus virtual.
 - Pruebas `tests/campus.test.js`: generan pases con el código PHP del campus y comprueban roles, configuración y el
   rechazo de pases con otra clave o modificados.
 
