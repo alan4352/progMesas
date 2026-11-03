@@ -78,9 +78,9 @@ function compararCursos(a, b) {
 
 // ================= SESIÓN =================
 // El token puede llegar de dos formas:
-//   - desde el sistema principal, en la dirección:  /?token=...  (se guarda y se quita de la barra)
+//   - desde el campus de la escuela, en la dirección:  /?token=...  (se guarda y se quita de la barra)
 //   - del login de prueba de ProgMesas
-// Si el sistema principal usa una cookie, no hay token guardado y el servidor la lee solo.
+// Si el sistema de ingreso usa una cookie, no hay token guardado y el servidor la lee solo.
 // Quién es el usuario lo responde siempre el servidor (/api/yo): el navegador no interpreta el token.
 
 function leerToken() {
@@ -115,7 +115,7 @@ function guardarAviso(mensaje) {
     }
 }
 
-/** Toma el token que manda el sistema principal en la dirección y lo saca de la barra. */
+/** Toma el pase que manda el campus en la dirección y lo saca de la barra. */
 function tomarTokenDeLaUrl() {
     const url = new URL(location.href);
     const token = url.searchParams.get('token');

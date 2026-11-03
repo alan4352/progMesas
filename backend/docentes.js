@@ -1,7 +1,7 @@
-// Vinculación entre la cuenta de un docente (ID único del sistema principal) y su nombre
+// Vinculación entre la cuenta de un docente (ID único que manda el campus) y su nombre
 // en la lista oficial de asignaciones (data/asignaciones.xlsx).
 //
-// Las cuentas ya vienen verificadas por el sistema principal, así que no hace falta que la asesora apruebe nada.
+// Las cuentas ya vienen verificadas por el campus, así que no hace falta que la asesora apruebe nada.
 // Flujo:
 //   1. El docente entra por primera vez → queda registrado como "sin_vincular".
 //      Si su nombre coincide con UNO SOLO de la lista oficial, se vincula automáticamente.

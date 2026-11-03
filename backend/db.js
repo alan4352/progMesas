@@ -145,7 +145,7 @@ if (!sqlUsuarios.includes("'viewer'")) {
     })();
 }
 
-// Cuentas de prueba (sólo en AUTH_MODO=prueba; en producción los usuarios vienen del sistema principal)
+// Cuentas de prueba (sólo en AUTH_MODO=prueba; en producción los usuarios vienen del campus)
 const { usuarios } = db.prepare('SELECT COUNT(*) AS usuarios FROM usuarios').get();
 if (usuarios === 0 && AUTH_MODO === 'prueba') {
     const crear = db.prepare(
@@ -159,7 +159,7 @@ if (usuarios === 0 && AUTH_MODO === 'prueba') {
     })();
     console.warn(
         '[DB] Se crearon las cuentas de prueba (prof@test.com, asesor@test.com, alumno@test.com).\n' +
-        '     Sirven sólo para probar: en producción los usuarios vienen del sistema principal (AUTH_MODO=externo).'
+        '     Sirven sólo para probar: en producción los usuarios vienen del campus (AUTH_MODO=externo).'
     );
 }
 

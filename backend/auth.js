@@ -1,11 +1,11 @@
 // Identidad del usuario. Es la ÚNICA parte de ProgMesas que sabe de dónde viene el usuario:
 //
 //   AUTH_MODO=prueba  → login propio con las cuentas de prueba de la base (desarrollo)
-//   AUTH_MODO=externo → el usuario llega autenticado desde el sistema principal con un token firmado
+//   AUTH_MODO=externo → el usuario llega autenticado desde el campus de la escuela con un pase firmado
 //
 // El resto del sistema sólo usa req.user = { id, nombre, email, role }, donde role es uno de:
 //   teacher (docente) | advisor (asesora; en el campus, directivo) | viewer (consulta: preceptor) | student (alumno)
-// Para conectar con el formato real del sistema principal sólo hace falta tocar este archivo y el .env.
+// Para conectar otro sistema de ingreso sólo hace falta tocar este archivo y el .env.
 
 import jwt from 'jsonwebtoken';
 import { AUTH_MODO, JWT_SECRET, JWT_DURACION, EXTERNO, ROLES } from './config.js';
@@ -14,7 +14,7 @@ import { AUTH_MODO, JWT_SECRET, JWT_DURACION, EXTERNO, ROLES } from './config.js
 
 const PRIORIDAD = ['advisor', 'teacher', 'viewer', 'student'];
 
-/** Traduce el rol del sistema principal (texto o lista) al rol interno. Devuelve null si no se reconoce. */
+/** Traduce el rol del campus (texto o lista) al rol interno. Devuelve null si no se reconoce. */
 export function mapearRol(valor) {
     const valores = (Array.isArray(valor) ? valor : String(valor ?? '').split(','))
         .map((v) => String(v).trim().toLowerCase())
@@ -89,7 +89,7 @@ setInterval(() => {
 
 export async function login(req, res) {
     if (AUTH_MODO !== 'prueba') {
-        return res.status(404).json({ error: 'El inicio de sesión se hace desde el sistema principal' });
+        return res.status(404).json({ error: 'El inicio de sesión se hace desde el campus de la escuela' });
     }
     // Importación diferida: las cuentas locales sólo se usan en modo prueba
     const { buscarPorEmail } = await import('./usuarios.js');

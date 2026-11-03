@@ -42,7 +42,7 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 
 **Interfaz**
 
-- Mismo diseño que el sistema principal de la escuela ([PROJECT_ASIST](https://github.com/moshi-azz/PROJECT_ASIST)):
+- Mismo diseño que el sistema de asistencia de la escuela ([PROJECT_ASIST](https://github.com/moshi-azz/PROJECT_ASIST)):
   fondo bordó con el escudo de marca de agua, menú lateral beige con el escudo, el perfil y las secciones,
   encabezado con degradé bordó, tarjetas beige con borde bordó y encabezado degradé, tarjetas de estadísticas
   y tablas con cabecera bordó. En el celular, el menú se abre con el botón **Menú**.
@@ -58,7 +58,7 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
   con la misma clave (`AUTH_MODO=externo`). Profesor → docente, directivo → asesora, alumno → alumno.
   Los archivos y los cambios para el campus están en [integraciones/campus-escuela](integraciones/campus-escuela/LEEME.md).
   Para desarrollo se puede usar un login de prueba (`AUTH_MODO=prueba`).
-- **Vinculación de docentes** — las cuentas vienen verificadas del sistema principal. Si el nombre de la cuenta coincide con
+- **Vinculación de docentes** — las cuentas vienen verificadas del campus virtual. Si el nombre de la cuenta coincide con
   uno de la lista oficial, se vincula solo; si no, el docente lo elige una vez y ya puede cargar. No hace falta aprobación.
 - **Lista oficial de asignaciones** — `backend/data/asignaciones.xlsx` indica qué programa tiene que entregar cada curso
   (curso + materia + docentes). Se genera a partir de las planillas de horarios y la asesoría la puede editar con Excel:
@@ -102,7 +102,7 @@ npm start
 | Variable | Para qué sirve |
 |---|---|
 | `JWT_SECRET` | **Obligatoria** en modo prueba. Clave para firmar las sesiones (32 caracteres o más). |
-| `AUTH_MODO` | `prueba` (login propio, por defecto) o `externo` (token del sistema principal). |
+| `AUTH_MODO` | `prueba` (login propio, por defecto) o `externo` (pase firmado del campus virtual). |
 | `ANIO_LECTIVO` | Año que usan por defecto el formulario y el dashboard. |
 | `PORT` | Puerto del servidor (3000 por defecto). |
 | `MAX_PDF_MB` | Tamaño máximo de cada PDF (10 por defecto). |
@@ -143,7 +143,7 @@ npm run test:ui      # interfaz en un navegador y accesibilidad: 11 pruebas
 
 - **API** (`tests/*.test.js`): utilidades, contraseñas, roles, planilla de asignaciones, ingreso y límite de intentos,
   permisos de cada rol, vinculación de docentes, subida, reemplazo y versiones, reutilizar, fecha límite, registro,
-  ZIP por curso, copias de seguridad, modo externo (tokens del sistema principal) y Google Drive **simulado**
+  ZIP por curso, copias de seguridad, modo externo (pases del campus y de otros sistemas) y Google Drive **simulado**
   (subida, caída de Drive, paso a Drive cuando vuelve y borrado).
 - **Interfaz** (`tests/interfaz.ui.js`): recorre la página en Chromium como visitante, asesora, docente, preceptor y alumno,
   prueba el modo oscuro y el celular, y revisa la accesibilidad con axe-core en los dos modos.
@@ -164,7 +164,7 @@ node scripts/importar_horarios.js "Horarios_T.Mañana.xlsx" "Horarios_T.Tarde.xl
 # Copia de seguridad ahora (base, PDF del servidor y planilla)
 node scripts/respaldo.js D:\Respaldos\ProgMesas
 
-# Simular el sistema principal (AUTH_MODO=externo): genera un token y el enlace para entrar
+# Simular el campus (AUTH_MODO=externo): genera un token y el enlace para entrar
 node scripts/token_prueba.js --rol docente --nombre "Valeria Grimberg" --id 1234
 
 # Cuentas de prueba (sólo con AUTH_MODO=prueba)
@@ -234,7 +234,7 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
     ├── server.js            API y servidor de archivos
     ├── config.js            Configuración (.env y variables de entorno)
     ├── db.js                Base SQLite y migraciones
-    ├── auth.js              Identidad del usuario (sistema principal o login de prueba)
+    ├── auth.js              Identidad del usuario (pase del campus o login de prueba)
     ├── docentes.js          Vinculación cuenta ↔ nombre en la lista oficial
     ├── asignaciones.js      Lectura de la lista oficial
     ├── store.js             Programas cargados y versiones anteriores
@@ -251,7 +251,7 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 
 ## Seguridad
 
-- El token del sistema principal se verifica con su firma (se rechazan tokens sin firma, vencidos o con roles desconocidos);
+- El pase del campus se verifica con su firma (se rechazan tokens sin firma, vencidos o con roles desconocidos);
   en modo prueba, contraseñas con scrypt y límite de 10 intentos por IP y correo cada 15 minutos
   (con `TRUST_PROXY`, usando la IP real detrás de un proxy).
 - Un docente sólo puede cargar programas de las materias del nombre con el que está vinculado, y no puede tomar un nombre
@@ -269,8 +269,9 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 ### 03/11/2026 — Revisión de la carpeta del proyecto
 
 - Carpeta del proyecto revisada: actores y requerimientos coinciden con el diagrama de casos de uso (alumno, docente,
-  asesora), cantidad de pruebas actualizada, fragmentos de código en el Anexo B, guía de uso con el ingreso desde el
-  campus y referencias en orden alfabético (APA).
+  asesora), cantidad de pruebas actualizada y referencias en orden alfabético (APA). El documento incluye completos la
+  guía de uso (Anexo C), la documentación interna (Anexo D) y el código de los archivos principales (Anexo B).
+- README, LEEME y comentarios del código nombran al campus virtual como sistema de ingreso.
 
 ### 02/11/2026 — Ingreso desde el campus de la escuela
 
@@ -286,7 +287,7 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 
 ### 27/10/2026 — Diseño del sistema principal
 
-- Las páginas usan el mismo diseño que el sistema principal de la escuela (PROJECT_ASIST): menú lateral beige con
+- Las páginas usan el mismo diseño que el sistema de asistencia de la escuela (PROJECT_ASIST): menú lateral beige con
   escudo, perfil y secciones; encabezado con degradé bordó; fondo bordó con el escudo de marca de agua; tarjetas beige
   con encabezado degradé; tarjetas de estadísticas con ícono; tablas con cabecera bordó.
 - En el celular: encabezado con escudo y botón **Menú** que abre el menú lateral (se cierra con Escape o tocando afuera).

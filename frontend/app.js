@@ -26,7 +26,7 @@ function aplicarRol() {
     const esDocente = usuario?.role === 'teacher';
     const puedeSubir = usuario?.role === 'advisor' || docenteVinculado();
 
-    // Ingreso: login propio en modo prueba; en modo externo se va al sistema principal
+    // Ingreso: login propio en modo prueba; en modo externo se va al campus
     mostrar($('btnToggleLogin'), !logueado && config.authModo === 'prueba');
     const ingresar = $('btnIngresarExterno');
     if (config.loginUrl) ingresar.href = config.loginUrl;

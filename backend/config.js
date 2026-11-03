@@ -20,7 +20,7 @@ const SECRETOS_INVALIDOS = new Set(['progmesas_super_secret_jwt_key_2026_x89a!',
 
 // ================= IDENTIDAD =================
 // prueba  → login propio de ProgMesas con las cuentas de la base (para desarrollo)
-// externo → el usuario llega autenticado desde el sistema principal con un token firmado
+// externo → el usuario llega autenticado desde el campus con un token firmado
 export const AUTH_MODO = (process.env.AUTH_MODO || 'prueba').trim().toLowerCase();
 if (!['prueba', 'externo'].includes(AUTH_MODO)) {
     console.error(`[Config] AUTH_MODO inválido: "${AUTH_MODO}" (usá "prueba" o "externo")`);
@@ -44,15 +44,15 @@ export const EXTERNO = {
     claimNombre: process.env.EXTERNO_CLAIM_NOMBRE || 'name',
     claimRol: process.env.EXTERNO_CLAIM_ROL || 'role',
     claimEmail: process.env.EXTERNO_CLAIM_EMAIL || 'email',
-    // Si el sistema principal deja el token en una cookie del mismo dominio
+    // Si el campus deja el token en una cookie del mismo dominio
     cookie: process.env.EXTERNO_COOKIE || '',
-    // Página de inicio de sesión del sistema principal (el botón "Ingresar" lleva ahí)
+    // Página de inicio de sesión del campus (el botón "Ingresar" lleva ahí)
     loginUrl: process.env.EXTERNO_LOGIN_URL || '',
-    // Página que cierra la sesión del sistema principal ("Cerrar sesión" lleva ahí; si falta, al login)
+    // Página que cierra la sesión del campus ("Cerrar sesión" lleva ahí; si falta, al login)
     logoutUrl: process.env.EXTERNO_LOGOUT_URL || ''
 };
 
-// Cómo se llaman los roles en el sistema principal → rol interno de ProgMesas
+// Cómo se llaman los roles en el campus → rol interno de ProgMesas
 export const ROLES = {
     teacher: lista(process.env.ROL_DOCENTE, 'docente,teacher,profesor'),
     // En el campus de la escuela la asesoría entra como "directivo"

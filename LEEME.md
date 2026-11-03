@@ -84,7 +84,7 @@ para **cualquier** curso y materia, y además puede **Eliminar** programas desde
 - **Programas pendientes:** lista filtrable por docente, materia y curso. **Descargar pendientes (CSV)** la baja para abrir con Excel
   y **Copiar correos de los docentes con pendientes** copia sus direcciones para escribirles a todos juntos.
 - **Cuentas de docentes:**
-  No hace falta aprobar a nadie: las cuentas ya vienen verificadas del sistema principal. Esta sección sirve para controlar
+  No hace falta aprobar a nadie: las cuentas ya vienen verificadas del campus. Esta sección sirve para controlar
   y corregir con qué nombre de la lista quedó cada uno.
   - *Entró pero no eligió su nombre:* podés escribirlo vos y tocar **Asignar**.
   - *Vinculados:* indica si se vinculó automáticamente, lo eligió el docente o lo corregiste vos.
@@ -101,7 +101,7 @@ nada (no fijan la fecha límite, no corrigen vinculaciones ni borran programas).
 ### Menú y modo oscuro
 
 Todas las opciones (Programas, Dashboard, Acceso docentes, Cerrar sesión, privacidad y condiciones) están en el
-**menú lateral**, como en el sistema principal de la escuela. En el celular el menú se abre con el botón **Menú**
+**menú lateral**, como en el sistema de asistencia de la escuela. En el celular el menú se abre con el botón **Menú**
 de arriba a la derecha.
 
 La página usa el modo claro u oscuro de la computadora o el celular. **Modo oscuro / Modo claro**, al final del menú,
@@ -142,13 +142,13 @@ Copiá `.env.example` como `.env` y completalo. Lo mínimo:
 
 ```
 JWT_SECRET=<valor largo y aleatorio>
-AUTH_MODO=externo          # o "prueba" mientras no esté conectado el sistema principal
+AUTH_MODO=externo          # o "prueba" mientras no esté conectado el campus
 ANIO_LECTIVO=2026
 PORT=3000
 ```
 
 Para generar `JWT_SECRET`: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`.
-Con `AUTH_MODO=externo` hay que completar también los datos `EXTERNO_*` del sistema principal (ver [Usuarios e ingreso](#4-usuarios-e-ingreso)).
+Con `AUTH_MODO=externo` hay que completar también los datos `EXTERNO_*` del campus (ver [Usuarios e ingreso](#4-usuarios-e-ingreso)).
 
 Copiá `backend/oauth.json` y generá `backend/token.json` para Google Drive (ver [Google Drive](#5-google-drive)).
 
@@ -271,12 +271,12 @@ Para que una materia no cuente como pendiente, poné `NO` en *Requiere programa*
 
 ## 4. Usuarios e ingreso
 
-ProgMesas forma parte de un sistema más grande: **los usuarios y el inicio de sesión vienen del sistema principal**.
+ProgMesas forma parte de un sistema más grande: **los usuarios y el inicio de sesión vienen del campus virtual de la escuela**.
 Todo lo relacionado está en un solo archivo, `backend/auth.js`, y se configura en el `.env` con `AUTH_MODO`:
 
 - `AUTH_MODO=prueba` (por defecto): login propio con cuentas de prueba (`prof@test.com` / `prof123`,
   `asesor@test.com` / `asesor123`, `alumno@test.com` / `alumno123`). Para crear más: `node scripts/usuarios.js ayuda`.
-- `AUTH_MODO=externo`: el usuario llega con un token firmado (JWT) del sistema principal, en el link (`/?token=...`),
+- `AUTH_MODO=externo`: el usuario llega con un token firmado (JWT) del campus, en el link (`/?token=...`),
   en el encabezado `Authorization` o en una cookie. En `.env.example` están los datos a completar
   (clave para verificar el token, nombre de los campos y nombres de los roles).
 
@@ -285,7 +285,7 @@ y **alumno** (ve los programas). En el campus de la escuela, la asesoría entra 
 
 ### Ingreso desde el campus de la escuela
 
-El sistema principal es el **campus virtual** de la escuela (PHP). Los usuarios inician sesión ahí y entran a ProgMesas
+El sistema principal de la escuela es el **campus virtual** (PHP). Los usuarios inician sesión ahí y entran a ProgMesas
 desde el módulo **Programas de examen**, sin volver a escribir la contraseña:
 
 | En el campus | En ProgMesas |
@@ -319,7 +319,7 @@ Para instalarlo:
 
 ### Vinculación de docentes
 
-El sistema principal ya verifica las cuentas, pero no sabe qué materias dicta cada docente. Por eso cada cuenta se une
+El campus ya verifica las cuentas, pero no sabe qué materias dicta cada docente. Por eso cada cuenta se une
 con un nombre de `asignaciones.xlsx`:
 
 1. **Automática:** al entrar, si el nombre de la cuenta tiene las mismas palabras que **un solo** nombre de la lista
@@ -331,12 +331,12 @@ con un nombre de `asignaciones.xlsx`:
 
 Las solicitudes que habían quedado esperando aprobación con la versión anterior se confirman solas al arrancar el servidor.
 
-### Probar el ingreso desde el sistema principal (modo externo)
+### Probar el modo externo sin el campus
 
-Mientras no esté la conexión real, `scripts/token_prueba.js` hace de sistema principal: genera un token firmado como el que
+Mientras no esté la conexión real, `scripts/token_prueba.js` hace de campus: genera un token firmado como el que
 mandaría y el enlace para entrar con esa identidad.
 
-1. En el `.env`: `AUTH_MODO=externo` y `EXTERNO_JWT_SECRET=<una clave larga>` (en la escuela, la que comparta el sistema principal).
+1. En el `.env`: `AUTH_MODO=externo` y `EXTERNO_JWT_SECRET=<una clave larga>` (en la escuela, la misma que `PROGMESAS_SECRETO` del campus).
 2. Arrancá el servidor y generá un token:
 
    ```
@@ -347,9 +347,9 @@ mandaría y el enlace para entrar con esa identidad.
 3. Abrí el enlace que muestra. Con ese nombre, el docente se vincula solo con "Grimberg Valeria".
    Probá también `--rol asesora`, `--rol preceptor` o `--rol alumno`.
 
-### Qué hay que pedirle al equipo del sistema principal
+### Conectar otro sistema de ingreso
 
-Para conectar ProgMesas de verdad hacen falta estos datos (se cargan en el `.env`, sin tocar código):
+Con el campus ya está todo resuelto (ver arriba). Si en el futuro se conecta otro sistema de ingreso, hacen falta estos datos (se cargan en el `.env`, sin tocar código):
 
 | Dato | Variable |
 |---|---|
@@ -359,8 +359,8 @@ Para conectar ProgMesas de verdad hacen falta estos datos (se cargan en el `.env
 | Nombre del campo con el **nombre completo** (para la vinculación automática) | `EXTERNO_CLAIM_NOMBRE` |
 | Nombre del campo con el rol, y cómo se llaman los roles (docente, asesora, preceptor, directivo, alumno) | `EXTERNO_CLAIM_ROL`, `ROL_*` |
 | Nombre del campo con el correo (para los recordatorios) | `EXTERNO_CLAIM_EMAIL` |
-| Dirección de la página de ingreso del sistema principal | `EXTERNO_LOGIN_URL` |
-| Dirección que cierra la sesión del sistema principal | `EXTERNO_LOGOUT_URL` |
+| Dirección de la página de ingreso | `EXTERNO_LOGIN_URL` |
+| Dirección que cierra la sesión | `EXTERNO_LOGOUT_URL` |
 
 Las pruebas automáticas (`tests/externo.test.js`) ya comprueban este modo: roles, campos anidados, token en cookie,
 vinculación automática y rechazo de tokens con otra firma, vencidos, sin firma o con roles desconocidos.
@@ -404,7 +404,7 @@ desde la página, su archivo en Drive hay que borrarlo a mano. Para volver atrá
 ## 6. Pruebas automáticas
 
 ```
-npm test             # API y funciones: 51 pruebas en unos segundos
+npm test             # API y funciones: 54 pruebas en unos segundos (las del campus necesitan PHP)
 npm run test:ui      # interfaz en un navegador y accesibilidad: 11 pruebas
 ```
 
