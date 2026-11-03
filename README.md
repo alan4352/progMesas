@@ -165,7 +165,6 @@ node scripts/respaldo.js D:\Respaldos\ProgMesas
 
 # Simular el campus: genera un pase y el enlace para entrar con esa identidad
 node scripts/token_prueba.js --rol profesor --nombre "Valeria Grimberg" --id 1234
-
 ```
 
 ProgMesas no tiene cuentas propias: las personas se dan de alta en el campus. Más detalles en [LEEME.md](LEEME.md).
@@ -182,8 +181,8 @@ base y de `asignaciones.xlsx`. Los cambios (subir, borrar, vincular docentes, fe
 de quien la usa y se pueden restablecer. Se publica sola en cada push a `main` (`.github/workflows/pages.yml`),
 junto con las páginas de privacidad y condiciones. En la demo, el ZIP de un curso no incluye los PDF que están en Google Drive.
 
-Cuentas de la demo: `asesor@test.com` / `asesor123`, `prof@test.com` / `prof123`,
-`docente2@test.com` / `docente123` (elige su nombre), `docente3@test.com` / `docente123` (se vincula solo), `preceptor@test.com` / `preceptor123`, `alumno@test.com` / `alumno123`.
+En la demo no hay campus: **Entrar como…**, en la barra de demostración, hace de campus y permite entrar como asesora,
+docente vinculado, docente nuevo (elige su nombre), docente que se vincula sola, preceptor o alumno.
 
 Para probarla en la compu: `npm install`, después `node demo/construir_sitio.js` y servir la carpeta `_site`.
 
