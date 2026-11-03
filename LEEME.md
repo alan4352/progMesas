@@ -34,16 +34,17 @@ No hace falta iniciar sesión.
 
 1. Iniciá sesión en el **campus** de la escuela con tu código de profesor y abrí **Subir los programas de examen**.
    ProgMesas no tiene usuario ni contraseña propios: si entrás directo a la página, **Ingresar con el campus** te lleva ahí.
-2. Si tu nombre en el campus coincide con el de la lista de horarios, la cuenta se vincula sola y ya podés
-   cargar programas: no tenés que hacer nada más.
-3. Si no coincide, aparece **Elegí tu nombre en la lista de docentes**: escribí tu apellido, elegí tu nombre tal como
-   figura en los horarios y tocá **Confirmar**. Queda vinculado en el momento, sin esperar a nadie.
-   Si te equivocaste, pedile a la asesora que lo corrija.
+2. Ya podés cargar el programa de **cualquier curso y materia**.
+3. Si tu nombre en el campus coincide con el de la lista de horarios, la cuenta se vincula sola: tus materias aparecen
+   primero y figurás con ese nombre. Si no coincide, en **Elegí tu nombre en la lista de docentes (opcional)** escribí
+   tu apellido, elegí tu nombre tal como figura en los horarios y tocá **Confirmar**. Si no lo elegís, los programas que
+   subas figuran con el nombre de tu cuenta del campus. Si te equivocaste, pedile a la asesora que lo corrija.
 
 **Cargar un programa:**
 
-1. En **Subir programa de examen**, elegí en **Curso y materia** el curso y la materia. Sólo aparecen las que tenés asignadas;
-   si das la misma materia en varios cursos, cada curso aparece por separado y lleva su propio programa.
+1. En **Subir programa de examen**, elegí en **Curso y materia** el curso y la materia. Aparecen **todos** los cursos;
+   si estás vinculado, tus materias están primero, en **Mis materias**. Cada curso lleva su propio programa: si das la
+   misma materia en varios cursos, cargá uno por curso.
 2. Revisá el **Año lectivo**.
 3. El **Título** es opcional: si lo dejás vacío se completa solo (por ejemplo, "Programa de Matemática - 2° 1° - 2026").
 4. Elegí el **archivo PDF** (hasta 10 MB) y tocá **Guardar programa**.
@@ -60,7 +61,7 @@ y, si confirmás, lo reemplaza. La versión anterior **no se borra**: queda en *
 **Versiones anteriores:** en la lista, los programas que se reemplazaron muestran **Versiones anteriores (n)**. Al tocarlo
 aparecen las versiones viejas, con quién las reemplazó y cuándo, y se pueden abrir.
 
-En la lista de abajo ves sólo los programas de tus materias.
+En la lista de abajo ves los programas de tus materias y los que subiste vos.
 
 ### Asesora pedagógica
 
@@ -109,9 +110,8 @@ lo cambia y lo recuerda.
 
 ### Preguntas frecuentes
 
-- **No aparece mi materia para cargar:** tu nombre no figura en esa materia en la lista oficial, o te vinculaste con otro nombre.
-  Pedile a la asesora que lo revise.
-- **"Tu cuenta todavía no está vinculada":** todavía no elegiste tu nombre en la lista; aparece arriba en la página principal.
+- **No aparece mi materia en "Mis materias":** tu nombre no figura en esa materia en la lista oficial, o te vinculaste con
+  otro nombre. Igual podés cargarla: buscala en la lista completa, debajo. Si debería ser tuya, pedile a la asesora que lo revise.
 - **Me vinculé con el nombre equivocado:** la asesora lo corrige desde **Cuentas de docentes** en el dashboard.
 - **"El archivo no es un PDF válido":** el archivo está dañado o no es un PDF aunque termine en .pdf. Exportalo de nuevo como PDF.
 - **"Se guardó en el servidor porque Google Drive no está disponible":** el programa quedó guardado igual y pasa solo a Drive
@@ -287,7 +287,7 @@ desde el módulo **Programas de examen**, sin volver a escribir la contraseña:
 
 | En el campus | En ProgMesas |
 |---|---|
-| Profesor (código de profesor) | Docente: carga los programas de sus materias |
+| Profesor (código de profesor) | Docente: carga los programas de cualquier curso (los suyos aparecen primero) |
 | Directivo (correo y contraseña) | Asesora: dashboard, fecha límite, vinculaciones, registro |
 | Alumno (DNI y contraseña) | Alumno: consulta (también puede entrar sin sesión) |
 

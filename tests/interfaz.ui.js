@@ -158,15 +158,20 @@ test('asesora: fecha límite, registro, enlace del curso y recordatorio en el da
 
 // ================= DOCENTE =================
 
-test('docente nuevo: elige su nombre y puede cargar enseguida', async () => {
+test('docente nuevo: puede cargar cualquier curso y, si elige su nombre, ve sus materias primero', async () => {
     const pg = await nuevaPagina();
     await ingresar(pg, 'nuevo@test.com');
-    assert.ok(await pg.locator('#zonaVinculo').isVisible());
-    assert.ok(!(await pg.locator('#zonaSubida').isVisible()));
+    // Sin vincular ya puede cargar el programa de cualquier curso
+    await pg.waitForSelector('#zonaSubida:not(.hidden)');
+    assert.ok(await pg.locator('#zonaVinculo').isVisible(), 'elegir el nombre es opcional');
+    const todas = await pg.locator('#asignacion option').count();
+    assert.ok(todas > 100, 'aparecen todos los cursos y materias');
+    assert.equal(await pg.locator('#asignacion optgroup[label="Mis materias"]').count(), 0);
+
     await pg.fill('#nombreDocente', 'Mattiassi');
     await pg.click('#formVinculo button[type=submit]');
-    await pg.waitForSelector('#zonaSubida:not(.hidden)');
-    assert.ok((await pg.locator('#asignacion option').count()) > 1);
+    await pg.waitForSelector('#asignacion optgroup[label="Mis materias"]', { state: 'attached' });
+    assert.ok((await pg.locator('#asignacion optgroup[label="Mis materias"] option').count()) > 0, 'sus materias aparecen primero');
     assert.match(await pg.locator('#bannerDocente').innerText(), /Mattiassi/);
     assert.deepEqual(pg.errores, []);
 });

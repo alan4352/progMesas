@@ -15,7 +15,7 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 | Rol | Puede |
 |---|---|
 | **Visitante / alumno** | Ver y buscar los programas de todos los años (por materia, curso, año o docente), abrirlos en el visor, compartir el enlace de una búsqueda y descargar todos los de un curso en un ZIP. |
-| **Docente** | Subir el programa de sus materias, reemplazarlo (la versión anterior se conserva), reutilizar el del año anterior y ver la fecha límite. |
+| **Docente** | Subir el programa de cualquier curso y materia (las suyas aparecen primero), reemplazarlo (la versión anterior se conserva), reutilizar el del año anterior y ver la fecha límite. |
 | **Asesora** (en el campus, *directivo*) | Todo lo anterior para cualquier materia, eliminar programas, corregir la vinculación de los docentes, fijar la fecha límite y usar el dashboard. |
 | **Consulta** (preceptor) | Ver el dashboard y el registro de actividad sin modificar nada. |
 
@@ -59,7 +59,8 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
   Los archivos y los cambios para el campus están en [integraciones/campus-escuela](integraciones/campus-escuela/LEEME.md).
   Para probar sin el campus, `scripts/token_prueba.js` genera un pase como el del campus.
 - **Vinculación de docentes** — las cuentas vienen verificadas del campus virtual. Si el nombre de la cuenta coincide con
-  uno de la lista oficial, se vincula solo; si no, el docente lo elige una vez y ya puede cargar. No hace falta aprobación.
+  uno de la lista oficial, se vincula solo; si no, el docente puede elegirlo. Es opcional: sirve para mostrar sus materias
+  primero y figurar con ese nombre. Sin vincular puede cargar igual (figura con el nombre de su cuenta del campus).
 - **Lista oficial de asignaciones** — `backend/data/asignaciones.xlsx` indica qué programa tiene que entregar cada curso
   (curso + materia + docentes). Se genera a partir de las planillas de horarios y la asesoría la puede editar con Excel:
   el servidor la relee al guardarla.
@@ -248,8 +249,9 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - ProgMesas no guarda contraseñas ni tiene login propio: el pase del campus se verifica con su firma y su vencimiento
   (se rechazan pases sin firma, firmados con otra clave, vencidos o con roles desconocidos). Las contraseñas las maneja
   el campus.
-- Un docente sólo puede cargar programas de las materias del nombre con el que está vinculado, y no puede tomar un nombre
-  que ya usa otra cuenta. El historial de versiones lo ven sólo la asesora y el docente de la materia.
+- Un docente puede cargar el programa de cualquier curso, pero cada carga queda en el **registro de actividad** con su
+  cuenta, y si reemplaza un programa la versión anterior se conserva. No puede tomar un nombre de la lista que ya usa
+  otra cuenta. El historial de versiones lo ven sólo la asesora y el docente de la materia.
 - Sólo se aceptan PDF válidos (se revisa el contenido, no sólo la extensión; hasta 10 MB por defecto).
 - Todo el contenido cargado por usuarios se escapa antes de mostrarse, con una política CSP que bloquea scripts externos.
 - Registro de actividad de todas las acciones que modifican datos.
@@ -259,6 +261,13 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 03/11/2026 — Los docentes cargan programas de cualquier curso
+
+- Un docente puede subir o reutilizar el programa de **cualquier curso y materia**, no sólo de los que tiene asignados
+  en la lista de horarios. Sus materias aparecen primero, en **Mis materias**.
+- Elegir el nombre de la lista pasa a ser opcional: sin vincular, el programa figura con el nombre de la cuenta del campus.
+- Pruebas actualizadas: un docente sube el programa de un curso que no tiene asignado y uno sin vincular también puede subir.
 
 ### 03/11/2026 — Sin login propio: el ingreso es sólo desde el campus
 

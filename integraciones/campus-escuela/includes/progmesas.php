@@ -7,7 +7,7 @@
 
    El pase lleva: quién es (id), su nombre, su correo y su rol del campus
    (alumno, profesor o directivo). ProgMesas lo traduce así:
-     profesor  → docente   (carga los programas de sus materias)
+     profesor  → docente   (carga los programas de cualquier curso)
      directivo → asesora   (dashboard y control de entregas)
      alumno    → alumno    (consulta)
    Está firmado con PROGMESAS_SECRETO: si alguien lo modifica, ProgMesas

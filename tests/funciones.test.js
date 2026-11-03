@@ -105,15 +105,15 @@ test('se puede reutilizar el programa del año anterior sin volver a subirlo', a
     assert.equal(sigue.status, 200, 'el programa de 2025 sigue teniendo su PDF');
 });
 
-test('reutilizar: sin programa anterior responde 404 y un docente sólo reutiliza los suyos', async () => {
+test('reutilizar: sin programa anterior responde 404; un docente puede reutilizar el de cualquier curso', async () => {
     const sin = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: '6-1-TC_ingles', anio: 2026 }, token: asesora });
     assert.ok([404, 400].includes(sin.status));
 
     await srv.subir(asesora, { asignacion: '2-2_ingles', anio: 2025 });
-    const ajeno = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: '2-2_ingles', anio: 2026 }, token: prof });
-    assert.equal(ajeno.status, 403);
+    const otroCurso = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: '2-2_ingles', anio: 2026 }, token: prof });
+    assert.equal(otroCurso.status, 200);
 
-    const mias = (await srv.pedir('/asignaciones/mias?anio=2025', { token: prof })).datos.asignaciones;
+    const mias = (await srv.pedir('/asignaciones/mias?anio=2025', { token: prof })).datos.asignaciones.filter((a) => a.propia);
     await srv.subir(prof, { asignacion: mias[0].id, anio: 2025 });
     const propio = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: mias[0].id, anio: 2026 }, token: prof });
     assert.equal(propio.status, 200);

@@ -24,7 +24,8 @@ function aplicarRol() {
         ? `Bienvenido/a, ${usuario.nombre || usuario.email}.`
         : 'Consultá los programas de examen de todos los cursos y años.';
     const esDocente = usuario?.role === 'teacher';
-    const puedeSubir = usuario?.role === 'advisor' || docenteVinculado();
+    // Docentes y asesora pueden cargar el programa de cualquier curso y materia
+    const puedeSubir = usuario?.role === 'advisor' || esDocente;
 
     // ProgMesas no tiene login propio: se ingresa desde el campus de la escuela
     const ingresar = $('btnIngresarExterno');
@@ -41,7 +42,7 @@ function aplicarRol() {
     if (esDocente) {
         const como = usuario.vinculo?.estado === 'confirmado' ? ` (<b>${esc(usuario.vinculo.docente)}</b>)` : '';
         banner.innerHTML = `${icono('docente')}<b>Mis programas:</b> sesión iniciada como <u>${esc(usuario.nombre)}</u>${como}. ` +
-            'Acá se muestran sólo los programas de tus materias.';
+            'Podés cargar el programa de cualquier curso; abajo se muestran los de tus materias y los que subiste.';
         mostrar(banner, true);
     } else {
         mostrar(banner, false);
@@ -77,7 +78,7 @@ async function enviarVinculo(evento) {
         const r = await api('/docentes/vinculo', { method: 'POST', json: { docente } });
         usuario.vinculo = r.vinculo;
         $('nombreDocente').value = '';
-        showToast(`Listo, ${r.vinculo.docente}. Ya podés cargar tus programas.`, 'success');
+        showToast(`Listo, ${r.vinculo.docente}. Tus materias aparecen primero al cargar.`, 'success');
         aplicarRol();
         await Promise.all([cargarProgramas(), cargarAsignaciones()]);
     } catch (err) {
@@ -323,7 +324,7 @@ async function eliminarPrograma(id) {
 // ================= SUBIDA =================
 
 async function cargarAsignaciones() {
-    if (!(usuario?.role === 'advisor' || docenteVinculado())) return;
+    if (!(usuario?.role === 'advisor' || usuario?.role === 'teacher')) return;
     const anio = Number($('anio').value) || config.anioLectivo;
     let datos;
     try {
@@ -337,10 +338,7 @@ async function cargarAsignaciones() {
 
     const aviso = $('avisoSinAsignaciones');
     if (asignaciones.length === 0) {
-        aviso.innerHTML = usuario.role === 'teacher'
-            ? `No hay materias asignadas a <b>${esc(datos.docente)}</b> en la lista oficial. ` +
-              'Pedile a la asesora que revise la lista de asignaciones o el nombre vinculado a tu cuenta.'
-            : 'No hay asignaciones cargadas. Generá el archivo con el importador de horarios.';
+        aviso.innerHTML = 'No hay asignaciones cargadas. Generá el archivo con el importador de horarios.';
         mostrar(aviso, true);
         mostrar($('formSubida'), false);
         return;
@@ -356,7 +354,15 @@ async function cargarAsignaciones() {
         porCurso.get(a.curso).push(a);
     }
     const cursos = [...porCurso.keys()].sort(compararCursos);
-    select.innerHTML = '<option value="">Elegí curso y materia…</option>' + cursos.map((c) => {
+    // Las materias del docente (según la lista de horarios) aparecen primero
+    const mias = asignaciones.filter((a) => a.propia)
+        .sort((a, b) => compararCursos(a.curso, b.curso) || a.materia.localeCompare(b.materia, 'es'));
+    const grupoMias = mias.length
+        ? '<optgroup label="Mis materias">' +
+          mias.map((a) => `<option value="${esc(a.id)}">${esc(a.curso)} — ${esc(a.materia)}${a.programa ? ' (ya cargado)' : ''}</option>`).join('') +
+          '</optgroup>'
+        : '';
+    select.innerHTML = '<option value="">Elegí curso y materia…</option>' + grupoMias + cursos.map((c) => {
         const items = porCurso.get(c).sort((a, b) => a.materia.localeCompare(b.materia, 'es'));
         return `<optgroup label="${esc(c)}${items[0].turno ? ' — ' + esc(items[0].turno) : ''}">` +
             items.map((a) => `<option value="${esc(a.id)}">${esc(a.materia)}${a.programa ? ' (ya cargado)' : ''}</option>`).join('') +

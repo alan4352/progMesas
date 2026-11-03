@@ -107,40 +107,47 @@ test('cada rol sólo accede a lo suyo', async () => {
 
 // ================= DOCENTES =================
 
-test('un docente sólo ve y sube los programas de sus materias', async () => {
+test('un docente puede subir el programa de cualquier curso; sus materias aparecen marcadas', async () => {
     const prof = await ingresar('prof@test.com');
     const mias = await pedir('/asignaciones/mias?anio=2026', { token: prof });
     assert.equal(mias.status, 200);
-    assert.ok(mias.datos.asignaciones.length > 0);
-    const propia = mias.datos.asignaciones[0];
-
     const todas = (await pedir('/asignaciones/mias?anio=2026', { token: await ingresar('asesor@test.com') })).datos.asignaciones;
-    const ajena = todas.find((a) => !mias.datos.asignaciones.some((m) => m.id === a.id));
+    assert.equal(mias.datos.asignaciones.length, todas.length, 'el docente ve todos los cursos y materias');
+    const propias = mias.datos.asignaciones.filter((a) => a.propia);
+    assert.ok(propias.length > 0 && propias.length < todas.length, 'sus materias vienen marcadas');
+    const propia = propias[0];
+    const ajena = mias.datos.asignaciones.find((a) => !a.propia);
 
     const ok = await subir(prof, { asignacion: propia.id });
     assert.equal(ok.status, 200, JSON.stringify(ok.datos));
     assert.equal(ok.datos.almacenamiento, 'local');
 
-    const no = await subir(prof, { asignacion: ajena.id });
-    assert.equal(no.status, 403);
+    const otroCurso = await subir(prof, { asignacion: ajena.id });
+    assert.equal(otroCurso.status, 200, 'también sube el de un curso que no tiene asignado: ' + JSON.stringify(otroCurso.datos));
+    const subido = (await pedir('/programas')).datos.find((p) => p.id === otroCurso.datos.id);
+    assert.equal(subido.profesor, 'Fernandez Lucrecia', 'figura con su nombre de la lista');
 
-    // Ve los de sus materias y los que subió él mismo (los dueños se consultan como asesora)
+    // En "Mis programas" ve los de sus materias y los que subió él mismo (los dueños se consultan como asesora)
     const visibles = (await pedir('/programas', { token: prof })).datos;
-    const ids = new Set(mias.datos.asignaciones.map((a) => a.id));
+    const ids = new Set(propias.map((a) => a.id));
     const conDueno = (await pedir('/programas', { token: await ingresar('asesor@test.com') })).datos;
     const subidosPorEl = new Set(conDueno.filter((p) => p.uploaded_by === 'prof@test.com').map((p) => p.id));
     assert.ok(visibles.every((p) => ids.has(p.asignacion_id) || subidosPorEl.has(p.id)), 'sólo ve lo suyo');
     assert.ok(visibles.length < conDueno.length, 'no ve los programas de otros docentes');
     assert.ok(visibles.some((p) => p.id === ok.datos.id));
+    assert.ok(visibles.some((p) => p.id === otroCurso.datos.id), 've también el que subió para otro curso');
 });
 
-test('vinculación: el docente elige su nombre y puede subir en el momento, sin aprobación', async () => {
+test('vinculación: el docente elige su nombre (opcional) en el momento, sin aprobación', async () => {
     const nuevo = await ingresar('nuevo@test.com');
     const asesora = await ingresar('asesor@test.com');
 
     const yo = await pedir('/yo', { token: nuevo });
     assert.equal(yo.datos.vinculo.estado, 'sin_vincular', '"Docente Nuevo" no está en la lista: no se vincula solo');
-    assert.equal((await subir(nuevo, { asignacion: '1-1_ingles' })).status, 403, 'sin nombre no sube');
+    const sinNombre = await subir(nuevo, { asignacion: '1-1_ingles' });
+    assert.equal(sinNombre.status, 200, 'sin vincular también puede subir: ' + JSON.stringify(sinNombre.datos));
+    const deSinNombre = (await pedir('/programas')).datos.find((p) => p.id === sinNombre.datos.id);
+    assert.equal(deSinNombre.profesor, 'Docente Nuevo', 'sin vincular figura con el nombre de su cuenta del campus');
 
     const nombres = (await pedir('/docentes/nombres', { token: nuevo })).datos;
     assert.ok(nombres.some((n) => n.nombre === 'Mattiassi' && n.disponible));

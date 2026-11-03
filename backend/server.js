@@ -237,13 +237,15 @@ app.get('/api/programas/:id/versiones', auth, rol('teacher', 'advisor'), (req, r
     });
 });
 
-// Asignaciones para el formulario de subida: las del docente, o todas si es la asesora.
+// Asignaciones para el formulario de subida: todas (docentes y asesora pueden cargar el programa de
+// cualquier curso). A los docentes se les marcan las suyas (propia: true) para mostrarlas primero.
 app.get('/api/asignaciones/mias', auth, rol('teacher', 'advisor'), (req, res) => {
     const anio = anioValido(req.query.anio) || ANIO_LECTIVO;
     const esAsesora = req.user.role === 'advisor';
     const docente = esAsesora ? '' : docenteConfirmado(req.user.id);
 
-    const lista = esAsesora ? todasLasAsignaciones() : asignacionesDeDocente(docente);
+    const lista = todasLasAsignaciones();
+    const propias = new Set(docente ? asignacionesDeDocente(docente).map((a) => a.id) : []);
     const cargados = new Map();
     const anteriores = new Map(); // el más reciente de un año anterior, para reutilizarlo
     for (const p of getProgramas()) {
@@ -267,6 +269,7 @@ app.get('/api/asignaciones/mias', auth, rol('teacher', 'advisor'), (req, res) =>
                 materia: a.materia,
                 docentes: a.docentes,
                 requiere: a.requiere,
+                propia: propias.has(a.id),
                 programa: p ? { id: p.id, title: p.title, fecha: p.fecha } : null,
                 anterior: ant ? { id: ant.id, year: ant.year, title: ant.title, fecha: ant.fecha } : null
             };
@@ -276,10 +279,9 @@ app.get('/api/asignaciones/mias', auth, rol('teacher', 'advisor'), (req, res) =>
 
 app.post('/api/programas/subir', auth, rol('teacher', 'advisor'), upload.single('pdf'), async (req, res) => {
     const esAsesora = req.user.role === 'advisor';
-    const docente = esAsesora ? '' : docenteConfirmado(req.user.id);
-    if (!esAsesora && !docente) {
-        return res.status(403).json({ error: 'Tu cuenta todavía no está vinculada con tu nombre en la lista de docentes' });
-    }
+    // Docentes y asesora pueden cargar el programa de cualquier curso y materia.
+    // El docente figura con su nombre de la lista (si está vinculado) o con el de su cuenta del campus.
+    const docente = esAsesora ? '' : docenteConfirmado(req.user.id) || req.user.nombre || req.user.id;
 
     const asignacion = asignacionPorId(req.body?.asignacion_id);
     const anio = anioValido(req.body?.anio);
@@ -288,10 +290,6 @@ app.post('/api/programas/subir', auth, rol('teacher', 'advisor'), upload.single(
     if (!anio) return res.status(400).json({ error: 'El año lectivo no es válido' });
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo PDF' });
     if (!esPdfValido(req.file.buffer)) return res.status(400).json({ error: 'El archivo no es un PDF válido' });
-
-    if (!esAsesora && !docenteDictaAsignacion(docente, asignacion)) {
-        return res.status(403).json({ error: 'Esa materia no figura entre tus asignaciones' });
-    }
 
     const titulo = String(req.body.titulo || '').trim().slice(0, 150) ||
         `Programa de ${asignacion.materia} - ${asignacion.curso} - ${anio}`;
@@ -334,18 +332,13 @@ app.post('/api/programas/subir', auth, rol('teacher', 'advisor'), upload.single(
 // Usar para este año el programa de un año anterior (mismo curso y materia) sin volver a subirlo
 app.post('/api/programas/reutilizar', auth, rol('teacher', 'advisor'), (req, res) => {
     const esAsesora = req.user.role === 'advisor';
-    const docente = esAsesora ? '' : docenteConfirmado(req.user.id);
-    if (!esAsesora && !docente) {
-        return res.status(403).json({ error: 'Tu cuenta todavía no está vinculada con tu nombre en la lista de docentes' });
-    }
+    // Docentes y asesora pueden cargar el programa de cualquier curso y materia.
+    // El docente figura con su nombre de la lista (si está vinculado) o con el de su cuenta del campus.
+    const docente = esAsesora ? '' : docenteConfirmado(req.user.id) || req.user.nombre || req.user.id;
     const asignacion = asignacionPorId(req.body?.asignacion_id);
     const anio = anioValido(req.body?.anio);
     if (!asignacion) return res.status(400).json({ error: 'Elegí la materia y el curso del programa' });
     if (!anio) return res.status(400).json({ error: 'El año lectivo no es válido' });
-    if (!esAsesora && !docenteDictaAsignacion(docente, asignacion)) {
-        return res.status(403).json({ error: 'Esa materia no figura entre tus asignaciones' });
-    }
-
     const origen = programaAnteriorDeAsignacion(asignacion.id, anio);
     if (!origen) return res.status(404).json({ error: 'No hay un programa de años anteriores para ese curso y materia' });
 

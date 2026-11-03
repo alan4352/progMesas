@@ -452,7 +452,9 @@
             const anio = anioValido(query.get('anio')) || datos.config.anioLectivo;
             const esAsesora = user.role === 'advisor';
             const docente = esAsesora ? '' : docenteConfirmado(user.id);
-            const lista = esAsesora ? datos.asignaciones : asignacionesDeDocente(docente);
+            // Todos pueden cargar el programa de cualquier curso; las del docente se marcan como propias
+            const lista = datos.asignaciones;
+            const propias = new Set(docente ? asignacionesDeDocente(docente).map((a) => a.id) : []);
             const cargados = new Map();
             const anteriores = new Map();
             for (const p of programasOrdenados()) {
@@ -468,6 +470,7 @@
                     const ant = anteriores.get(a.id);
                     return {
                         id: a.id, curso: a.curso, turno: a.turno, materia: a.materia, docentes: a.docentes, requiere: a.requiere,
+                        propia: propias.has(a.id),
                         programa: p ? { id: p.id, title: p.title, fecha: p.fecha } : null,
                         anterior: ant ? { id: ant.id, year: ant.year, title: ant.title, fecha: ant.fecha } : null
                     };
@@ -478,8 +481,7 @@
         if (metodo === 'POST' && ruta === '/programas/subir') {
             exigir(user, 'teacher', 'advisor');
             const esAsesora = user.role === 'advisor';
-            const docente = esAsesora ? '' : docenteConfirmado(user.id);
-            if (!esAsesora && !docente) throw errorHttp('Tu cuenta todavía no está vinculada con tu nombre en la lista de docentes', 403);
+            const docente = esAsesora ? '' : docenteConfirmado(user.id) || user.nombre || user.id;
             const a = asignacionPorId(body.get('asignacion_id'));
             const anio = anioValido(body.get('anio'));
             const archivo = body.get('pdf');
@@ -489,7 +491,6 @@
             if (archivo.size > datos.config.maxPdfMb * 1024 * 1024) throw errorHttp(`El PDF supera el máximo de ${datos.config.maxPdfMb} MB`, 413);
             const cabecera = new TextDecoder('latin1').decode(await archivo.slice(0, 5).arrayBuffer());
             if (cabecera !== '%PDF-') throw errorHttp('El archivo no es un PDF válido');
-            if (!esAsesora && !docenteDicta(docente, a)) throw errorHttp('Esa materia no figura entre tus asignaciones', 403);
 
             const titulo = String(body.get('titulo') || '').trim().slice(0, 150) || `Programa de ${a.materia} - ${a.curso} - ${anio}`;
             const nuevo = {
@@ -513,13 +514,11 @@
         if (metodo === 'POST' && ruta === '/programas/reutilizar') {
             exigir(user, 'teacher', 'advisor');
             const esAsesora = user.role === 'advisor';
-            const docente = esAsesora ? '' : docenteConfirmado(user.id);
-            if (!esAsesora && !docente) throw errorHttp('Tu cuenta todavía no está vinculada con tu nombre en la lista de docentes', 403);
+            const docente = esAsesora ? '' : docenteConfirmado(user.id) || user.nombre || user.id;
             const a = asignacionPorId(body?.asignacion_id);
             const anio = anioValido(body?.anio);
             if (!a) throw errorHttp('Elegí la materia y el curso del programa');
             if (!anio) throw errorHttp('El año lectivo no es válido');
-            if (!esAsesora && !docenteDicta(docente, a)) throw errorHttp('Esa materia no figura entre tus asignaciones', 403);
             const origen = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year < anio);
             if (!origen) throw errorHttp('No hay un programa de años anteriores para ese curso y materia', 404);
             const nuevo = {

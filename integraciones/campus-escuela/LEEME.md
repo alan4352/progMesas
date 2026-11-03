@@ -5,7 +5,7 @@ agregar al campus para que, desde el módulo **Programas de examen**, cada perso
 
 | En el campus | En ProgMesas |
 |---|---|
-| Profesor | Docente: carga los programas de sus materias (se vincula solo si su nombre coincide con la lista de horarios) |
+| Profesor | Docente: carga los programas de cualquier curso; los suyos aparecen primero (se vincula solo si su nombre coincide con la lista de horarios) |
 | Directivo | Asesora: dashboard, fecha límite, vinculaciones, registro |
 | Alumno | Alumno: consulta |
 
