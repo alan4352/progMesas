@@ -266,6 +266,12 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 
 ## Historial de cambios
 
+### 03/11/2026 — Revisión de la carpeta del proyecto
+
+- Carpeta del proyecto revisada: actores y requerimientos coinciden con el diagrama de casos de uso (alumno, docente,
+  asesora), cantidad de pruebas actualizada, fragmentos de código en el Anexo B, guía de uso con el ingreso desde el
+  campus y referencias en orden alfabético (APA).
+
 ### 02/11/2026 — Ingreso desde el campus de la escuela
 
 - El login viene del campus virtual de la escuela: `integraciones/campus-escuela/programas.php` arma un pase firmado
