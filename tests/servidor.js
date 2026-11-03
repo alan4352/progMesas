@@ -8,8 +8,45 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 
 export const RAIZ = path.join(import.meta.dirname, '..');
+const jwt = createRequire(path.join(RAIZ, 'backend', 'package.json'))('jsonwebtoken');
+
+/** Clave compartida con el campus en las pruebas. */
+export const SECRETO_CAMPUS = 'clave-de-prueba-compartida-con-el-campus-0123456789';
+
+/**
+ * Cuentas del campus que usan las pruebas: el pase que manda el campus lleva el id (correo),
+ * el nombre y el rol del campus (profesor, directivo, alumno; preceptor sólo consulta).
+ */
+export const CUENTAS = {
+    'asesor@test.com': { nombre: 'Ana', rol: 'directivo' },
+    'prof@test.com': { nombre: 'Juan', rol: 'profesor' },
+    'alumno@test.com': { nombre: 'Pedro', rol: 'alumno' },
+    'preceptor@test.com': { nombre: 'Preceptor', rol: 'preceptor' },
+    'nuevo@test.com': { nombre: 'Docente Nuevo', rol: 'profesor' },
+    // Coincide con "Grimberg Valeria" de la lista: se vincula sola
+    'valeria@test.com': { nombre: 'Valeria Grimberg', rol: 'profesor' },
+    // Nombre de otro docente ya vinculado: no se vincula sola
+    'otra@test.com': { nombre: 'Lucrecia Fernández', rol: 'profesor' },
+    'viejo@test.com': { nombre: 'Docente Viejo', rol: 'profesor' }
+};
+
+/** Pase firmado como el que arma el campus (includes/progmesas.php). */
+export function paseCampus(email, { secreto = SECRETO_CAMPUS, horas = 8 } = {}) {
+    const cuenta = CUENTAS[email];
+    if (!cuenta) throw new Error(`No hay una cuenta de prueba ${email}`);
+    return jwt.sign({ sub: email, name: cuenta.nombre, email, role: cuenta.rol }, secreto, { algorithm: 'HS256', expiresIn: `${horas}h` });
+}
+
+// "prof@test.com" ya está vinculado con "Fernandez Lucrecia" (como en la base del proyecto)
+const PREPARAR_BASE = `
+    const { default: db } = await import('./backend/db.js');
+    await import('./backend/docentes.js');
+    db.prepare("INSERT OR IGNORE INTO docentes_usuarios (usuario_id, nombre_usuario, email, docente, estado, confirmado_at, confirmado_por) " +
+        "VALUES ('prof@test.com', 'Juan', 'prof@test.com', 'Fernandez Lucrecia', 'confirmado', '2026-10-01T12:00:00Z', 'prueba')").run();
+`;
 
 /** PDF mínimo válido para las subidas de prueba. */
 export const PDF = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(2000, 32), Buffer.from('\n%%EOF\n')]);
@@ -37,8 +74,7 @@ export async function iniciarServidor({ entorno = {}, preparar = '' } = {}) {
     const ENTORNO = {
         ...process.env,
         PORT: String(puerto),
-        JWT_SECRET: 'prueba-api-'.padEnd(48, 'x'),
-        AUTH_MODO: 'prueba',
+        EXTERNO_JWT_SECRET: SECRETO_CAMPUS,
         ANIO_LECTIVO: '2026',
         MAX_PDF_MB: '1',
         DATOS_DIR: datos,
@@ -51,9 +87,7 @@ export async function iniciarServidor({ entorno = {}, preparar = '' } = {}) {
         ...entorno
     };
 
-    if (preparar) {
-        execFileSync(process.execPath, ['--input-type=module', '-e', preparar], { cwd: RAIZ, env: ENTORNO, stdio: 'pipe' });
-    }
+    execFileSync(process.execPath, ['--input-type=module', '-e', PREPARAR_BASE + preparar], { cwd: RAIZ, env: ENTORNO, stdio: 'pipe' });
 
     const proceso = spawn(process.execPath, ['backend/server.js'], { cwd: RAIZ, env: ENTORNO, stdio: ['ignore', 'pipe', 'pipe'] });
     let salida = '';
@@ -86,10 +120,12 @@ export async function iniciarServidor({ entorno = {}, preparar = '' } = {}) {
         return { status: res.status, datos: respuesta, headers: res.headers };
     }
 
-    async function ingresar(email, password, ip) {
-        const r = await pedir('/login', { method: 'POST', json: { email, password }, ip });
-        assert.equal(r.status, 200, `no pudo ingresar ${email}: ${JSON.stringify(r.datos)}`);
-        return r.datos.token;
+    /** Entra como lo hace el campus: con el pase firmado de esa cuenta. */
+    async function ingresar(email) {
+        const token = paseCampus(email, { secreto: ENTORNO.EXTERNO_JWT_SECRET });
+        const r = await pedir('/yo', { token });
+        assert.equal(r.datos?.autenticado, true, `no pudo ingresar ${email}: ${JSON.stringify(r.datos)}`);
+        return token;
     }
 
     function subir(token, { asignacion, anio = 2026, archivo = PDF, nombre = 'programa.pdf', titulo = '' }) {

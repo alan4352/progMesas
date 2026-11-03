@@ -77,9 +77,8 @@ function compararCursos(a, b) {
 }
 
 // ================= SESIÓN =================
-// El token puede llegar de dos formas:
-//   - desde el campus de la escuela, en la dirección:  /?token=...  (se guarda y se quita de la barra)
-//   - del login de prueba de ProgMesas
+// ProgMesas no tiene login propio: el pase llega desde el campus de la escuela en la dirección
+// (/?token=...), se guarda y se quita de la barra.
 // Si el sistema de ingreso usa una cookie, no hay token guardado y el servidor la lee solo.
 // Quién es el usuario lo responde siempre el servidor (/api/yo): el navegador no interpreta el token.
 

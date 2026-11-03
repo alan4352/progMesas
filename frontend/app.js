@@ -2,7 +2,7 @@
 
 let programas = [];
 let usuario = null;          // null = visitante; si no, lo que devuelve /api/yo
-let config = { anioLectivo: new Date().getFullYear(), maxPdfMb: 10, authModo: 'prueba', loginUrl: null, logoutUrl: null };
+let config = { anioLectivo: new Date().getFullYear(), maxPdfMb: 10, authModo: 'externo', loginUrl: null, logoutUrl: null };
 let asignaciones = [];       // las que el usuario puede cargar
 
 const $ = (id) => document.getElementById(id);
@@ -26,17 +26,15 @@ function aplicarRol() {
     const esDocente = usuario?.role === 'teacher';
     const puedeSubir = usuario?.role === 'advisor' || docenteVinculado();
 
-    // Ingreso: login propio en modo prueba; en modo externo se va al campus
-    mostrar($('btnToggleLogin'), !logueado && config.authModo === 'prueba');
+    // ProgMesas no tiene login propio: se ingresa desde el campus de la escuela
     const ingresar = $('btnIngresarExterno');
     if (config.loginUrl) ingresar.href = config.loginUrl;
-    mostrar(ingresar, !logueado && config.authModo === 'externo' && Boolean(config.loginUrl));
+    mostrar(ingresar, !logueado && Boolean(config.loginUrl));
 
     mostrar($('btnLogout'), logueado);
     mostrar($('btnDashboard'), usuario?.role === 'advisor' || usuario?.role === 'viewer');
     mostrar($('zonaSubida'), puedeSubir);
     mostrar($('zonaVinculo'), esDocente && !docenteVinculado());
-    if (logueado) mostrar($('zonaLogin'), false);
     if (esDocente && !docenteVinculado()) mostrarEstadoVinculo();
 
     const banner = $('bannerDocente');
@@ -87,28 +85,12 @@ async function enviarVinculo(evento) {
     }
 }
 
-// ================= LOGIN =================
-
-async function login(evento) {
-    evento.preventDefault();
-    const email = $('email').value.trim();
-    const password = $('password').value;
-    try {
-        const datos = await api('/login', { method: 'POST', json: { email, password } });
-        guardarSesion(datos.token);
-        usuario = await cargarIdentidad();
-        $('password').value = '';
-        showToast('¡Sesión iniciada!', 'success');
-        aplicarRol();
-        await Promise.all([cargarProgramas(), cargarAsignaciones()]);
-    } catch (err) {
-        showToast(err.message, 'danger');
-    }
-}
+// ================= SESIÓN =================
 
 function logout() {
     cerrarSesion();
-    if (config.authModo === 'externo' && config.logoutUrl) location.href = config.logoutUrl;
+    // También se cierra la sesión del campus
+    if (config.logoutUrl) location.href = config.logoutUrl;
     else location.reload();
 }
 
@@ -474,19 +456,8 @@ async function subir(evento) {
 // ================= INICIO =================
 
 function conectarEventos() {
-    $('btnToggleLogin').addEventListener('click', () => {
-        const zona = $('zonaLogin');
-        mostrar(zona, zona.classList.contains('hidden'));
-        if (!zona.classList.contains('hidden')) $('email').focus();
-    });
     $('btnLogout').addEventListener('click', logout);
     $('formVinculo').addEventListener('submit', enviarVinculo);
-    $('formLogin').addEventListener('submit', login);
-    $('btnVerPassword').addEventListener('click', () => {
-        const input = $('password');
-        input.type = input.type === 'password' ? 'text' : 'password';
-        $('btnVerPassword').innerHTML = icono(input.type === 'password' ? 'ojo' : 'ojoTachado');
-    });
     $('btnCerrarVisor').addEventListener('click', cerrarVisor);
     $('formSubida').addEventListener('submit', subir);
     $('asignacion').addEventListener('change', mostrarInfoAsignacion);

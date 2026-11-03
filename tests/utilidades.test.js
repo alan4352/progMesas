@@ -1,4 +1,4 @@
-// Pruebas de las funciones puras: normalización de textos, contraseñas, roles y planilla de asignaciones.
+// Pruebas de las funciones puras: normalización de textos, roles y planilla de asignaciones.
 // Ejecutar con:  npm test
 
 import { test } from 'node:test';
@@ -8,13 +8,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-// config.js exige un JWT_SECRET para poder importar auth.js
-process.env.JWT_SECRET ||= 'prueba-'.padEnd(48, 'x');
-process.env.AUTH_MODO = 'prueba';
+// config.js exige la clave compartida con el campus para poder importar auth.js
+process.env.EXTERNO_JWT_SECRET ||= 'prueba-'.padEnd(48, 'x');
 
 const { claveTexto, claveCompacta, cursoClave, escaparConsultaDrive } = await import('../backend/lib/normalizar.js');
 const { normalizarMateria, separarDocentes } = await import('../backend/lib/parser_horarios.js');
-const { hashContrasena, verificarContrasena } = await import('../backend/lib/contrasenas.js');
 const { generarId, leerAsignaciones, escribirAsignaciones } = await import('../backend/lib/asignaciones_excel.js');
 const { mapearRol } = await import('../backend/auth.js');
 
@@ -51,16 +49,9 @@ test('escaparConsultaDrive evita romper la búsqueda de carpetas con comillas', 
     assert.equal(escaparConsultaDrive("O'Brien"), "O\\'Brien");
 });
 
-test('las contraseñas se guardan con hash y se verifican', () => {
-    const hash = hashContrasena('secreta123');
-    assert.match(hash, /^scrypt\$/);
-    assert.ok(!hash.includes('secreta123'));
-    assert.equal(verificarContrasena('secreta123', hash), true);
-    assert.equal(verificarContrasena('otra', hash), false);
-    assert.equal(verificarContrasena('secreta123', 'basura'), false);
-});
-
-test('mapearRol traduce los roles del sistema principal', () => {
+test('mapearRol traduce los roles del campus', () => {
+    assert.equal(mapearRol('profesor'), 'teacher');
+    assert.equal(mapearRol('directivo'), 'advisor');
     assert.equal(mapearRol('Docente'), 'teacher');
     assert.equal(mapearRol('asesora'), 'advisor');
     assert.equal(mapearRol('preceptor'), 'viewer');

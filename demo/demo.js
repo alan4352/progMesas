@@ -12,20 +12,16 @@
     const RAIZ = new URL('../', document.currentScript.src);
     const CLAVE_ESTADO = 'progmesas-demo-v1';
 
-    // Contraseñas de las cuentas de prueba (las mismas de LEEME.md) + dos cuentas extra para la demo
-    const CLAVES = {
-        'prof@test.com': 'prof123',
-        'asesor@test.com': 'asesor123',
-        'alumno@test.com': 'alumno123',
-        'preceptor@test.com': 'preceptor123',
-        'docente2@test.com': 'docente123',
-        'docente3@test.com': 'docente123'
-    };
-    const CUENTAS_EXTRA = [
-        { email: 'preceptor@test.com', nombre: 'Preceptor (demo)', rol: 'viewer' },
-        { email: 'docente2@test.com', nombre: 'Docente nuevo (demo)', rol: 'teacher' },
+    // Cuentas de la demo. En la escuela las personas inician sesión en el campus y llegan con un pase;
+    // acá los botones de la barra de demostración hacen de campus.
+    const CUENTAS = [
+        { email: 'asesor@test.com', nombre: 'Ana', rol: 'advisor', descripcion: 'Asesora (en el campus, directivo)' },
+        { email: 'prof@test.com', nombre: 'Juan', rol: 'teacher', descripcion: 'Docente vinculado' },
+        { email: 'docente2@test.com', nombre: 'Docente nuevo (demo)', rol: 'teacher', descripcion: 'Docente nuevo (elige su nombre)' },
         // Su nombre coincide con la lista de horarios ("Grimberg Valeria"): se vincula sola al entrar
-        { email: 'docente3@test.com', nombre: 'Valeria Grimberg', rol: 'teacher' }
+        { email: 'docente3@test.com', nombre: 'Valeria Grimberg', rol: 'teacher', descripcion: 'Docente que se vincula sola' },
+        { email: 'preceptor@test.com', nombre: 'Preceptor (demo)', rol: 'viewer', descripcion: 'Preceptor (consulta)' },
+        { email: 'alumno@test.com', nombre: 'Pedro', rol: 'student', descripcion: 'Alumno' }
     ];
 
     // ================= UTILIDADES =================
@@ -158,7 +154,7 @@
     const listo = (async () => {
         const res = await fetch(new URL('demo/datos.json', RAIZ), { cache: 'no-cache' });
         datos = await res.json();
-        usuarios = [...datos.usuarios, ...CUENTAS_EXTRA.filter((c) => !datos.usuarios.some((u) => u.email === c.email))];
+        usuarios = CUENTAS;
         estado = leerEstado();
         await cargarPdfsLocales();
     })();
@@ -363,16 +359,6 @@
 
     async function atender(metodo, ruta, query, body, user) {
         let m;
-
-        if (metodo === 'POST' && ruta === '/login') {
-            const { email, password } = body || {};
-            if (!email || !password) throw errorHttp('Email y contraseña requeridos');
-            const correo = String(email).toLowerCase();
-            if (!usuarios.some((u) => u.email === correo) || CLAVES[correo] !== password) {
-                throw errorHttp('Credenciales inválidas', 401);
-            }
-            return { token: 'demo.' + btoa(correo) };
-        }
 
         if (metodo === 'GET' && ruta === '/config') return { ...datos.config, fechaLimite: fechaLimite(datos.config.anioLectivo) };
 
@@ -705,16 +691,22 @@
         barra.className = 'demo-barra';
         barra.setAttribute('role', 'note');
         barra.innerHTML =
-            '<span><b>Modo demostración</b> · los cambios se guardan sólo en este navegador.</span>' +
-            '<details><summary>Cuentas de prueba</summary><ul>' +
-            '<li><b>asesor@test.com</b> / asesor123 — asesora (dashboard, confirma docentes)</li>' +
-            '<li><b>prof@test.com</b> / prof123 — docente vinculado</li>' +
-            '<li><b>docente2@test.com</b> / docente123 — docente nuevo (elige su nombre)</li>' +
-            '<li><b>docente3@test.com</b> / docente123 — docente que se vincula sola por su nombre</li>' +
-            '<li><b>preceptor@test.com</b> / preceptor123 — consulta</li>' +
-            '<li><b>alumno@test.com</b> / alumno123 — alumno</li>' +
+            '<span><b>Modo demostración</b> · en la escuela se entra desde el campus; acá, con <b>Entrar como…</b>. Los cambios quedan sólo en este navegador.</span>' +
+            '<details><summary>Entrar como…</summary><ul>' +
+            CUENTAS.map((c) => `<li><button type="button" class="demo-entrar" data-email="${c.email}">${c.descripcion}</button></li>`).join('') +
             '</ul></details>' +
             '<button type="button" class="demo-reiniciar">Restablecer datos</button>';
+        // Hace de campus: guarda el pase de esa cuenta y vuelve a cargar la página
+        for (const b of barra.querySelectorAll('.demo-entrar')) {
+            b.addEventListener('click', () => {
+                try {
+                    localStorage.setItem('token', 'demo.' + btoa(b.dataset.email));
+                } catch {
+                    /* sin almacenamiento */
+                }
+                location.reload();
+            });
+        }
         barra.querySelector('.demo-reiniciar').addEventListener('click', async () => {
             if (!confirm('¿Volver a los datos originales? Se borran los cambios hechos en la demo.')) return;
             try {

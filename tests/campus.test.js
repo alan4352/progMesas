@@ -39,8 +39,6 @@ before(async () => {
     fs.copyFileSync(path.join(RAIZ, 'integraciones/campus-escuela/includes/progmesas.php'), path.join(carpeta, 'progmesas.php'));
     srv = await iniciarServidor({
         entorno: {
-            AUTH_MODO: 'externo',
-            JWT_SECRET: '',
             EXTERNO_JWT_SECRET: SECRETO,
             EXTERNO_LOGIN_URL: 'https://campus.escuela.edu.ar/programas.php',
             EXTERNO_LOGOUT_URL: 'https://campus.escuela.edu.ar/logout.php'

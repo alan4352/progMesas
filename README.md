@@ -55,9 +55,9 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 
 - **Integrado al campus de la escuela** — los usuarios inician sesión en el campus virtual (PHP) y entran a ProgMesas
   desde el módulo de programas de examen: `programas.php` del campus arma un pase firmado (JWT) y ProgMesas lo verifica
-  con la misma clave (`AUTH_MODO=externo`). Profesor → docente, directivo → asesora, alumno → alumno.
+  con la misma clave. ProgMesas **no tiene login propio**. Profesor → docente, directivo → asesora, alumno → alumno.
   Los archivos y los cambios para el campus están en [integraciones/campus-escuela](integraciones/campus-escuela/LEEME.md).
-  Para desarrollo se puede usar un login de prueba (`AUTH_MODO=prueba`).
+  Para probar sin el campus, `scripts/token_prueba.js` genera un pase como el del campus.
 - **Vinculación de docentes** — las cuentas vienen verificadas del campus virtual. Si el nombre de la cuenta coincide con
   uno de la lista oficial, se vincula solo; si no, el docente lo elige una vez y ya puede cargar. No hace falta aprobación.
 - **Lista oficial de asignaciones** — `backend/data/asignaciones.xlsx` indica qué programa tiene que entregar cada curso
@@ -85,10 +85,11 @@ Requisitos: Node.js 20 o superior.
 npm install        # en la raíz: instala también las dependencias de backend/
 ```
 
-Creá el archivo `.env` en la raíz del proyecto a partir de `.env.example` y completá `JWT_SECRET` con un valor aleatorio:
+Creá el archivo `.env` en la raíz del proyecto a partir de `.env.example` y completá `EXTERNO_JWT_SECRET` con la misma clave
+que `PROGMESAS_SECRETO` del campus (para generar una nueva):
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 Iniciá el servidor y abrí <http://localhost:3000>:
@@ -101,12 +102,12 @@ npm start
 
 | Variable | Para qué sirve |
 |---|---|
-| `JWT_SECRET` | **Obligatoria** en modo prueba. Clave para firmar las sesiones (32 caracteres o más). |
-| `AUTH_MODO` | `prueba` (login propio, por defecto) o `externo` (pase firmado del campus virtual). |
+| `EXTERNO_JWT_SECRET` | **Obligatoria.** Clave compartida con el campus (`PROGMESAS_SECRETO`), 32 caracteres o más. Sin ella el servidor no arranca. |
+| `EXTERNO_LOGIN_URL`, `EXTERNO_LOGOUT_URL` | Páginas del campus para ingresar (`programas.php`) y cerrar sesión (`logout.php`). |
 | `ANIO_LECTIVO` | Año que usan por defecto el formulario y el dashboard. |
 | `PORT` | Puerto del servidor (3000 por defecto). |
 | `MAX_PDF_MB` | Tamaño máximo de cada PDF (10 por defecto). |
-| `TRUST_PROXY` | `1` si el servidor está detrás de un proxy (Nginx, Render). Hace que el límite de intentos de login use la IP real. |
+| `TRUST_PROXY` | `1` si el servidor está detrás de un proxy (Nginx, Render). Hace que los registros usen la IP real del visitante. |
 | `DATOS_DIR` | Carpeta para la base y los PDF locales, por ejemplo un disco persistente. La primera vez se copian ahí los del repositorio. |
 | `RESPALDOS_DIR` | Carpeta donde el servidor guarda una copia de seguridad por día (vacío = sin copias automáticas). |
 | `RESPALDO_HORA` | Hora de la copia diaria (0 a 23; 3 por defecto). |
@@ -118,8 +119,6 @@ npm start
 | `DRIVE_DESACTIVADO` | `1` guarda todo en el servidor aunque haya credenciales. |
 | `DRIVE_SIMULADO` | **Sólo para las pruebas:** carpeta donde un Drive simulado guarda los archivos. |
 | `CORS_ORIGIN` | Otros dominios que pueden usar la API (vacío = sólo el mismo servidor). |
-| `EXTERNO_JWT_SECRET` | Con `AUTH_MODO=externo`: la clave compartida con el campus (`PROGMESAS_SECRETO`). |
-| `EXTERNO_LOGIN_URL`, `EXTERNO_LOGOUT_URL` | Páginas del campus para ingresar (`programas.php`) y cerrar sesión (`logout.php`). |
 | Otros `EXTERNO_*`, `ROL_*` | Nombre de los datos dentro del token y de los roles (ver `.env.example` y [LEEME.md](LEEME.md#4-usuarios-e-ingreso)). |
 
 ### Google Drive (opcional)
@@ -137,11 +136,11 @@ Mientras la app de Google esté en modo "Testing", el permiso vence a los 7 día
 ## Pruebas automáticas
 
 ```bash
-npm test             # API y funciones: 54 pruebas, unos segundos (las del campus necesitan PHP)
+npm test             # API y funciones: 53 pruebas, unos segundos (las del campus necesitan PHP)
 npm run test:ui      # interfaz en un navegador y accesibilidad: 11 pruebas
 ```
 
-- **API** (`tests/*.test.js`): utilidades, contraseñas, roles, planilla de asignaciones, ingreso y límite de intentos,
+- **API** (`tests/*.test.js`): utilidades, roles, planilla de asignaciones, ingreso con el pase del campus (y rechazo de pases falsos o vencidos),
   permisos de cada rol, vinculación de docentes, subida, reemplazo y versiones, reutilizar, fecha límite, registro,
   ZIP por curso, copias de seguridad, modo externo (pases del campus y de otros sistemas) y Google Drive **simulado**
   (subida, caída de Drive, paso a Drive cuando vuelve y borrado).
@@ -164,16 +163,12 @@ node scripts/importar_horarios.js "Horarios_T.Mañana.xlsx" "Horarios_T.Tarde.xl
 # Copia de seguridad ahora (base, PDF del servidor y planilla)
 node scripts/respaldo.js D:\Respaldos\ProgMesas
 
-# Simular el campus (AUTH_MODO=externo): genera un token y el enlace para entrar
-node scripts/token_prueba.js --rol docente --nombre "Valeria Grimberg" --id 1234
+# Simular el campus: genera un pase y el enlace para entrar con esa identidad
+node scripts/token_prueba.js --rol profesor --nombre "Valeria Grimberg" --id 1234
 
-# Cuentas de prueba (sólo con AUTH_MODO=prueba)
-node scripts/usuarios.js listar
-node scripts/usuarios.js crear docente@test.com teacher "Nombre Apellido"
 ```
 
-Con `AUTH_MODO=prueba` se crean cuentas de prueba (`prof@test.com`, `asesor@test.com`, `alumno@test.com`).
-En la escuela se usa `AUTH_MODO=externo`. Más detalles en [LEEME.md](LEEME.md).
+ProgMesas no tiene cuentas propias: las personas se dan de alta en el campus. Más detalles en [LEEME.md](LEEME.md).
 
 ## Despliegue
 
@@ -203,7 +198,7 @@ Render se usa mientras tanto, hasta instalarlo en el servidor de la escuela. `re
 en render.com → **New → Blueprint** → elegir este repositorio. Render vuelve a desplegar en cada push a `main`.
 
 Si el servicio se crea a mano: Build Command `npm install`, Start Command `npm start`, y en **Environment**
-cargar `JWT_SECRET`, `AUTH_MODO=prueba`, `ANIO_LECTIVO` y `TRUST_PROXY=1`. Para Drive, agregar
+cargar `EXTERNO_JWT_SECRET`, `EXTERNO_LOGIN_URL`, `EXTERNO_LOGOUT_URL`, `ANIO_LECTIVO` y `TRUST_PROXY=1`. Para Drive, agregar
 `GOOGLE_OAUTH_JSON` y `GOOGLE_TOKEN_JSON` con el contenido de esos archivos.
 
 En el plan gratis el disco se borra al reiniciar: los PDF guardados en el servidor se pierden. Para conservarlos
@@ -212,7 +207,7 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 ## Estructura
 
 ```
-├── index.html               Página principal (listado, login y subida)
+├── index.html               Página principal (listado y subida; el ingreso es desde el campus)
 ├── privacidad.html          Política de privacidad (pantalla de consentimiento de Google OAuth)
 ├── terminos.html            Condiciones del servicio
 ├── package.json             Arranque desde la raíz (instala backend/ con postinstall) y scripts de pruebas
@@ -234,7 +229,7 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
     ├── server.js            API y servidor de archivos
     ├── config.js            Configuración (.env y variables de entorno)
     ├── db.js                Base SQLite y migraciones
-    ├── auth.js              Identidad del usuario (pase del campus o login de prueba)
+    ├── auth.js              Identidad del usuario (verifica el pase del campus)
     ├── docentes.js          Vinculación cuenta ↔ nombre en la lista oficial
     ├── asignaciones.js      Lectura de la lista oficial
     ├── store.js             Programas cargados y versiones anteriores
@@ -251,9 +246,9 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 
 ## Seguridad
 
-- El pase del campus se verifica con su firma (se rechazan tokens sin firma, vencidos o con roles desconocidos);
-  en modo prueba, contraseñas con scrypt y límite de 10 intentos por IP y correo cada 15 minutos
-  (con `TRUST_PROXY`, usando la IP real detrás de un proxy).
+- ProgMesas no guarda contraseñas ni tiene login propio: el pase del campus se verifica con su firma y su vencimiento
+  (se rechazan pases sin firma, firmados con otra clave, vencidos o con roles desconocidos). Las contraseñas las maneja
+  el campus.
 - Un docente sólo puede cargar programas de las materias del nombre con el que está vinculado, y no puede tomar un nombre
   que ya usa otra cuenta. El historial de versiones lo ven sólo la asesora y el docente de la materia.
 - Sólo se aceptan PDF válidos (se revisa el contenido, no sólo la extensión; hasta 10 MB por defecto).
@@ -265,6 +260,15 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 03/11/2026 — Sin login propio: el ingreso es sólo desde el campus
+
+- Se eliminó el login de ProgMesas: el botón **Acceso docentes**, el formulario de correo y contraseña, la ruta
+  `/api/login`, las cuentas de prueba y el script `scripts/usuarios.js`. **Ingresar con el campus** lleva al campus y
+  **Cerrar sesión** cierra también la sesión del campus.
+- `EXTERNO_JWT_SECRET` (la clave compartida con el campus) es obligatoria; ya no se usan `AUTH_MODO` ni `JWT_SECRET`.
+- Demo: la barra de demostración tiene **Entrar como…** (hace de campus) en lugar de las cuentas con contraseña.
+- Pruebas: entran con pases como los del campus; se agregó la comprobación de que la página no pide contraseña.
 
 ### 03/11/2026 — Revisión de la carpeta del proyecto
 

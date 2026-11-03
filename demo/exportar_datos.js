@@ -8,8 +8,7 @@ import fs from 'fs';
 import path from 'path';
 
 // La demo no firma tokens: sólo hace falta un valor válido para que config.js no corte la ejecución.
-process.env.AUTH_MODO = 'prueba';
-process.env.JWT_SECRET ||= 'demo-'.padEnd(48, 'x');
+process.env.EXTERNO_JWT_SECRET ||= 'demo-'.padEnd(48, 'x');
 
 const salida = path.resolve(process.argv[2] || 'datos.json');
 
@@ -41,21 +40,12 @@ const programas = store.getProgramas().map(({ archivo_ref, ...p }) => p);
 
 const vinculos = db.prepare('SELECT * FROM docentes_usuarios').all();
 
-// Cuentas de prueba sin contraseñas (la demo usa las claves documentadas en LEEME.md)
-let usuarios = [];
-try {
-    usuarios = db.prepare('SELECT email, nombre, rol FROM usuarios WHERE activo = 1').all();
-} catch {
-    /* base sin tabla de usuarios */
-}
-
 const datos = {
     generado: new Date().toISOString(),
-    config: { anioLectivo: ANIO_LECTIVO, maxPdfMb: MAX_PDF_MB, authModo: 'prueba', loginUrl: null, logoutUrl: null },
+    config: { anioLectivo: ANIO_LECTIVO, maxPdfMb: MAX_PDF_MB, authModo: 'externo', loginUrl: null, logoutUrl: null },
     asignaciones,
     programas,
     vinculos,
-    usuarios,
     docentesOficiales: asig.listaDocentes()
 };
 

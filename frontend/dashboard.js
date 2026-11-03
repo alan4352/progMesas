@@ -654,7 +654,7 @@ async function init() {
         let destino = '../';
         try {
             const c = await api('/config');
-            if (c.authModo === 'externo' && c.logoutUrl) destino = c.logoutUrl;
+            if (c.logoutUrl) destino = c.logoutUrl;
         } catch {
             /* sin configuración: vuelve al listado */
         }

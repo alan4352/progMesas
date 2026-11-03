@@ -20,7 +20,7 @@ const pdfCon = (texto) => Buffer.concat([PDF, Buffer.from(`\n% ${texto}\n`)]);
 
 before(async () => {
     srv = await iniciarServidor({ entorno: { DRIVE_DESACTIVADO: '', DRIVE_SIMULADO: DRIVE } });
-    asesora = await srv.ingresar('asesor@test.com', 'asesor123');
+    asesora = await srv.ingresar('asesor@test.com');
 });
 
 after(() => {

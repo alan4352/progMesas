@@ -15,17 +15,10 @@ for (const archivo of [path.join(RAIZ, '.env'), path.join(BACKEND, '.env')]) {
     if (fs.existsSync(archivo)) dotenv.config({ path: archivo, quiet: true });
 }
 
-// Secreto publicado en versiones anteriores del código: no se acepta.
-const SECRETOS_INVALIDOS = new Set(['progmesas_super_secret_jwt_key_2026_x89a!', 'tu_clave_secreta_jwt_aqui']);
-
 // ================= IDENTIDAD =================
-// prueba  → login propio de ProgMesas con las cuentas de la base (para desarrollo)
-// externo → el usuario llega autenticado desde el campus con un token firmado
-export const AUTH_MODO = (process.env.AUTH_MODO || 'prueba').trim().toLowerCase();
-if (!['prueba', 'externo'].includes(AUTH_MODO)) {
-    console.error(`[Config] AUTH_MODO inválido: "${AUTH_MODO}" (usá "prueba" o "externo")`);
-    process.exit(1);
-}
+// ProgMesas no tiene login propio: el usuario inicia sesión en el campus de la escuela y llega
+// con un pase firmado (token JWT). Acá se configura cómo verificarlo.
+export const AUTH_MODO = 'externo';
 
 const lista = (valor, defecto) =>
     String(valor ?? defecto)
@@ -61,33 +54,24 @@ export const ROLES = {
     student: lista(process.env.ROL_ALUMNO, 'alumno,alumna,student,estudiante')
 };
 
-if (AUTH_MODO === 'externo' && !EXTERNO.secreto && !EXTERNO.clavePublica) {
-    console.error('[Config] Con AUTH_MODO=externo hay que configurar EXTERNO_JWT_SECRET o EXTERNO_JWT_CLAVE_PUBLICA');
+if (!EXTERNO.secreto && !EXTERNO.clavePublica) {
+    console.error(
+        '\n[Config] Falta EXTERNO_JWT_SECRET en el .env: es la clave compartida con el campus\n' +
+        '(la misma que PROGMESAS_SECRETO en includes/config.php del campus).\n' +
+        'Generá una con:  node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"\n'
+    );
+    process.exit(1);
+}
+if (EXTERNO.secreto && EXTERNO.secreto.length < 32) {
+    console.error('[Config] EXTERNO_JWT_SECRET es demasiado corta: tiene que tener 32 caracteres o más.');
     process.exit(1);
 }
 
-function leerSecreto() {
-    if (AUTH_MODO !== 'prueba') return '';
-    const secreto = process.env.JWT_SECRET || '';
-    if (!secreto || secreto.length < 32 || SECRETOS_INVALIDOS.has(secreto)) {
-        console.error(
-            '\n[Config] Falta JWT_SECRET o es inseguro.\n' +
-            'Generá uno con:  node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"\n' +
-            'y guardalo en el archivo .env como  JWT_SECRET=<valor>\n'
-        );
-        process.exit(1);
-    }
-    return secreto;
-}
-
-export const JWT_SECRET = leerSecreto();
-export const JWT_DURACION = process.env.JWT_DURACION || '8h';
 export const PORT = Number(process.env.PORT) || 3000;
 export const ANIO_LECTIVO = Number(process.env.ANIO_LECTIVO) || new Date().getFullYear();
 
 // Detrás de un proxy (Render, Nginx, etc.) la IP real del visitante llega en X-Forwarded-For.
-// TRUST_PROXY=1 confía en un proxy; sin esto todos los visitantes parecen tener la IP del proxy
-// y el límite de intentos de login los bloquearía a todos juntos.
+// TRUST_PROXY=1 confía en un proxy (así los registros y los límites usan la IP real del visitante).
 export const TRUST_PROXY = (() => {
     const v = (process.env.TRUST_PROXY || '').trim();
     if (!v || v === '0' || v === 'false') return false;

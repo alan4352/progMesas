@@ -1,10 +1,10 @@
-// Pruebas de la API: ingreso, permisos, vinculación de docentes, subida de programas y cobertura.
+// Pruebas de la API: ingreso con el pase del campus, permisos, vinculación de docentes, subida de programas y cobertura.
 // Usan el servidor real sobre una copia temporal de la base (ver servidor.js).
 // Ejecutar con:  npm test
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { iniciarServidor, PDF } from './servidor.js';
+import { iniciarServidor, paseCampus, PDF } from './servidor.js';
 
 let srv;
 let PUERTO, pedir, ingresar, subir, cantidadDe;
@@ -12,18 +12,8 @@ let PUERTO, pedir, ingresar, subir, cantidadDe;
 before(async () => {
     srv = await iniciarServidor({
         preparar: `
-            const { crearUsuario } = await import('./backend/usuarios.js');
-            // Un docente nuevo, sin vincular
-            crearUsuario({ email: 'nuevo@test.com', contrasena: 'nuevo123', rol: 'teacher', nombre: 'Docente Nuevo' });
-            crearUsuario({ email: 'preceptor@test.com', contrasena: 'preceptor123', rol: 'viewer', nombre: 'Preceptor' });
-            // Coincide con "Grimberg Valeria" de la lista: se tiene que vincular sola
-            crearUsuario({ email: 'valeria@test.com', contrasena: 'valeria123', rol: 'teacher', nombre: 'Valeria Grimberg' });
-            // Nombre de otro docente ya vinculado: no se tiene que vincular sola
-            crearUsuario({ email: 'otra@test.com', contrasena: 'otra12345', rol: 'teacher', nombre: 'Lucrecia Fernández' });
+            // Las cuentas vienen del campus (ver CUENTAS en servidor.js).
             // Solicitud que quedó "pendiente" con la versión anterior (cuando la asesora tenía que aprobar)
-            crearUsuario({ email: 'viejo@test.com', contrasena: 'viejo12345', rol: 'teacher', nombre: 'Docente Viejo' });
-            const { default: db } = await import('./backend/db.js');
-            await import('./backend/docentes.js');
             db.prepare("INSERT INTO docentes_usuarios (usuario_id, nombre_usuario, email, docente, estado, solicitado_at) " +
                 "VALUES ('viejo@test.com', 'Docente Viejo', 'viejo@test.com', 'Begue José Luis', 'pendiente', '2026-10-01T12:00:00Z')").run();
         `
@@ -78,23 +68,20 @@ test('una ruta de la API que no existe responde 404 en JSON', async () => {
 
 // ================= INGRESO =================
 
-test('login: credenciales correctas e incorrectas', async () => {
-    const mal = await pedir('/login', { method: 'POST', json: { email: 'asesor@test.com', password: 'mal' }, ip: '10.1.0.1' });
-    assert.equal(mal.status, 401);
-    const vacio = await pedir('/login', { method: 'POST', json: {}, ip: '10.1.0.1' });
-    assert.equal(vacio.status, 400);
+test('ProgMesas no tiene login propio: se entra sólo con el pase del campus', async () => {
+    const login = await pedir('/login', { method: 'POST', json: { email: 'asesor@test.com', password: 'asesor123' } });
+    assert.equal(login.status, 404, 'no existe la ruta de login');
 
-    const token = await ingresar('asesor@test.com', 'asesor123', '10.1.0.2');
+    const token = await ingresar('asesor@test.com');
     const yo = await pedir('/yo', { token });
-    assert.deepEqual([yo.datos.autenticado, yo.datos.role], [true, 'advisor']);
+    assert.deepEqual([yo.datos.autenticado, yo.datos.role, yo.datos.nombre], [true, 'advisor', 'Ana']);
 });
 
-test('después de 10 intentos fallidos se bloquea esa IP, pero no las demás', async () => {
-    const intento = (ip, password) =>
-        pedir('/login', { method: 'POST', json: { email: 'prof@test.com', password }, ip });
-    for (let i = 0; i < 10; i++) assert.equal((await intento('10.2.0.1', 'mal')).status, 401);
-    assert.equal((await intento('10.2.0.1', 'prof123')).status, 429, 'la IP atacante queda bloqueada');
-    assert.equal((await intento('10.2.0.2', 'prof123')).status, 200, 'otra IP entra normalmente');
+test('un pase firmado con otra clave o vencido no da acceso', async () => {
+    const falso = paseCampus('asesor@test.com', { secreto: 'una-clave-que-no-es-la-del-campus-0000000000' });
+    assert.equal((await pedir('/cobertura', { token: falso })).status, 401);
+    const vencido = paseCampus('asesor@test.com', { horas: -1 });
+    assert.equal((await pedir('/cobertura', { token: vencido })).status, 401);
 });
 
 test('un token inválido o vencido no da acceso', async () => {
@@ -107,8 +94,8 @@ test('un token inválido o vencido no da acceso', async () => {
 // ================= PERMISOS POR ROL =================
 
 test('cada rol sólo accede a lo suyo', async () => {
-    const alumno = await ingresar('alumno@test.com', 'alumno123');
-    const preceptor = await ingresar('preceptor@test.com', 'preceptor123');
+    const alumno = await ingresar('alumno@test.com');
+    const preceptor = await ingresar('preceptor@test.com');
 
     assert.equal((await pedir('/cobertura')).status, 401, 'sin sesión');
     assert.equal((await pedir('/cobertura', { token: alumno })).status, 403, 'alumno');
@@ -121,13 +108,13 @@ test('cada rol sólo accede a lo suyo', async () => {
 // ================= DOCENTES =================
 
 test('un docente sólo ve y sube los programas de sus materias', async () => {
-    const prof = await ingresar('prof@test.com', 'prof123');
+    const prof = await ingresar('prof@test.com');
     const mias = await pedir('/asignaciones/mias?anio=2026', { token: prof });
     assert.equal(mias.status, 200);
     assert.ok(mias.datos.asignaciones.length > 0);
     const propia = mias.datos.asignaciones[0];
 
-    const todas = (await pedir('/asignaciones/mias?anio=2026', { token: await ingresar('asesor@test.com', 'asesor123') })).datos.asignaciones;
+    const todas = (await pedir('/asignaciones/mias?anio=2026', { token: await ingresar('asesor@test.com') })).datos.asignaciones;
     const ajena = todas.find((a) => !mias.datos.asignaciones.some((m) => m.id === a.id));
 
     const ok = await subir(prof, { asignacion: propia.id });
@@ -140,7 +127,7 @@ test('un docente sólo ve y sube los programas de sus materias', async () => {
     // Ve los de sus materias y los que subió él mismo (los dueños se consultan como asesora)
     const visibles = (await pedir('/programas', { token: prof })).datos;
     const ids = new Set(mias.datos.asignaciones.map((a) => a.id));
-    const conDueno = (await pedir('/programas', { token: await ingresar('asesor@test.com', 'asesor123') })).datos;
+    const conDueno = (await pedir('/programas', { token: await ingresar('asesor@test.com') })).datos;
     const subidosPorEl = new Set(conDueno.filter((p) => p.uploaded_by === 'prof@test.com').map((p) => p.id));
     assert.ok(visibles.every((p) => ids.has(p.asignacion_id) || subidosPorEl.has(p.id)), 'sólo ve lo suyo');
     assert.ok(visibles.length < conDueno.length, 'no ve los programas de otros docentes');
@@ -148,8 +135,8 @@ test('un docente sólo ve y sube los programas de sus materias', async () => {
 });
 
 test('vinculación: el docente elige su nombre y puede subir en el momento, sin aprobación', async () => {
-    const nuevo = await ingresar('nuevo@test.com', 'nuevo123');
-    const asesora = await ingresar('asesor@test.com', 'asesor123');
+    const nuevo = await ingresar('nuevo@test.com');
+    const asesora = await ingresar('asesor@test.com');
 
     const yo = await pedir('/yo', { token: nuevo });
     assert.equal(yo.datos.vinculo.estado, 'sin_vincular', '"Docente Nuevo" no está en la lista: no se vincula solo');
@@ -183,7 +170,7 @@ test('vinculación: el docente elige su nombre y puede subir en el momento, sin 
 });
 
 test('vinculación automática: si el nombre de la cuenta coincide con la lista, se vincula al entrar', async () => {
-    const valeria = await ingresar('valeria@test.com', 'valeria123');
+    const valeria = await ingresar('valeria@test.com');
     const yo = await pedir('/yo', { token: valeria });
     assert.deepEqual(yo.datos.vinculo, { docente: 'Grimberg Valeria', estado: 'confirmado' }, 'mismo nombre en otro orden');
 
@@ -191,20 +178,20 @@ test('vinculación automática: si el nombre de la cuenta coincide con la lista,
     assert.ok(mias.length > 0);
     assert.equal((await subir(valeria, { asignacion: mias[0].id })).status, 200);
 
-    const asesora = await ingresar('asesor@test.com', 'asesor123');
+    const asesora = await ingresar('asesor@test.com');
     const cuentas = (await pedir('/docentes/vinculos', { token: asesora })).datos.usuarios;
     assert.equal(cuentas.find((u) => u.usuarioId === 'valeria@test.com').confirmadoPor, 'automático');
 
     // "Lucrecia Fernández" coincide, pero ese nombre ya es de otra cuenta: no se vincula sola
-    const otra = await ingresar('otra@test.com', 'otra12345');
+    const otra = await ingresar('otra@test.com');
     assert.equal((await pedir('/yo', { token: otra })).datos.vinculo.estado, 'sin_vincular');
 });
 
 test('las solicitudes que quedaron pendientes de aprobación se confirman solas', async () => {
-    const viejo = await ingresar('viejo@test.com', 'viejo12345');
+    const viejo = await ingresar('viejo@test.com');
     const yo = await pedir('/yo', { token: viejo });
     assert.deepEqual(yo.datos.vinculo, { docente: 'Begue José Luis', estado: 'confirmado' });
-    const asesora = await ingresar('asesor@test.com', 'asesor123');
+    const asesora = await ingresar('asesor@test.com');
     const cuentas = (await pedir('/docentes/vinculos', { token: asesora })).datos.usuarios;
     assert.ok(!cuentas.some((u) => u.estado === 'pendiente'), 'no queda ninguna cuenta esperando aprobación');
 });
@@ -212,7 +199,7 @@ test('las solicitudes que quedaron pendientes de aprobación se confirman solas'
 // ================= SUBIDA DE PROGRAMAS =================
 
 test('sólo se aceptan PDF válidos y del tamaño permitido', async () => {
-    const asesora = await ingresar('asesor@test.com', 'asesor123');
+    const asesora = await ingresar('asesor@test.com');
     const falso = await subir(asesora, { asignacion: '1-1_geografia', archivo: Buffer.from('esto no es un pdf'), nombre: 'x.pdf' });
     assert.equal(falso.status, 400);
     assert.match(falso.datos.error, /PDF válido/);
@@ -226,7 +213,7 @@ test('sólo se aceptan PDF válidos y del tamaño permitido', async () => {
 });
 
 test('subir otra vez el mismo curso y materia reemplaza el programa anterior', async () => {
-    const asesora = await ingresar('asesor@test.com', 'asesor123');
+    const asesora = await ingresar('asesor@test.com');
     const primero = await subir(asesora, { asignacion: '1-1_geografia', titulo: 'Versión 1' });
     assert.equal(primero.status, 200);
     const segundo = await subir(asesora, { asignacion: '1-1_geografia', titulo: 'Versión 2' });
@@ -238,7 +225,7 @@ test('subir otra vez el mismo curso y materia reemplaza el programa anterior', a
 });
 
 test('varios docentes de Matemática de distintos cursos suben a la vez sin pisarse', async () => {
-    const asesora = await ingresar('asesor@test.com', 'asesor123');
+    const asesora = await ingresar('asesor@test.com');
     const cursos = ['1-1_matematica', '1-2_matematica', '1-3_matematica', '2-2_matematica'];
     const respuestas = await Promise.all(cursos.map((asignacion) => subir(asesora, { asignacion })));
     for (const r of respuestas) assert.equal(r.status, 200, JSON.stringify(r.datos));
@@ -247,7 +234,7 @@ test('varios docentes de Matemática de distintos cursos suben a la vez sin pisa
 });
 
 test('dos subidas simultáneas del mismo curso y materia no generan duplicados', async () => {
-    const asesora = await ingresar('asesor@test.com', 'asesor123');
+    const asesora = await ingresar('asesor@test.com');
     const respuestas = await Promise.all([1, 2, 3].map((n) => subir(asesora, { asignacion: '3-1_matematica', titulo: `Intento ${n}` })));
     for (const r of respuestas) assert.equal(r.status, 200);
     assert.equal(await cantidadDe('3-1_matematica'), 1);
@@ -256,7 +243,7 @@ test('dos subidas simultáneas del mismo curso y materia no generan duplicados',
 // ================= DASHBOARD =================
 
 test('la cobertura cuenta los programas entregados', async () => {
-    const asesora = await ingresar('asesor@test.com', 'asesor123');
+    const asesora = await ingresar('asesor@test.com');
     const antes = (await pedir('/cobertura?anio=2026', { token: asesora })).datos;
     const pendiente = antes.asignaciones.find((a) => !a.programa);
     assert.ok(pendiente, 'tiene que haber algún pendiente');
@@ -272,8 +259,8 @@ test('la cobertura cuenta los programas entregados', async () => {
 });
 
 test('la asesora puede eliminar un programa; un docente no', async () => {
-    const asesora = await ingresar('asesor@test.com', 'asesor123');
-    const prof = await ingresar('prof@test.com', 'prof123');
+    const asesora = await ingresar('asesor@test.com');
+    const prof = await ingresar('prof@test.com');
     const { datos } = await subir(asesora, { asignacion: '1-4_ingles' });
 
     assert.equal((await pedir(`/programas/${datos.id}`, { method: 'DELETE', token: prof })).status, 403);

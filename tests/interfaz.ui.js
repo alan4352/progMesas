@@ -11,7 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { chromium } from 'playwright';
-import { iniciarServidor, PDF } from './servidor.js';
+import { iniciarServidor, paseCampus, PDF } from './servidor.js';
 import { leerZip } from '../backend/lib/zip.js';
 
 const axe = createRequire(import.meta.url)('axe-core');
@@ -23,11 +23,10 @@ const archivoPdf = path.join(os.tmpdir(), `progmesas-ui-${process.pid}.pdf`);
 before(async () => {
     fs.writeFileSync(archivoPdf, PDF);
     srv = await iniciarServidor({
-        preparar: `
-            const { crearUsuario } = await import('./backend/usuarios.js');
-            crearUsuario({ email: 'nuevo@test.com', contrasena: 'nuevo123', rol: 'teacher', nombre: 'Docente Nuevo' });
-            crearUsuario({ email: 'preceptor@test.com', contrasena: 'preceptor123', rol: 'viewer', nombre: 'Preceptor' });
-        `
+        entorno: {
+            EXTERNO_LOGIN_URL: 'https://campus.escuela.test/programas.php',
+            EXTERNO_LOGOUT_URL: 'https://campus.escuela.test/logout.php'
+        }
     });
     navegador = await chromium.launch();
 });
@@ -49,15 +48,11 @@ async function nuevaPagina({ ancho = 1280, alto = 900, tema = 'light' } = {}) {
     return pagina;
 }
 
-async function ingresar(pagina, email, password) {
-    await pagina.goto(srv.base + '/');
-    // En el celular las opciones están en el menú lateral
-    if (await pagina.locator('#btnMenu').isVisible()) await pagina.click('#btnMenu');
-    await pagina.click('#btnToggleLogin');
-    await pagina.fill('#email', email);
-    await pagina.fill('#password', password);
-    await pagina.click('#formLogin button[type=submit]');
+/** Entra como lo hace el campus: abre ProgMesas con el pase firmado en la dirección. */
+async function ingresar(pagina, email) {
+    await pagina.goto(srv.base + '/?token=' + paseCampus(email, { secreto: srv.entorno.EXTERNO_JWT_SECRET }));
     await pagina.waitForSelector('#btnLogout:not(.hidden)', { state: 'attached' });
+    assert.ok(!pagina.url().includes('token='), 'el pase se quita de la dirección');
 }
 
 /** Revisa accesibilidad (WCAG 2.1 A y AA) y devuelve los problemas graves. */
@@ -91,6 +86,10 @@ test('visitante: ve los programas, filtra por curso con un enlace y descarga el 
 
     await pg.click('#lista button[data-accion="ver"] >> nth=0');
     assert.ok(await pg.locator('#seccionVisor').isVisible());
+
+    // No hay login propio: "Ingresar" lleva al campus
+    assert.equal(await pg.locator('input[type=password]').count(), 0, 'la página no pide contraseña');
+    assert.equal(await pg.getAttribute('#btnIngresarExterno', 'href'), 'https://campus.escuela.test/programas.php');
     assert.deepEqual(pg.errores, []);
 });
 
@@ -98,7 +97,7 @@ test('visitante: ve los programas, filtra por curso con un enlace y descarga el 
 
 test('asesora: sube, reemplaza y ve las versiones anteriores', async () => {
     const pg = await nuevaPagina();
-    await ingresar(pg, 'asesor@test.com', 'asesor123');
+    await ingresar(pg, 'asesor@test.com');
     for (const titulo of ['Primera versión', 'Segunda versión']) {
         await pg.selectOption('#asignacion', '1-1_geografia');
         await pg.fill('#titulo', titulo);
@@ -117,11 +116,11 @@ test('asesora: sube, reemplaza y ve las versiones anteriores', async () => {
 });
 
 test('asesora: reutiliza el programa del año anterior', async () => {
-    const asesora = await srv.ingresar('asesor@test.com', 'asesor123');
+    const asesora = await srv.ingresar('asesor@test.com');
     await srv.subir(asesora, { asignacion: '3-2_ingles', anio: 2025, titulo: 'Inglés 3° 2° - 2025' });
 
     const pg = await nuevaPagina();
-    await ingresar(pg, 'asesor@test.com', 'asesor123');
+    await ingresar(pg, 'asesor@test.com');
     await pg.selectOption('#asignacion', '3-2_ingles');
     await pg.click('button[data-accion="reutilizar"]');
     await pg.waitForSelector('#lista .card:has-text("Inglés 3° 2° - 2026")');
@@ -130,7 +129,7 @@ test('asesora: reutiliza el programa del año anterior', async () => {
 
 test('asesora: fecha límite, registro, enlace del curso y recordatorio en el dashboard', async () => {
     const pg = await nuevaPagina();
-    await ingresar(pg, 'asesor@test.com', 'asesor123');
+    await ingresar(pg, 'asesor@test.com');
     await pg.click('#btnDashboard');
     await pg.waitForSelector('#dashboardResumen .dash-card');
 
@@ -161,7 +160,7 @@ test('asesora: fecha límite, registro, enlace del curso y recordatorio en el da
 
 test('docente nuevo: elige su nombre y puede cargar enseguida', async () => {
     const pg = await nuevaPagina();
-    await ingresar(pg, 'nuevo@test.com', 'nuevo123');
+    await ingresar(pg, 'nuevo@test.com');
     assert.ok(await pg.locator('#zonaVinculo').isVisible());
     assert.ok(!(await pg.locator('#zonaSubida').isVisible()));
     await pg.fill('#nombreDocente', 'Mattiassi');
@@ -174,7 +173,7 @@ test('docente nuevo: elige su nombre y puede cargar enseguida', async () => {
 
 test('preceptor: entra al dashboard pero no puede modificar', async () => {
     const pg = await nuevaPagina();
-    await ingresar(pg, 'preceptor@test.com', 'preceptor123');
+    await ingresar(pg, 'preceptor@test.com');
     await pg.click('#btnDashboard');
     await pg.waitForSelector('#dashboardResumen .dash-card');
     assert.equal(await pg.locator('#campoFechaLimite').count(), 0);
@@ -184,7 +183,7 @@ test('preceptor: entra al dashboard pero no puede modificar', async () => {
 
 test('alumno: si entra al dashboard lo devuelve al inicio', async () => {
     const pg = await nuevaPagina();
-    await ingresar(pg, 'alumno@test.com', 'alumno123');
+    await ingresar(pg, 'alumno@test.com');
     await pg.goto(srv.base + '/frontend/dashboard.html');
     await pg.waitForURL(srv.base + '/');
     await pg.waitForSelector('.toast');
@@ -204,7 +203,7 @@ test('el modo oscuro sigue al sistema y el botón lo cambia y lo recuerda', asyn
 
 test('en el celular no hay desplazamiento horizontal', async () => {
     const pg = await nuevaPagina({ ancho: 375, alto: 800 });
-    await ingresar(pg, 'asesor@test.com', 'asesor123');
+    await ingresar(pg, 'asesor@test.com');
     assert.equal(await pg.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'inicio');
     // En el celular el menú está cerrado: se abre con "Menú", se cierra con Escape
     assert.equal(await pg.locator('#btnDashboard').isVisible(), false);
@@ -229,10 +228,7 @@ for (const tema of ['light', 'dark']) {
         await pg.waitForSelector('#lista .card');
         problemas.push(...(await problemasDeAccesibilidad(pg)).map((p) => `inicio: ${p}`));
 
-        await pg.click('#btnToggleLogin');
-        problemas.push(...(await problemasDeAccesibilidad(pg)).map((p) => `login: ${p}`));
-
-        await ingresar(pg, 'asesor@test.com', 'asesor123');
+        await ingresar(pg, 'asesor@test.com');
         await pg.selectOption('#asignacion', '3-2_ingles');
         problemas.push(...(await problemasDeAccesibilidad(pg)).map((p) => `asesora: ${p}`));
 

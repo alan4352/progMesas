@@ -1,14 +1,13 @@
-// Identidad del usuario. Es la ÚNICA parte de ProgMesas que sabe de dónde viene el usuario:
-//
-//   AUTH_MODO=prueba  → login propio con las cuentas de prueba de la base (desarrollo)
-//   AUTH_MODO=externo → el usuario llega autenticado desde el campus de la escuela con un pase firmado
+// Identidad del usuario. Es la ÚNICA parte de ProgMesas que sabe de dónde viene el usuario.
+// ProgMesas no tiene login propio: la persona inicia sesión en el campus de la escuela y llega
+// con un pase firmado (token JWT) que se verifica con la clave compartida (EXTERNO_JWT_SECRET).
 //
 // El resto del sistema sólo usa req.user = { id, nombre, email, role }, donde role es uno de:
 //   teacher (docente) | advisor (asesora; en el campus, directivo) | viewer (consulta: preceptor) | student (alumno)
 // Para conectar otro sistema de ingreso sólo hace falta tocar este archivo y el .env.
 
 import jwt from 'jsonwebtoken';
-import { AUTH_MODO, JWT_SECRET, JWT_DURACION, EXTERNO, ROLES } from './config.js';
+import { EXTERNO, ROLES } from './config.js';
 
 // ================= ROLES =================
 
@@ -39,7 +38,7 @@ function leerCookie(req, nombre) {
 function leerToken(req) {
     const header = req.headers.authorization || '';
     if (header.startsWith('Bearer ')) return header.slice(7);
-    if (AUTH_MODO === 'externo' && EXTERNO.cookie) return leerCookie(req, EXTERNO.cookie);
+    if (EXTERNO.cookie) return leerCookie(req, EXTERNO.cookie);
     return null;
 }
 
@@ -53,11 +52,6 @@ function valorClaim(payload, ruta) {
  * @returns {{ id: string, nombre: string, email: string, role: string }}
  */
 function verificarToken(token) {
-    if (AUTH_MODO === 'prueba') {
-        const p = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
-        return { id: String(p.sub), nombre: p.name || '', email: p.email || '', role: p.role };
-    }
-
     const clave = EXTERNO.clavePublica || EXTERNO.secreto;
     const algoritmos = EXTERNO.clavePublica ? ['RS256', 'RS384', 'RS512', 'ES256', 'ES384'] : ['HS256', 'HS384', 'HS512'];
     const p = jwt.verify(token, clave, { algorithms: algoritmos });
@@ -72,53 +66,6 @@ function verificarToken(token) {
         email: String(valorClaim(p, EXTERNO.claimEmail) || ''),
         role
     };
-}
-
-// ================= LOGIN DE PRUEBA =================
-// Sólo existe en AUTH_MODO=prueba. 10 intentos fallidos por IP + email cada 15 minutos.
-
-const VENTANA_MS = 15 * 60 * 1000;
-const MAX_INTENTOS = 10;
-const intentos = new Map();
-
-// Limpieza periódica: sin esto el registro de intentos crece sin límite
-setInterval(() => {
-    const ahora = Date.now();
-    for (const [clave, r] of intentos) if (ahora - r.desde > VENTANA_MS) intentos.delete(clave);
-}, VENTANA_MS).unref();
-
-export async function login(req, res) {
-    if (AUTH_MODO !== 'prueba') {
-        return res.status(404).json({ error: 'El inicio de sesión se hace desde el campus de la escuela' });
-    }
-    // Importación diferida: las cuentas locales sólo se usan en modo prueba
-    const { buscarPorEmail } = await import('./usuarios.js');
-    const { verificarContrasena, HASH_FICTICIO } = await import('./lib/contrasenas.js');
-
-    const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
-
-    const clave = `${req.ip}|${String(email).toLowerCase()}`;
-    const r = intentos.get(clave);
-    if (r && Date.now() - r.desde < VENTANA_MS && r.cantidad >= MAX_INTENTOS) {
-        return res.status(429).json({ error: 'Demasiados intentos. Esperá unos minutos y volvé a probar.' });
-    }
-
-    const usuario = buscarPorEmail(email);
-    const ok = verificarContrasena(password, usuario ? usuario.password_hash : HASH_FICTICIO);
-    if (!usuario || !ok || !usuario.activo) {
-        if (!r || Date.now() - r.desde > VENTANA_MS) intentos.set(clave, { cantidad: 1, desde: Date.now() });
-        else r.cantidad++;
-        return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
-    intentos.delete(clave);
-
-    const token = jwt.sign(
-        { sub: usuario.email, email: usuario.email, name: usuario.nombre, role: usuario.rol },
-        JWT_SECRET,
-        { expiresIn: JWT_DURACION, algorithm: 'HS256' }
-    );
-    res.json({ token });
 }
 
 // ================= MIDDLEWARES =================

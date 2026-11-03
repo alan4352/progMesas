@@ -17,15 +17,10 @@ const pdfCon = (texto) => Buffer.concat([PDF, Buffer.from(`\n% ${texto}\n`)]);
 const archivosEnUploads = () => fs.readdirSync(path.join(srv.datos, 'uploads')).filter((f) => f.endsWith('.pdf'));
 
 before(async () => {
-    srv = await iniciarServidor({
-        preparar: `
-            const { crearUsuario } = await import('./backend/usuarios.js');
-            crearUsuario({ email: 'preceptor@test.com', contrasena: 'preceptor123', rol: 'viewer', nombre: 'Preceptor' });
-        `
-    });
-    asesora = await srv.ingresar('asesor@test.com', 'asesor123');
-    prof = await srv.ingresar('prof@test.com', 'prof123');
-    preceptor = await srv.ingresar('preceptor@test.com', 'preceptor123');
+    srv = await iniciarServidor();
+    asesora = await srv.ingresar('asesor@test.com');
+    prof = await srv.ingresar('prof@test.com');
+    preceptor = await srv.ingresar('preceptor@test.com');
 });
 
 after(() => srv?.cerrar());

@@ -1,8 +1,8 @@
-// Simula el sistema principal: genera un token firmado como el que mandaría al abrir ProgMesas.
-// Sirve para probar AUTH_MODO=externo antes de tener la conexión real.
+// Simula el campus: genera un pase firmado como el que manda al abrir ProgMesas.
+// Sirve para probar ProgMesas en una computadora sin el campus instalado.
 //
-//   node scripts/token_prueba.js --rol docente --nombre "Valeria Grimberg" --id 1234 --email vgrimberg@escuela.edu.ar
-//   node scripts/token_prueba.js --rol asesora --nombre "Ana Pérez"
+//   node scripts/token_prueba.js --rol profesor --nombre "Valeria Grimberg" --id 1234 --email vgrimberg@escuela.edu.ar
+//   node scripts/token_prueba.js --rol directivo --nombre "Ana Pérez"
 //
 // Usa EXTERNO_JWT_SECRET del .env (firma HS256) y los nombres de campo EXTERNO_CLAIM_* configurados.
 // Muestra el token y el enlace para abrir ProgMesas con esa identidad.
@@ -17,12 +17,12 @@ function argumento(nombre, defecto = '') {
 
 if (process.argv.includes('--ayuda') || process.argv.length <= 2) {
     console.log(`Uso: node scripts/token_prueba.js --rol <rol> --nombre "<nombre>" [--id <id>] [--email <email>] [--horas <n>]
-Roles de ejemplo: docente, asesora, preceptor, directivo, alumno (se traducen con ROL_* del .env).`);
+Roles del campus: profesor, directivo (asesora), alumno; también preceptor (se traducen con ROL_* del .env).`);
     process.exit(0);
 }
 
 if (!EXTERNO.secreto) {
-    console.error('Falta EXTERNO_JWT_SECRET en el .env: es la clave compartida con el sistema principal.');
+    console.error('Falta EXTERNO_JWT_SECRET en el .env: es la clave compartida con el campus.');
     process.exit(1);
 }
 
@@ -38,7 +38,7 @@ const nombre = argumento('nombre', 'Usuario de Prueba');
 const datos = {};
 poner(datos, EXTERNO.claimId, argumento('id', `prueba-${Date.now()}`));
 poner(datos, EXTERNO.claimNombre, nombre);
-poner(datos, EXTERNO.claimRol, argumento('rol', 'docente'));
+poner(datos, EXTERNO.claimRol, argumento('rol', 'profesor'));
 poner(datos, EXTERNO.claimEmail, argumento('email', ''));
 
 const horas = Number(argumento('horas', '8')) || 8;

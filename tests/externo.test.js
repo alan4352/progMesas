@@ -1,4 +1,4 @@
-// Pruebas de AUTH_MODO=externo: los usuarios llegan con un token firmado por el sistema principal.
+// Pruebas del ingreso con pase firmado configurado para otro sistema (campos anidados, cookie, roles):
 // Los tokens se generan con scripts/token_prueba.js, la misma herramienta que se usa para probar a mano.
 
 import { test, before, after } from 'node:test';
@@ -21,8 +21,6 @@ function tokenDe(opciones) {
 before(async () => {
     srv = await iniciarServidor({
         entorno: {
-            AUTH_MODO: 'externo',
-            JWT_SECRET: '',
             EXTERNO_JWT_SECRET: SECRETO,
             EXTERNO_CLAIM_ID: 'usuario.id',          // campo anidado, como en muchos sistemas
             EXTERNO_CLAIM_NOMBRE: 'usuario.nombre',
@@ -35,7 +33,7 @@ before(async () => {
 
 after(() => srv?.cerrar());
 
-test('en modo externo no hay login propio y el botón lleva al sistema principal', async () => {
+test('no hay login propio y el botón Ingresar lleva al sistema de ingreso', async () => {
     const config = (await srv.pedir('/config')).datos;
     assert.equal(config.authModo, 'externo');
     assert.equal(config.loginUrl, 'https://sistema.escuela.edu.ar/ingresar');

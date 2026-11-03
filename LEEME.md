@@ -13,7 +13,7 @@
 ## 1. Cómo usar la página
 
 Para probar sin instalar nada está la demo: <https://alan4352.github.io/progMesas/>
-(cuentas de prueba en la barra amarilla de arriba; lo que se cambia queda sólo en tu navegador).
+(en la barra amarilla de arriba, **Entrar como…** hace de campus; lo que se cambia queda sólo en tu navegador).
 
 ### Alumnos, familias y visitantes
 
@@ -32,8 +32,8 @@ No hace falta iniciar sesión.
 
 **La primera vez:**
 
-1. Iniciá sesión en el **campus** de la escuela con tu código de profesor y abrí **Subir los programas de examen**
-   (en modo prueba, con **Acceso docentes** en el menú).
+1. Iniciá sesión en el **campus** de la escuela con tu código de profesor y abrí **Subir los programas de examen**.
+   ProgMesas no tiene usuario ni contraseña propios: si entrás directo a la página, **Ingresar con el campus** te lleva ahí.
 2. Si tu nombre en el campus coincide con el de la lista de horarios, la cuenta se vincula sola y ya podés
    cargar programas: no tenés que hacer nada más.
 3. Si no coincide, aparece **Elegí tu nombre en la lista de docentes**: escribí tu apellido, elegí tu nombre tal como
@@ -100,7 +100,7 @@ nada (no fijan la fecha límite, no corrigen vinculaciones ni borran programas).
 
 ### Menú y modo oscuro
 
-Todas las opciones (Programas, Dashboard, Acceso docentes, Cerrar sesión, privacidad y condiciones) están en el
+Todas las opciones (Programas, Dashboard, Ingresar con el campus, Cerrar sesión, privacidad y condiciones) están en el
 **menú lateral**, como en el sistema de asistencia de la escuela. En el celular el menú se abre con el botón **Menú**
 de arriba a la derecha.
 
@@ -141,14 +141,15 @@ npm install
 Copiá `.env.example` como `.env` y completalo. Lo mínimo:
 
 ```
-JWT_SECRET=<valor largo y aleatorio>
-AUTH_MODO=externo          # o "prueba" mientras no esté conectado el campus
+EXTERNO_JWT_SECRET=<la misma clave que PROGMESAS_SECRETO del campus>
+EXTERNO_LOGIN_URL=https://<campus>/programas.php
+EXTERNO_LOGOUT_URL=https://<campus>/logout.php
 ANIO_LECTIVO=2026
 PORT=3000
 ```
 
-Para generar `JWT_SECRET`: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`.
-Con `AUTH_MODO=externo` hay que completar también los datos `EXTERNO_*` del campus (ver [Usuarios e ingreso](#4-usuarios-e-ingreso)).
+Sin `EXTERNO_JWT_SECRET` el servidor no arranca. Para generar una clave nueva:
+`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (ver [Usuarios e ingreso](#4-usuarios-e-ingreso)).
 
 Copiá `backend/oauth.json` y generá `backend/token.json` para Google Drive (ver [Google Drive](#5-google-drive)).
 
@@ -210,7 +211,7 @@ server {
 }
 ```
 
-Con un proxy adelante, agregá `TRUST_PROXY=1` al `.env` (si no, el límite de intentos de login bloquea a todos juntos).
+Con un proxy adelante, agregá `TRUST_PROXY=1` al `.env` (así los registros usan la IP real de cada visitante).
 El certificado se saca con `sudo certbot --nginx -d programas.escuela.edu.ar`.
 
 ### Copias de seguridad
@@ -272,13 +273,9 @@ Para que una materia no cuente como pendiente, poné `NO` en *Requiere programa*
 ## 4. Usuarios e ingreso
 
 ProgMesas forma parte de un sistema más grande: **los usuarios y el inicio de sesión vienen del campus virtual de la escuela**.
-Todo lo relacionado está en un solo archivo, `backend/auth.js`, y se configura en el `.env` con `AUTH_MODO`:
-
-- `AUTH_MODO=prueba` (por defecto): login propio con cuentas de prueba (`prof@test.com` / `prof123`,
-  `asesor@test.com` / `asesor123`, `alumno@test.com` / `alumno123`). Para crear más: `node scripts/usuarios.js ayuda`.
-- `AUTH_MODO=externo`: el usuario llega con un token firmado (JWT) del campus, en el link (`/?token=...`),
-  en el encabezado `Authorization` o en una cookie. En `.env.example` están los datos a completar
-  (clave para verificar el token, nombre de los campos y nombres de los roles).
+**ProgMesas no tiene login propio**: no guarda usuarios ni contraseñas. El usuario llega con un pase firmado (JWT) del
+campus, en el link (`/?token=...`). Todo lo relacionado está en un solo archivo, `backend/auth.js`, y se configura en
+el `.env` con `EXTERNO_JWT_SECRET` (obligatoria), `EXTERNO_LOGIN_URL` y `EXTERNO_LOGOUT_URL`.
 
 Roles: **docente** (carga sus programas), **asesora** (todo), **consulta** (preceptor: ve el dashboard sin modificar nada)
 y **alumno** (ve los programas). En el campus de la escuela, la asesoría entra como **directivo**.
@@ -308,7 +305,6 @@ Para instalarlo:
 3. En el `.env` de ProgMesas:
 
    ```
-   AUTH_MODO=externo
    EXTERNO_JWT_SECRET=<la misma clave>
    EXTERNO_LOGIN_URL=https://<campus>/programas.php
    EXTERNO_LOGOUT_URL=https://<campus>/logout.php
@@ -331,17 +327,17 @@ con un nombre de `asignaciones.xlsx`:
 
 Las solicitudes que habían quedado esperando aprobación con la versión anterior se confirman solas al arrancar el servidor.
 
-### Probar el modo externo sin el campus
+### Probar sin el campus
 
-Mientras no esté la conexión real, `scripts/token_prueba.js` hace de campus: genera un token firmado como el que
-mandaría y el enlace para entrar con esa identidad.
+En una computadora sin el campus instalado, `scripts/token_prueba.js` hace de campus: genera un pase firmado como el
+que mandaría y el enlace para entrar con esa identidad.
 
-1. En el `.env`: `AUTH_MODO=externo` y `EXTERNO_JWT_SECRET=<una clave larga>` (en la escuela, la misma que `PROGMESAS_SECRETO` del campus).
+1. En el `.env`: `EXTERNO_JWT_SECRET=<una clave larga>` (en la escuela, la misma que `PROGMESAS_SECRETO` del campus).
 2. Arrancá el servidor y generá un token:
 
    ```
    cd backend
-   node scripts/token_prueba.js --rol docente --nombre "Valeria Grimberg" --id 1234 --email vgrimberg@escuela.edu.ar
+   node scripts/token_prueba.js --rol profesor --nombre "Valeria Grimberg" --id 1234 --email vgrimberg@escuela.edu.ar
    ```
 
 3. Abrí el enlace que muestra. Con ese nombre, el docente se vincula solo con "Grimberg Valeria".
@@ -404,12 +400,12 @@ desde la página, su archivo en Drive hay que borrarlo a mano. Para volver atrá
 ## 6. Pruebas automáticas
 
 ```
-npm test             # API y funciones: 54 pruebas en unos segundos (las del campus necesitan PHP)
+npm test             # API y funciones: 53 pruebas en unos segundos (las del campus necesitan PHP)
 npm run test:ui      # interfaz en un navegador y accesibilidad: 11 pruebas
 ```
 
-- **`npm test`** prueba utilidades, contraseñas, roles y la planilla de asignaciones, y la API completa con cada rol:
-  ingreso y límite de intentos, permisos, vinculación de docentes (elegida y automática), subida, reemplazo y versiones,
+- **`npm test`** prueba utilidades, roles y la planilla de asignaciones, y la API completa con cada rol:
+  ingreso con el pase del campus (y rechazo de pases falsos o vencidos), permisos, vinculación de docentes (elegida y automática), subida, reemplazo y versiones,
   reutilizar, subidas simultáneas de varios cursos, fecha límite, registro, cobertura, ZIP por curso, copias de seguridad,
   el modo externo y Google Drive **simulado** (subida, Drive caído, paso a Drive cuando vuelve y borrado).
 - **`npm run test:ui`** abre la página en un navegador (Chromium) y la recorre como visitante, asesora, docente, preceptor

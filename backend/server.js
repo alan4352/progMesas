@@ -3,7 +3,7 @@ import cors from 'cors';
 import multer from 'multer';
 
 import { PORT, ANIO_LECTIVO, CORS_ORIGENES, MAX_PDF_MB, RUTAS, AUTH_MODO, EXTERNO, TRUST_PROXY } from './config.js';
-import { login, auth, authOpcional, rol } from './auth.js';
+import { auth, authOpcional, rol } from './auth.js';
 import {
     registrarAcceso, vinculoDe, docenteConfirmado, solicitarVinculo, confirmarVinculo, desvincular, resumenVinculos
 } from './docentes.js';
@@ -135,8 +135,6 @@ function anioValido(valor) {
 }
 
 // ================= API =================
-
-app.post('/api/login', login);
 
 app.get('/api/config', (req, res) => {
     res.json({

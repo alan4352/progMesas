@@ -1,6 +1,6 @@
 # Ingreso desde el campus de la escuela
 
-ProgMesas no tiene login propio en la escuela: usa el del **campus virtual** (PHP). Esta carpeta tiene lo que hay que
+ProgMesas no tiene login propio: usa el del **campus virtual** (PHP). Esta carpeta tiene lo que hay que
 agregar al campus para que, desde el módulo **Programas de examen**, cada persona entre a ProgMesas ya identificada.
 
 | En el campus | En ProgMesas |
@@ -92,7 +92,6 @@ if ($modulo === 'programa') {
 ## Configuración de ProgMesas (`.env`)
 
 ```
-AUTH_MODO=externo
 EXTERNO_JWT_SECRET=<la misma clave que PROGMESAS_SECRETO>
 EXTERNO_LOGIN_URL=https://<campus>/programas.php
 EXTERNO_LOGOUT_URL=https://<campus>/logout.php

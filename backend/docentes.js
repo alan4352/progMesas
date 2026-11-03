@@ -29,18 +29,6 @@ db.exec(`
     )
 `);
 
-// Migración: las cuentas de prueba que ya tenían un docente asignado quedan confirmadas
-try {
-    const conDocente = db.prepare("SELECT email, nombre, docente FROM usuarios WHERE rol = 'teacher' AND docente <> ''").all();
-    const insertar = db.prepare(`
-        INSERT OR IGNORE INTO docentes_usuarios (usuario_id, nombre_usuario, email, docente, estado, confirmado_at, confirmado_por)
-        VALUES (?, ?, ?, ?, 'confirmado', ?, 'migración')
-    `);
-    for (const u of conDocente) insertar.run(u.email, u.nombre, u.email, u.docente, new Date().toISOString());
-} catch {
-    // sin tabla usuarios (modo externo con base nueva): nada que migrar
-}
-
 const stmtPorId = db.prepare('SELECT * FROM docentes_usuarios WHERE usuario_id = ?');
 const stmtTodos = db.prepare('SELECT * FROM docentes_usuarios ORDER BY estado, nombre_usuario');
 const stmtRegistrar = db.prepare(`
