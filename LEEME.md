@@ -144,7 +144,6 @@ Copiá `.env.example` como `.env` y completalo. Lo mínimo:
 EXTERNO_JWT_SECRET=<la misma clave que PROGMESAS_SECRETO del campus>
 EXTERNO_LOGIN_URL=https://<campus>/programas.php
 EXTERNO_LOGOUT_URL=https://<campus>/logout.php
-ANIO_LECTIVO=2026
 PORT=3000
 ```
 

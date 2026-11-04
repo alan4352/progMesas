@@ -162,6 +162,8 @@
     const listo = (async () => {
         const res = await fetch(new URL('demo/datos.json', RAIZ), { cache: 'no-cache' });
         datos = await res.json();
+        // Como en el servidor: el año lectivo es el año en curso en Argentina (cambia solo el 1 de enero)
+        datos.config.anioLectivo = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric' }).format(new Date()));
         usuarios = CUENTAS;
         estado = leerEstado();
         await cargarPdfsLocales();

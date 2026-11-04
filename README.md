@@ -105,7 +105,7 @@ npm start
 |---|---|
 | `EXTERNO_JWT_SECRET` | **Obligatoria.** Clave compartida con el campus (`PROGMESAS_SECRETO`), 32 caracteres o más. Sin ella el servidor no arranca. |
 | `EXTERNO_LOGIN_URL`, `EXTERNO_LOGOUT_URL` | Páginas del campus para ingresar (`programas.php`) y cerrar sesión (`logout.php`). |
-| `ANIO_LECTIVO` | Año que usan por defecto el formulario y el dashboard. Los programas sólo se pueden cargar para ese año, el anterior o el siguiente. |
+| `ANIO_LECTIVO` | Opcional. El año lectivo se calcula solo (el año en curso en Argentina, cambia el 1 de enero); esta variable lo fija a mano. Los programas sólo se pueden cargar para ese año, el anterior o el siguiente. |
 | `PORT` | Puerto del servidor (3000 por defecto). |
 | `MAX_PDF_MB` | Tamaño máximo de cada PDF (10 por defecto). |
 | `TRUST_PROXY` | `1` si el servidor está detrás de un proxy (Nginx, Render). Hace que los registros usen la IP real del visitante. |
@@ -198,7 +198,7 @@ Render se usa mientras tanto, hasta instalarlo en el servidor de la escuela. `re
 en render.com → **New → Blueprint** → elegir este repositorio. Render vuelve a desplegar en cada push a `main`.
 
 Si el servicio se crea a mano: Build Command `npm install`, Start Command `npm start`, y en **Environment**
-cargar `EXTERNO_JWT_SECRET`, `EXTERNO_LOGIN_URL`, `EXTERNO_LOGOUT_URL`, `ANIO_LECTIVO` y `TRUST_PROXY=1`. Para Drive, agregar
+cargar `EXTERNO_JWT_SECRET`, `EXTERNO_LOGIN_URL`, `EXTERNO_LOGOUT_URL` y `TRUST_PROXY=1`. Para Drive, agregar
 `GOOGLE_OAUTH_JSON` y `GOOGLE_TOKEN_JSON` con el contenido de esos archivos.
 
 En el plan gratis el disco se borra al reiniciar: los PDF guardados en el servidor se pierden. Para conservarlos
@@ -262,6 +262,12 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 04/11/2026 — El año lectivo se actualiza solo
+
+- El año lectivo es el año en curso en Argentina y cambia solo el 1 de enero, sin tocar el `.env` ni reiniciar el servidor.
+  Con él se corren los años que se pueden cargar (anterior, actual y siguiente) y el año por defecto del formulario y el dashboard.
+- `ANIO_LECTIVO` pasa a ser opcional (sólo para fijarlo a mano) y se quitó de `render.yaml` y `.env.example`. La demo también lo calcula.
 
 ### 04/11/2026 — Límite para el año lectivo
 

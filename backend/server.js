@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 
-import { PORT, ANIO_LECTIVO, ANIO_MINIMO_CARGA, ANIO_MAXIMO_CARGA, CORS_ORIGENES, MAX_PDF_MB, RUTAS, AUTH_MODO, EXTERNO, TRUST_PROXY } from './config.js';
+import { PORT, anioLectivo, rangoDeCarga, CORS_ORIGENES, MAX_PDF_MB, RUTAS, AUTH_MODO, EXTERNO, TRUST_PROXY } from './config.js';
 import { auth, authOpcional, rol } from './auth.js';
 import {
     registrarAcceso, vinculoDe, docenteConfirmado, solicitarVinculo, confirmarVinculo, desvincular, resumenVinculos
@@ -137,22 +137,26 @@ function anioValido(valor) {
 /** Año para cargar un programa o fijar la fecha límite: sólo el anterior, el actual o el siguiente. */
 function anioDeCarga(valor) {
     const n = anioValido(valor);
-    return n && n >= ANIO_MINIMO_CARGA && n <= ANIO_MAXIMO_CARGA ? n : null;
+    const { minimo, maximo } = rangoDeCarga();
+    return n && n >= minimo && n <= maximo ? n : null;
 }
-const ERROR_ANIO = `El año lectivo tiene que estar entre ${ANIO_MINIMO_CARGA} y ${ANIO_MAXIMO_CARGA}`;
+function errorAnio() {
+    const { minimo, maximo } = rangoDeCarga();
+    return { error: `El año lectivo tiene que estar entre ${minimo} y ${maximo}` };
+}
 
 // ================= API =================
 
 app.get('/api/config', (req, res) => {
     res.json({
-        anioLectivo: ANIO_LECTIVO,
-        anioMinimo: ANIO_MINIMO_CARGA,
-        anioMaximo: ANIO_MAXIMO_CARGA,
+        anioLectivo: anioLectivo(),
+        anioMinimo: rangoDeCarga().minimo,
+        anioMaximo: rangoDeCarga().maximo,
         maxPdfMb: MAX_PDF_MB,
         authModo: AUTH_MODO,
         loginUrl: EXTERNO.loginUrl || null,
         logoutUrl: EXTERNO.logoutUrl || EXTERNO.loginUrl || null,
-        fechaLimite: fechaLimite(ANIO_LECTIVO)
+        fechaLimite: fechaLimite(anioLectivo())
     });
 });
 
@@ -249,7 +253,7 @@ app.get('/api/programas/:id/versiones', auth, rol('teacher', 'advisor'), (req, r
 // Asignaciones para el formulario de subida: todas (docentes y asesora pueden cargar el programa de
 // cualquier curso). A los docentes se les marcan las suyas (propia: true) para mostrarlas primero.
 app.get('/api/asignaciones/mias', auth, rol('teacher', 'advisor'), (req, res) => {
-    const anio = anioValido(req.query.anio) || ANIO_LECTIVO;
+    const anio = anioValido(req.query.anio) || anioLectivo();
     const esAsesora = req.user.role === 'advisor';
     const docente = esAsesora ? '' : docenteConfirmado(req.user.id);
 
@@ -296,7 +300,7 @@ app.post('/api/programas/subir', auth, rol('teacher', 'advisor'), upload.single(
     const anio = anioDeCarga(req.body?.anio);
 
     if (!asignacion) return res.status(400).json({ error: 'Elegí la materia y el curso del programa' });
-    if (!anio) return res.status(400).json({ error: ERROR_ANIO });
+    if (!anio) return res.status(400).json(errorAnio());
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo PDF' });
     if (!esPdfValido(req.file.buffer)) return res.status(400).json({ error: 'El archivo no es un PDF válido' });
 
@@ -347,7 +351,7 @@ app.post('/api/programas/reutilizar', auth, rol('teacher', 'advisor'), (req, res
     const asignacion = asignacionPorId(req.body?.asignacion_id);
     const anio = anioDeCarga(req.body?.anio);
     if (!asignacion) return res.status(400).json({ error: 'Elegí la materia y el curso del programa' });
-    if (!anio) return res.status(400).json({ error: ERROR_ANIO });
+    if (!anio) return res.status(400).json(errorAnio());
     const origen = programaAnteriorDeAsignacion(asignacion.id, anio);
     if (!origen) return res.status(404).json({ error: 'No hay un programa de años anteriores para ese curso y materia' });
 
@@ -443,7 +447,7 @@ function calcularCobertura(anio) {
 }
 
 app.get('/api/cobertura', auth, rol('advisor', 'viewer'), (req, res) => {
-    const anio = anioValido(req.query.anio) || ANIO_LECTIVO;
+    const anio = anioValido(req.query.anio) || anioLectivo();
     res.json({
         ...calcularCobertura(anio),
         fechaLimite: fechaLimite(anio),
@@ -453,13 +457,13 @@ app.get('/api/cobertura', auth, rol('advisor', 'viewer'), (req, res) => {
 
 // Fecha límite de entrega de un año (la fija la asesora; vacía = sin fecha)
 app.get('/api/fecha-limite', (req, res) => {
-    const anio = anioValido(req.query.anio) || ANIO_LECTIVO;
+    const anio = anioValido(req.query.anio) || anioLectivo();
     res.json({ anio, fecha: fechaLimite(anio) });
 });
 
 app.put('/api/fecha-limite', auth, rol('advisor'), (req, res) => {
     const anio = anioDeCarga(req.body?.anio);
-    if (!anio) return res.status(400).json({ error: ERROR_ANIO });
+    if (!anio) return res.status(400).json(errorAnio());
     const anterior = fechaLimite(anio);
     const fecha = guardarFechaLimite(anio, req.body?.fecha);
     registrar(req.user, 'ajustes.fecha_limite', { anio, fecha, anterior });
@@ -521,7 +525,7 @@ app.get('/api/cursos/zip', async (req, res) => {
 
 // Compatibilidad con la versión anterior del dashboard
 app.get('/api/programas/faltantes', auth, rol('advisor', 'viewer'), (req, res) => {
-    const anio = anioValido(req.query.anio) || ANIO_LECTIVO;
+    const anio = anioValido(req.query.anio) || anioLectivo();
     const { asignaciones } = calcularCobertura(anio);
     res.json(
         asignaciones

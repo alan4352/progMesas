@@ -12,7 +12,7 @@ process.env.EXTERNO_JWT_SECRET ||= 'demo-'.padEnd(48, 'x');
 
 const salida = path.resolve(process.argv[2] || 'datos.json');
 
-const { ANIO_LECTIVO, MAX_PDF_MB } = await import('../backend/config.js');
+const { anioLectivo, MAX_PDF_MB } = await import('../backend/config.js');
 const store = await import('../backend/store.js');
 const asig = await import('../backend/asignaciones.js');
 await import('../backend/docentes.js'); // crea la tabla de vínculos
@@ -42,7 +42,7 @@ const vinculos = db.prepare('SELECT * FROM docentes_usuarios').all();
 
 const datos = {
     generado: new Date().toISOString(),
-    config: { anioLectivo: ANIO_LECTIVO, maxPdfMb: MAX_PDF_MB, authModo: 'externo', loginUrl: null, logoutUrl: null },
+    config: { anioLectivo: anioLectivo(), maxPdfMb: MAX_PDF_MB, authModo: 'externo', loginUrl: null, logoutUrl: null },
     asignaciones,
     programas,
     vinculos,

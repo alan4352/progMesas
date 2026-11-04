@@ -219,6 +219,17 @@ test('sólo se aceptan PDF válidos y del tamaño permitido', async () => {
     assert.equal((await subir(asesora, { asignacion: '1-1_geografia', anio: 1990 })).status, 400);
 });
 
+test('sin ANIO_LECTIVO, el año lectivo es el año en curso en Argentina', async () => {
+    const otro = await iniciarServidor({ entorno: { ANIO_LECTIVO: '' } });
+    try {
+        const actual = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric' }).format(new Date()));
+        const config = (await otro.pedir('/config')).datos;
+        assert.deepEqual([config.anioMinimo, config.anioLectivo, config.anioMaximo], [actual - 1, actual, actual + 1]);
+    } finally {
+        otro.cerrar();
+    }
+});
+
 test('el año lectivo sólo puede ser el anterior, el actual o el siguiente', async () => {
     const config = (await srv.pedir('/config')).datos;
     assert.deepEqual([config.anioMinimo, config.anioLectivo, config.anioMaximo], [2025, 2026, 2027]);

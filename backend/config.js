@@ -68,11 +68,21 @@ if (EXTERNO.secreto && EXTERNO.secreto.length < 32) {
 }
 
 export const PORT = Number(process.env.PORT) || 3000;
-export const ANIO_LECTIVO = Number(process.env.ANIO_LECTIVO) || new Date().getFullYear();
+// Año lectivo: el año en curso en Argentina. Se calcula en cada pedido, así que cambia solo el 1 de enero,
+// sin tocar la configuración ni reiniciar el servidor. ANIO_LECTIVO en el .env lo fija a mano (opcional; lo usan las pruebas).
+const ANIO_FIJO = Number(process.env.ANIO_LECTIVO) || null;
+const formatoAnio = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric' });
+
+export function anioLectivo() {
+    return ANIO_FIJO || Number(formatoAnio.format(new Date()));
+}
+
 // Años en los que se puede cargar un programa (o fijar la fecha límite): el anterior, el actual y el siguiente.
 // Así nadie carga por error un programa para 2030. Buscar y ver programas de otros años sigue funcionando.
-export const ANIO_MINIMO_CARGA = ANIO_LECTIVO - 1;
-export const ANIO_MAXIMO_CARGA = ANIO_LECTIVO + 1;
+export function rangoDeCarga() {
+    const anio = anioLectivo();
+    return { minimo: anio - 1, maximo: anio + 1 };
+}
 
 // Detrás de un proxy (Render, Nginx, etc.) la IP real del visitante llega en X-Forwarded-For.
 // TRUST_PROXY=1 confía en un proxy (así los registros y los límites usan la IP real del visitante).
