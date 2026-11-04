@@ -105,7 +105,7 @@ npm start
 |---|---|
 | `EXTERNO_JWT_SECRET` | **Obligatoria.** Clave compartida con el campus (`PROGMESAS_SECRETO`), 32 caracteres o más. Sin ella el servidor no arranca. |
 | `EXTERNO_LOGIN_URL`, `EXTERNO_LOGOUT_URL` | Páginas del campus para ingresar (`programas.php`) y cerrar sesión (`logout.php`). |
-| `ANIO_LECTIVO` | Año que usan por defecto el formulario y el dashboard. |
+| `ANIO_LECTIVO` | Año que usan por defecto el formulario y el dashboard. Los programas sólo se pueden cargar para ese año, el anterior o el siguiente. |
 | `PORT` | Puerto del servidor (3000 por defecto). |
 | `MAX_PDF_MB` | Tamaño máximo de cada PDF (10 por defecto). |
 | `TRUST_PROXY` | `1` si el servidor está detrás de un proxy (Nginx, Render). Hace que los registros usen la IP real del visitante. |
@@ -252,7 +252,8 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Un docente puede cargar el programa de cualquier curso, pero cada carga queda en el **registro de actividad** con su
   cuenta, y si reemplaza un programa la versión anterior se conserva. No puede tomar un nombre de la lista que ya usa
   otra cuenta. El historial de versiones lo ven sólo la asesora y el docente de la materia.
-- Sólo se aceptan PDF válidos (se revisa el contenido, no sólo la extensión; hasta 10 MB por defecto).
+- Sólo se aceptan PDF válidos (se revisa el contenido, no sólo la extensión; hasta 10 MB por defecto). El año de un programa
+  sólo puede ser el anterior, el actual o el siguiente al año lectivo (se controla en el servidor, no sólo en el formulario).
 - Todo el contenido cargado por usuarios se escapa antes de mostrarse, con una política CSP que bloquea scripts externos.
 - Registro de actividad de todas las acciones que modifican datos.
 - La exportación a CSV neutraliza textos que Excel interpretaría como fórmulas.
@@ -261,6 +262,13 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 04/11/2026 — Límite para el año lectivo
+
+- Los programas sólo se pueden cargar (subir o reutilizar) para el año lectivo anterior, el actual o el siguiente
+  (con `ANIO_LECTIVO=2026`: 2025, 2026 o 2027). Lo mismo para fijar la fecha límite. Así nadie carga por error un programa para 2030.
+- En el formulario, **Año lectivo** pasa a ser una lista con esos tres años en lugar de un campo libre. El servidor también lo controla.
+- Buscar y ver programas de cualquier año sigue igual.
 
 ### 03/11/2026 — Los docentes cargan programas de cualquier curso
 

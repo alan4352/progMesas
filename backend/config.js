@@ -69,6 +69,10 @@ if (EXTERNO.secreto && EXTERNO.secreto.length < 32) {
 
 export const PORT = Number(process.env.PORT) || 3000;
 export const ANIO_LECTIVO = Number(process.env.ANIO_LECTIVO) || new Date().getFullYear();
+// Años en los que se puede cargar un programa (o fijar la fecha límite): el anterior, el actual y el siguiente.
+// Así nadie carga por error un programa para 2030. Buscar y ver programas de otros años sigue funcionando.
+export const ANIO_MINIMO_CARGA = ANIO_LECTIVO - 1;
+export const ANIO_MAXIMO_CARGA = ANIO_LECTIVO + 1;
 
 // Detrás de un proxy (Render, Nginx, etc.) la IP real del visitante llega en X-Forwarded-For.
 // TRUST_PROXY=1 confía en un proxy (así los registros y los límites usan la IP real del visitante).

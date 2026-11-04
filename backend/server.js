@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 
-import { PORT, ANIO_LECTIVO, CORS_ORIGENES, MAX_PDF_MB, RUTAS, AUTH_MODO, EXTERNO, TRUST_PROXY } from './config.js';
+import { PORT, ANIO_LECTIVO, ANIO_MINIMO_CARGA, ANIO_MAXIMO_CARGA, CORS_ORIGENES, MAX_PDF_MB, RUTAS, AUTH_MODO, EXTERNO, TRUST_PROXY } from './config.js';
 import { auth, authOpcional, rol } from './auth.js';
 import {
     registrarAcceso, vinculoDe, docenteConfirmado, solicitarVinculo, confirmarVinculo, desvincular, resumenVinculos
@@ -134,11 +134,20 @@ function anioValido(valor) {
     return Number.isInteger(n) && n >= 2000 && n <= 2100 ? n : null;
 }
 
+/** Año para cargar un programa o fijar la fecha límite: sólo el anterior, el actual o el siguiente. */
+function anioDeCarga(valor) {
+    const n = anioValido(valor);
+    return n && n >= ANIO_MINIMO_CARGA && n <= ANIO_MAXIMO_CARGA ? n : null;
+}
+const ERROR_ANIO = `El año lectivo tiene que estar entre ${ANIO_MINIMO_CARGA} y ${ANIO_MAXIMO_CARGA}`;
+
 // ================= API =================
 
 app.get('/api/config', (req, res) => {
     res.json({
         anioLectivo: ANIO_LECTIVO,
+        anioMinimo: ANIO_MINIMO_CARGA,
+        anioMaximo: ANIO_MAXIMO_CARGA,
         maxPdfMb: MAX_PDF_MB,
         authModo: AUTH_MODO,
         loginUrl: EXTERNO.loginUrl || null,
@@ -284,10 +293,10 @@ app.post('/api/programas/subir', auth, rol('teacher', 'advisor'), upload.single(
     const docente = esAsesora ? '' : docenteConfirmado(req.user.id) || req.user.nombre || req.user.id;
 
     const asignacion = asignacionPorId(req.body?.asignacion_id);
-    const anio = anioValido(req.body?.anio);
+    const anio = anioDeCarga(req.body?.anio);
 
     if (!asignacion) return res.status(400).json({ error: 'Elegí la materia y el curso del programa' });
-    if (!anio) return res.status(400).json({ error: 'El año lectivo no es válido' });
+    if (!anio) return res.status(400).json({ error: ERROR_ANIO });
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo PDF' });
     if (!esPdfValido(req.file.buffer)) return res.status(400).json({ error: 'El archivo no es un PDF válido' });
 
@@ -336,9 +345,9 @@ app.post('/api/programas/reutilizar', auth, rol('teacher', 'advisor'), (req, res
     // El docente figura con su nombre de la lista (si está vinculado) o con el de su cuenta del campus.
     const docente = esAsesora ? '' : docenteConfirmado(req.user.id) || req.user.nombre || req.user.id;
     const asignacion = asignacionPorId(req.body?.asignacion_id);
-    const anio = anioValido(req.body?.anio);
+    const anio = anioDeCarga(req.body?.anio);
     if (!asignacion) return res.status(400).json({ error: 'Elegí la materia y el curso del programa' });
-    if (!anio) return res.status(400).json({ error: 'El año lectivo no es válido' });
+    if (!anio) return res.status(400).json({ error: ERROR_ANIO });
     const origen = programaAnteriorDeAsignacion(asignacion.id, anio);
     if (!origen) return res.status(404).json({ error: 'No hay un programa de años anteriores para ese curso y materia' });
 
@@ -449,8 +458,8 @@ app.get('/api/fecha-limite', (req, res) => {
 });
 
 app.put('/api/fecha-limite', auth, rol('advisor'), (req, res) => {
-    const anio = anioValido(req.body?.anio);
-    if (!anio) return res.status(400).json({ error: 'El año lectivo no es válido' });
+    const anio = anioDeCarga(req.body?.anio);
+    if (!anio) return res.status(400).json({ error: ERROR_ANIO });
     const anterior = fechaLimite(anio);
     const fecha = guardarFechaLimite(anio, req.body?.fecha);
     registrar(req.user, 'ajustes.fecha_limite', { anio, fecha, anterior });

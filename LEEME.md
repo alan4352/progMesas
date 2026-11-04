@@ -45,7 +45,7 @@ No hace falta iniciar sesión.
 1. En **Subir programa de examen**, elegí en **Curso y materia** el curso y la materia. Aparecen **todos** los cursos;
    si estás vinculado, tus materias están primero, en **Mis materias**. Cada curso lleva su propio programa: si das la
    misma materia en varios cursos, cargá uno por curso.
-2. Revisá el **Año lectivo**.
+2. Revisá el **Año lectivo**: se puede elegir el año anterior, el actual o el siguiente.
 3. El **Título** es opcional: si lo dejás vacío se completa solo (por ejemplo, "Programa de Matemática - 2° 1° - 2026").
 4. Elegí el **archivo PDF** (hasta 10 MB) y tocá **Guardar programa**.
 

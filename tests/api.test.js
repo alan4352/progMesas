@@ -219,6 +219,24 @@ test('sólo se aceptan PDF válidos y del tamaño permitido', async () => {
     assert.equal((await subir(asesora, { asignacion: '1-1_geografia', anio: 1990 })).status, 400);
 });
 
+test('el año lectivo sólo puede ser el anterior, el actual o el siguiente', async () => {
+    const config = (await srv.pedir('/config')).datos;
+    assert.deepEqual([config.anioMinimo, config.anioLectivo, config.anioMaximo], [2025, 2026, 2027]);
+
+    const asesora = await ingresar('asesor@test.com');
+    const docente = await ingresar('prof@test.com');
+    for (const anio of [2030, 2024]) {
+        const r = await subir(docente, { asignacion: '1-1_geografia', anio });
+        assert.equal(r.status, 400);
+        assert.match(r.datos.error, /entre 2025 y 2027/);
+        const reutilizar = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: '1-1_geografia', anio }, token: asesora });
+        assert.equal(reutilizar.status, 400);
+        const fecha = await srv.pedir('/fecha-limite', { method: 'PUT', json: { anio, fecha: '2026-11-20' }, token: asesora });
+        assert.equal(fecha.status, 400);
+    }
+    assert.equal((await subir(docente, { asignacion: '1-1_geografia', anio: 2027 })).status, 200);
+});
+
 test('subir otra vez el mismo curso y materia reemplaza el programa anterior', async () => {
     const asesora = await ingresar('asesor@test.com');
     const primero = await subir(asesora, { asignacion: '1-1_geografia', titulo: 'Versión 1' });

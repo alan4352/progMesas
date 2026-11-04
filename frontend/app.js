@@ -499,7 +499,12 @@ async function init() {
     } catch {
         /* se usan los valores por defecto */
     }
-    $('anio').value = config.anioLectivo;
+    // Sólo se puede cargar para el año anterior, el actual o el siguiente (lo controla también el servidor)
+    const minimo = config.anioMinimo || config.anioLectivo - 1;
+    const maximo = config.anioMaximo || config.anioLectivo + 1;
+    $('anio').innerHTML = '';
+    for (let a = maximo; a >= minimo; a--) $('anio').add(new Option(String(a), String(a)));
+    $('anio').value = String(config.anioLectivo);
     $('maxPdf').textContent = `(máximo ${config.maxPdfMb} MB)`;
 
     usuario = await cargarIdentidad();

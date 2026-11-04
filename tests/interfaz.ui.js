@@ -167,6 +167,9 @@ test('docente nuevo: puede cargar cualquier curso y, si elige su nombre, ve sus 
     const todas = await pg.locator('#asignacion option').count();
     assert.ok(todas > 100, 'aparecen todos los cursos y materias');
     assert.equal(await pg.locator('#asignacion optgroup[label="Mis materias"]').count(), 0);
+    // El año lectivo se elige de una lista cerrada: anterior, actual o siguiente
+    assert.deepEqual(await pg.locator('#anio option').allInnerTexts(), ['2027', '2026', '2025']);
+    assert.equal(await pg.locator('#anio').inputValue(), '2026');
 
     await pg.fill('#nombreDocente', 'Mattiassi');
     await pg.click('#formVinculo button[type=submit]');

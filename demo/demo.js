@@ -39,6 +39,14 @@
         const n = parseInt(v, 10);
         return Number.isInteger(n) && n >= 2000 && n <= 2100 ? n : null;
     }
+    // Igual que el servidor: sólo se carga para el año anterior, el actual o el siguiente
+    const anioMinimo = () => datos.config.anioLectivo - 1;
+    const anioMaximo = () => datos.config.anioLectivo + 1;
+    function anioDeCarga(v) {
+        const n = anioValido(v);
+        return n && n >= anioMinimo() && n <= anioMaximo() ? n : null;
+    }
+    const errorAnio = () => errorHttp(`El año lectivo tiene que estar entre ${anioMinimo()} y ${anioMaximo()}`);
     function ahora() {
         return new Date().toISOString();
     }
@@ -360,7 +368,7 @@
     async function atender(metodo, ruta, query, body, user) {
         let m;
 
-        if (metodo === 'GET' && ruta === '/config') return { ...datos.config, fechaLimite: fechaLimite(datos.config.anioLectivo) };
+        if (metodo === 'GET' && ruta === '/config') return { ...datos.config, anioMinimo: anioMinimo(), anioMaximo: anioMaximo(), fechaLimite: fechaLimite(datos.config.anioLectivo) };
 
         if (metodo === 'GET' && ruta === '/yo') {
             if (!user) return { autenticado: false };
@@ -483,10 +491,10 @@
             const esAsesora = user.role === 'advisor';
             const docente = esAsesora ? '' : docenteConfirmado(user.id) || user.nombre || user.id;
             const a = asignacionPorId(body.get('asignacion_id'));
-            const anio = anioValido(body.get('anio'));
+            const anio = anioDeCarga(body.get('anio'));
             const archivo = body.get('pdf');
             if (!a) throw errorHttp('Elegí la materia y el curso del programa');
-            if (!anio) throw errorHttp('El año lectivo no es válido');
+            if (!anio) throw errorAnio();
             if (!(archivo instanceof Blob)) throw errorHttp('Falta el archivo PDF');
             if (archivo.size > datos.config.maxPdfMb * 1024 * 1024) throw errorHttp(`El PDF supera el máximo de ${datos.config.maxPdfMb} MB`, 413);
             const cabecera = new TextDecoder('latin1').decode(await archivo.slice(0, 5).arrayBuffer());
@@ -516,9 +524,9 @@
             const esAsesora = user.role === 'advisor';
             const docente = esAsesora ? '' : docenteConfirmado(user.id) || user.nombre || user.id;
             const a = asignacionPorId(body?.asignacion_id);
-            const anio = anioValido(body?.anio);
+            const anio = anioDeCarga(body?.anio);
             if (!a) throw errorHttp('Elegí la materia y el curso del programa');
-            if (!anio) throw errorHttp('El año lectivo no es válido');
+            if (!anio) throw errorAnio();
             const origen = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year < anio);
             if (!origen) throw errorHttp('No hay un programa de años anteriores para ese curso y materia', 404);
             const nuevo = {
@@ -578,8 +586,8 @@
 
         if (metodo === 'PUT' && ruta === '/fecha-limite') {
             exigir(user, 'advisor');
-            const anio = anioValido(body?.anio);
-            if (!anio) throw errorHttp('El año lectivo no es válido');
+            const anio = anioDeCarga(body?.anio);
+            if (!anio) throw errorAnio();
             const anterior = fechaLimite(anio);
             const fecha = String(body?.fecha || '').trim();
             if (fecha) {
