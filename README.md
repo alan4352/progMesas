@@ -263,6 +263,13 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 
 ## Historial de cambios
 
+### 05/11/2026 — ProgMesas dentro del campus integrado
+
+- ProgMesas se agregó como subpágina del campus integrado (`final/progmesas`, al lado de proyectores y preinscripciones).
+  El campus es la página principal y da el inicio de sesión. Se agregó un módulo para directivos, "Control de programas de examen".
+- `integraciones/campus-escuela/LEEME.md` explica la carpeta (`index.php`, `.htaccess`, `iniciar.bat` / `iniciar.sh`) y
+  cómo calcular `PROGMESAS_URL` a partir del servidor del campus.
+
 ### 04/11/2026 — El año lectivo se actualiza solo
 
 - El año lectivo es el año en curso en Argentina y cambia solo el 1 de enero, sin tocar el `.env` ni reiniciar el servidor.

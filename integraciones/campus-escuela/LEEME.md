@@ -32,6 +32,8 @@ agregar al campus para que, desde el módulo **Programas de examen**, cada perso
 
 ```php
 define('PROGMESAS_URL', 'https://programas.escuela.edu.ar');   // dirección de ProgMesas
+// o, si ProgMesas corre en el mismo servidor que el campus (puerto 3000):
+// define('PROGMESAS_URL', 'http://' . preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? 'localhost') . ':3000');
 define('PROGMESAS_SECRETO', 'CAMBIAR-por-una-clave-larga-y-secreta'); // php -r "echo bin2hex(random_bytes(32));"
 define('PROGMESAS_HORAS', 8);
 ```
@@ -88,6 +90,15 @@ if ($modulo === 'programa') {
     exit;
 }
 ```
+
+## ProgMesas como subpágina del campus
+
+En el campus integrado (carpeta `final/`, junto a `proyectores/` y `preinscripciones/`), ProgMesas va en
+`final/progmesas/`:
+
+- `index.php` manda a `../campus/programas.php`, así que `/progmesas/` también entra con la sesión del campus.
+- `.htaccess` impide que Apache sirva el resto de la carpeta (código, base, `.env`).
+- `iniciar.bat` (Windows) o `iniciar.sh` (servidor) instalan la primera vez y arrancan ProgMesas en el puerto 3000.
 
 ## Configuración de ProgMesas (`.env`)
 
