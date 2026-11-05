@@ -263,6 +263,16 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 
 ## Historial de cambios
 
+### 05/11/2026 — Correcciones de la carpeta del proyecto
+
+- Diagrama de Gantt con las dependencias entre actividades, la superposición de la 11 y la 12 y una franja de carga de
+  trabajo (actividades en curso cada día); octubre ampliado por semana.
+- Diagrama UML de casos de uso con generalización entre actores y relaciones «include» y «extend», más una tabla con el
+  actor y la relación de cada caso.
+- Diccionario de datos (campos, tipos, nulos, PK y FK) de las cinco tablas y de la planilla de asignaciones.
+- Índice automático con los números de página reales y número de página en el pie. Se agregaron
+  `Carpeta del Proyecto — ProgMesas.pdf` y los scripts de exportación en `docs/carpeta/`.
+
 ### 05/11/2026 — Año lectivo fijo y título automático
 
 - El formulario de carga ya no tiene **Título**: siempre se genera solo ("Programa de Materia - Curso - Año"), también al
