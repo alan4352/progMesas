@@ -438,7 +438,6 @@ async function subir(evento) {
     const datos = new FormData();
     datos.append('asignacion_id', asignacionId);
     datos.append('anio', anio);
-    datos.append('titulo', $('titulo').value.trim());
     datos.append('pdf', archivo);
 
     const boton = $('btnSubir');
@@ -448,7 +447,6 @@ async function subir(evento) {
         const r = await api('/programas/subir', { method: 'POST', body: datos });
         showToast(r.reemplazado ? 'Programa reemplazado' : '¡Programa subido!', 'success');
         if (r.aviso) showToast(r.aviso, 'warning', 8000);
-        $('titulo').value = '';
         $('pdf').value = '';
         await Promise.all([cargarProgramas(), cargarAsignaciones()]);
     } catch (err) {
@@ -467,7 +465,6 @@ function conectarEventos() {
     $('btnCerrarVisor').addEventListener('click', cerrarVisor);
     $('formSubida').addEventListener('submit', subir);
     $('asignacion').addEventListener('change', mostrarInfoAsignacion);
-    $('anio').addEventListener('change', cargarAsignaciones);
 
     $('busqueda').addEventListener('input', aplicarFiltros);
     for (const id of ['filtroMateria', 'filtroCurso', 'filtroAnio']) $(id).addEventListener('change', aplicarFiltros);
@@ -499,11 +496,7 @@ async function init() {
     } catch {
         /* se usan los valores por defecto */
     }
-    // Sólo se puede cargar para el año anterior, el actual o el siguiente (lo controla también el servidor)
-    const minimo = config.anioMinimo || config.anioLectivo - 1;
-    const maximo = config.anioMaximo || config.anioLectivo + 1;
-    $('anio').innerHTML = '';
-    for (let a = maximo; a >= minimo; a--) $('anio').add(new Option(String(a), String(a)));
+    // Los programas se cargan siempre para el año lectivo actual: se muestra y no se puede cambiar
     $('anio').value = String(config.anioLectivo);
     $('maxPdf').textContent = `(máximo ${config.maxPdfMb} MB)`;
 

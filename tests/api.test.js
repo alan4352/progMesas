@@ -230,34 +230,48 @@ test('sin ANIO_LECTIVO, el año lectivo es el año en curso en Argentina', async
     }
 });
 
-test('el año lectivo sólo puede ser el anterior, el actual o el siguiente', async () => {
+test('los programas se cargan sólo para el año lectivo actual; la fecha límite admite el anterior y el siguiente', async () => {
     const config = (await srv.pedir('/config')).datos;
     assert.deepEqual([config.anioMinimo, config.anioLectivo, config.anioMaximo], [2025, 2026, 2027]);
 
     const asesora = await ingresar('asesor@test.com');
     const docente = await ingresar('prof@test.com');
-    for (const anio of [2030, 2024]) {
+    for (const anio of [2030, 2027, 2025]) {
         const r = await subir(docente, { asignacion: '1-1_geografia', anio });
-        assert.equal(r.status, 400);
-        assert.match(r.datos.error, /entre 2025 y 2027/);
+        assert.equal(r.status, 400, String(anio));
+        assert.match(r.datos.error, /año lectivo actual \(2026\)/);
         const reutilizar = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: '1-1_geografia', anio }, token: asesora });
         assert.equal(reutilizar.status, 400);
-        const fecha = await srv.pedir('/fecha-limite', { method: 'PUT', json: { anio, fecha: '2026-11-20' }, token: asesora });
-        assert.equal(fecha.status, 400);
     }
-    assert.equal((await subir(docente, { asignacion: '1-1_geografia', anio: 2027 })).status, 200);
+    // Sin año, se usa el actual
+    const r = await subir(docente, { asignacion: '1-1_geografia' });
+    assert.equal(r.status, 200);
+    assert.equal((await pedir('/programas')).datos.find((p) => p.id === r.datos.id).year, 2026);
+
+    assert.equal((await srv.pedir('/fecha-limite', { method: 'PUT', json: { anio: 2030, fecha: '2026-11-20' }, token: asesora })).status, 400);
+    assert.equal((await srv.pedir('/fecha-limite', { method: 'PUT', json: { anio: 2027, fecha: '2027-11-20' }, token: asesora })).status, 200);
+});
+
+test('el título se genera solo: el que manda el formulario se ignora', async () => {
+    const asesora = await ingresar('asesor@test.com');
+    const r = await subir(asesora, { asignacion: '2-3_ingles', titulo: 'Otro título cualquiera' });
+    assert.equal(r.status, 200);
+    const p = (await pedir('/programas')).datos.find((x) => x.id === r.datos.id);
+    assert.equal(p.title, `Programa de ${p.materia} - ${p.curso} - 2026`);
 });
 
 test('subir otra vez el mismo curso y materia reemplaza el programa anterior', async () => {
     const asesora = await ingresar('asesor@test.com');
-    const primero = await subir(asesora, { asignacion: '1-1_geografia', titulo: 'Versión 1' });
+    const primero = await subir(asesora, { asignacion: '1-1_geografia' });
     assert.equal(primero.status, 200);
-    const segundo = await subir(asesora, { asignacion: '1-1_geografia', titulo: 'Versión 2' });
+    const segundo = await subir(asesora, { asignacion: '1-1_geografia' });
     assert.equal(segundo.datos.reemplazado, true);
     assert.equal(segundo.datos.id, primero.datos.id);
     assert.equal(await cantidadDe('1-1_geografia'), 1);
     const p = (await pedir('/programas')).datos.find((x) => x.id === primero.datos.id);
-    assert.equal(p.title, 'Versión 2');
+    assert.equal(p.versiones, undefined);
+    const h = await pedir(`/programas/${p.id}/versiones`, { token: asesora });
+    assert.equal(h.datos.versiones.length >= 1, true);
 });
 
 test('varios docentes de Matemática de distintos cursos suben a la vez sin pisarse', async () => {
@@ -271,7 +285,7 @@ test('varios docentes de Matemática de distintos cursos suben a la vez sin pisa
 
 test('dos subidas simultáneas del mismo curso y materia no generan duplicados', async () => {
     const asesora = await ingresar('asesor@test.com');
-    const respuestas = await Promise.all([1, 2, 3].map((n) => subir(asesora, { asignacion: '3-1_matematica', titulo: `Intento ${n}` })));
+    const respuestas = await Promise.all([1, 2, 3].map((n) => subir(asesora, { asignacion: '3-1_matematica', archivo: Buffer.concat([PDF, Buffer.from(`% intento ${n}`)]) })));
     for (const r of respuestas) assert.equal(r.status, 200);
     assert.equal(await cantidadDe('3-1_matematica'), 1);
 });

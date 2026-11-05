@@ -128,13 +128,37 @@ export async function iniciarServidor({ entorno = {}, preparar = '' } = {}) {
         return token;
     }
 
-    function subir(token, { asignacion, anio = 2026, archivo = PDF, nombre = 'programa.pdf', titulo = '' }) {
+    function subir(token, { asignacion, anio, archivo = PDF, nombre = 'programa.pdf', titulo }) {
         const form = new FormData();
         form.append('asignacion_id', asignacion);
-        form.append('anio', String(anio));
-        form.append('titulo', titulo);
+        if (anio !== undefined) form.append('anio', String(anio));
+        if (titulo !== undefined) form.append('titulo', titulo);
         form.append('pdf', new Blob([archivo], { type: 'application/pdf' }), nombre);
         return pedir('/programas/subir', { method: 'POST', body: form, token });
+    }
+
+    /**
+     * Carga directo en la base un programa de otro año (por ejemplo, el del año anterior para reutilizarlo).
+     * Por la API sólo se puede subir el del año lectivo actual.
+     */
+    function sembrarPrograma({ asignacion, anio, archivo = PDF }) {
+        const codigo = `
+            const [asignacionId, anio, base64] = process.argv.slice(1);
+            const { agregarPrograma } = await import('./backend/store.js');
+            const { asignacionPorId } = await import('./backend/asignaciones.js');
+            const { guardarPdf } = await import('./backend/almacenamiento.js');
+            const a = asignacionPorId(asignacionId);
+            const datos = { anio: Number(anio), curso: a.curso, materia: a.materia, profesor: a.docentes.join(' / ') };
+            const archivo = await guardarPdf(Buffer.from(base64, 'base64'), datos);
+            const id = agregarPrograma({
+                title: 'Programa de ' + a.materia + ' - ' + a.curso + ' - ' + anio, materia: a.materia, year: Number(anio),
+                curso: a.curso, profesor: datos.profesor, uploaded_by: 'prueba', asignacion_id: a.id, ...archivo
+            });
+            process.stdout.write('ID=' + id);
+        `;
+        const salida = execFileSync(process.execPath, ['--input-type=module', '-e', codigo, asignacion, String(anio), Buffer.from(archivo).toString('base64')],
+            { cwd: RAIZ, env: ENTORNO, stdio: ['ignore', 'pipe', 'pipe'] }).toString();
+        return { id: Number(/ID=(\d+)/.exec(salida)[1]) };
     }
 
     const cantidadDe = async (asignacion, anio = 2026) =>
@@ -145,5 +169,5 @@ export async function iniciarServidor({ entorno = {}, preparar = '' } = {}) {
         fs.rmSync(datos, { recursive: true, force: true });
     }
 
-    return { base, puerto, datos, entorno: ENTORNO, pedir, ingresar, subir, cantidadDe, cerrar, salida: () => salida };
+    return { base, puerto, datos, entorno: ENTORNO, pedir, ingresar, subir, sembrarPrograma, cantidadDe, cerrar, salida: () => salida };
 }

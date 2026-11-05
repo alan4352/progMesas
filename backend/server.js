@@ -106,9 +106,9 @@ function puedeGestionar(usuario, programa) {
     return (asignacion && docente && docenteDictaAsignacion(docente, asignacion)) || programa.uploaded_by === usuario.id;
 }
 
-/** Título para un programa reutilizado: si menciona el año anterior, se cambia por el nuevo. */
-function tituloReutilizado(titulo, anioAnterior, anioNuevo) {
-    return String(titulo).replace(new RegExp(`\\b${anioAnterior}\\b`, 'g'), String(anioNuevo));
+/** Título de un programa: siempre se genera solo (curso, materia y año). */
+function tituloAutomatico(asignacion, anio) {
+    return `Programa de ${asignacion.materia} - ${asignacion.curso} - ${anio}`;
 }
 
 /** Nombre de archivo seguro para dentro del ZIP. */
@@ -143,6 +143,19 @@ function anioDeCarga(valor) {
 function errorAnio() {
     const { minimo, maximo } = rangoDeCarga();
     return { error: `El año lectivo tiene que estar entre ${minimo} y ${maximo}` };
+}
+
+/**
+ * Año de un programa que se sube o se reutiliza: siempre el año lectivo actual.
+ * Si el pedido trae otro año, se rechaza (devuelve null).
+ */
+function anioDelPrograma(valor) {
+    const anio = anioLectivo();
+    if (valor === undefined || valor === null || valor === '') return anio;
+    return anioValido(valor) === anio ? anio : null;
+}
+function errorAnioPrograma() {
+    return { error: `Sólo se pueden cargar programas del año lectivo actual (${anioLectivo()})` };
 }
 
 // ================= API =================
@@ -297,15 +310,14 @@ app.post('/api/programas/subir', auth, rol('teacher', 'advisor'), upload.single(
     const docente = esAsesora ? '' : docenteConfirmado(req.user.id) || req.user.nombre || req.user.id;
 
     const asignacion = asignacionPorId(req.body?.asignacion_id);
-    const anio = anioDeCarga(req.body?.anio);
+    const anio = anioDelPrograma(req.body?.anio);
 
     if (!asignacion) return res.status(400).json({ error: 'Elegí la materia y el curso del programa' });
-    if (!anio) return res.status(400).json(errorAnio());
+    if (!anio) return res.status(400).json(errorAnioPrograma());
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo PDF' });
     if (!esPdfValido(req.file.buffer)) return res.status(400).json({ error: 'El archivo no es un PDF válido' });
 
-    const titulo = String(req.body.titulo || '').trim().slice(0, 150) ||
-        `Programa de ${asignacion.materia} - ${asignacion.curso} - ${anio}`;
+    const titulo = tituloAutomatico(asignacion, anio);
     const profesor = esAsesora ? asignacion.docentes.join(' / ') || req.user.nombre : docente;
 
     const archivo = await guardarPdf(req.file.buffer, {
@@ -349,15 +361,15 @@ app.post('/api/programas/reutilizar', auth, rol('teacher', 'advisor'), (req, res
     // El docente figura con su nombre de la lista (si está vinculado) o con el de su cuenta del campus.
     const docente = esAsesora ? '' : docenteConfirmado(req.user.id) || req.user.nombre || req.user.id;
     const asignacion = asignacionPorId(req.body?.asignacion_id);
-    const anio = anioDeCarga(req.body?.anio);
+    const anio = anioDelPrograma(req.body?.anio);
     if (!asignacion) return res.status(400).json({ error: 'Elegí la materia y el curso del programa' });
-    if (!anio) return res.status(400).json(errorAnio());
+    if (!anio) return res.status(400).json(errorAnioPrograma());
     const origen = programaAnteriorDeAsignacion(asignacion.id, anio);
     if (!origen) return res.status(404).json({ error: 'No hay un programa de años anteriores para ese curso y materia' });
 
     // El archivo se comparte: no se duplica, y sólo se borra cuando ningún programa lo usa
     const datos = {
-        title: tituloReutilizado(origen.title, origen.year, anio),
+        title: tituloAutomatico(asignacion, anio),
         materia: asignacion.materia,
         year: anio,
         curso: asignacion.curso,

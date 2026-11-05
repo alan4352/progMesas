@@ -29,16 +29,15 @@ after(() => srv?.cerrar());
 
 test('al reemplazar un programa, la versión anterior queda en el historial con su archivo', async () => {
     const antes = archivosEnUploads().length;
-    const v1 = await srv.subir(asesora, { asignacion: '1-2_ingles', titulo: 'Versión 1', archivo: pdfCon('v1') });
-    const v2 = await srv.subir(asesora, { asignacion: '1-2_ingles', titulo: 'Versión 2', archivo: pdfCon('v2') });
+    const v1 = await srv.subir(asesora, { asignacion: '1-2_ingles', archivo: pdfCon('v1') });
+    const v2 = await srv.subir(asesora, { asignacion: '1-2_ingles', archivo: pdfCon('v2') });
     assert.equal(v2.datos.reemplazado, true);
     assert.equal(archivosEnUploads().length, antes + 2, 'el PDF anterior no se borra');
 
     const h = await srv.pedir(`/programas/${v1.datos.id}/versiones`, { token: asesora });
     assert.equal(h.status, 200);
-    assert.equal(h.datos.programa.title, 'Versión 2');
+    assert.equal(h.datos.programa.title, h.datos.versiones[0].title, 'el título es el automático');
     assert.equal(h.datos.versiones.length, 1);
-    assert.equal(h.datos.versiones[0].title, 'Versión 1');
     assert.ok(h.datos.versiones[0].reemplazado_at);
 
     // El PDF de la versión anterior se sigue pudiendo abrir
@@ -79,8 +78,7 @@ test('al eliminar un programa se borran su historial y sus archivos', async () =
 // ================= REUTILIZAR =================
 
 test('se puede reutilizar el programa del año anterior sin volver a subirlo', async () => {
-    const original = await srv.subir(asesora, { asignacion: '2-1_ingles', anio: 2025, titulo: 'Inglés 2° 1° - 2025', archivo: pdfCon('2025') });
-    assert.equal(original.status, 200);
+    const original = { datos: srv.sembrarPrograma({ asignacion: '2-1_ingles', anio: 2025, archivo: pdfCon('2025') }) };
 
     const mias = (await srv.pedir('/asignaciones/mias?anio=2026', { token: asesora })).datos;
     const a = mias.asignaciones.find((x) => x.id === '2-1_ingles');
@@ -94,7 +92,7 @@ test('se puede reutilizar el programa del año anterior sin volver a subirlo', a
 
     const nuevo = (await srv.pedir('/programas')).datos.find((p) => p.id === r.datos.id);
     assert.equal(nuevo.year, 2026);
-    assert.equal(nuevo.title, 'Inglés 2° 1° - 2026', 'el año del título se actualiza');
+    assert.equal(nuevo.title, `Programa de ${nuevo.materia} - ${nuevo.curso} - 2026`, 'título automático del año nuevo');
     const pdf = await fetch(srv.base + nuevo.file_url);
     assert.match(Buffer.from(await pdf.arrayBuffer()).toString('latin1'), /% 2025/);
 
@@ -109,12 +107,12 @@ test('reutilizar: sin programa anterior responde 404; un docente puede reutiliza
     const sin = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: '6-1-TC_ingles', anio: 2026 }, token: asesora });
     assert.ok([404, 400].includes(sin.status));
 
-    await srv.subir(asesora, { asignacion: '2-2_ingles', anio: 2025 });
+    srv.sembrarPrograma({ asignacion: '2-2_ingles', anio: 2025 });
     const otroCurso = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: '2-2_ingles', anio: 2026 }, token: prof });
     assert.equal(otroCurso.status, 200);
 
     const mias = (await srv.pedir('/asignaciones/mias?anio=2025', { token: prof })).datos.asignaciones.filter((a) => a.propia);
-    await srv.subir(prof, { asignacion: mias[0].id, anio: 2025 });
+    srv.sembrarPrograma({ asignacion: mias[0].id, anio: 2025 });
     const propio = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: mias[0].id, anio: 2026 }, token: prof });
     assert.equal(propio.status, 200);
 });
@@ -164,9 +162,9 @@ test('el registro anota quién hizo cada acción', async () => {
 // ================= ZIP POR CURSO =================
 
 test('se descargan todos los programas de un curso en un ZIP, ordenados por año', async () => {
-    await srv.subir(asesora, { asignacion: '3-3_matematica', anio: 2025, archivo: pdfCon('mate 2025') });
-    await srv.subir(asesora, { asignacion: '3-3_matematica', anio: 2026, archivo: pdfCon('mate 2026') });
-    await srv.subir(asesora, { asignacion: '3-3_ingles', anio: 2026, archivo: pdfCon('ingles 2026') });
+    srv.sembrarPrograma({ asignacion: '3-3_matematica', anio: 2025, archivo: pdfCon('mate 2025') });
+    await srv.subir(asesora, { asignacion: '3-3_matematica', archivo: pdfCon('mate 2026') });
+    await srv.subir(asesora, { asignacion: '3-3_ingles', archivo: pdfCon('ingles 2026') });
 
     const r = await srv.pedir(`/cursos/zip?curso=${encodeURIComponent('3° 3°')}`, { crudo: true });
     assert.equal(r.status, 200);

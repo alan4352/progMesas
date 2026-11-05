@@ -47,6 +47,14 @@
         return n && n >= anioMinimo() && n <= anioMaximo() ? n : null;
     }
     const errorAnio = () => errorHttp(`El año lectivo tiene que estar entre ${anioMinimo()} y ${anioMaximo()}`);
+    // Los programas se suben o reutilizan siempre para el año lectivo actual, con título automático
+    function anioDelPrograma(v) {
+        const anio = datos.config.anioLectivo;
+        if (v === undefined || v === null || v === '') return anio;
+        return anioValido(v) === anio ? anio : null;
+    }
+    const errorAnioPrograma = () => errorHttp(`Sólo se pueden cargar programas del año lectivo actual (${datos.config.anioLectivo})`);
+    const tituloAutomatico = (a, anio) => `Programa de ${a.materia} - ${a.curso} - ${anio}`;
     function ahora() {
         return new Date().toISOString();
     }
@@ -493,16 +501,16 @@
             const esAsesora = user.role === 'advisor';
             const docente = esAsesora ? '' : docenteConfirmado(user.id) || user.nombre || user.id;
             const a = asignacionPorId(body.get('asignacion_id'));
-            const anio = anioDeCarga(body.get('anio'));
+            const anio = anioDelPrograma(body.get('anio'));
             const archivo = body.get('pdf');
             if (!a) throw errorHttp('Elegí la materia y el curso del programa');
-            if (!anio) throw errorAnio();
+            if (!anio) throw errorAnioPrograma();
             if (!(archivo instanceof Blob)) throw errorHttp('Falta el archivo PDF');
             if (archivo.size > datos.config.maxPdfMb * 1024 * 1024) throw errorHttp(`El PDF supera el máximo de ${datos.config.maxPdfMb} MB`, 413);
             const cabecera = new TextDecoder('latin1').decode(await archivo.slice(0, 5).arrayBuffer());
             if (cabecera !== '%PDF-') throw errorHttp('El archivo no es un PDF válido');
 
-            const titulo = String(body.get('titulo') || '').trim().slice(0, 150) || `Programa de ${a.materia} - ${a.curso} - ${anio}`;
+            const titulo = tituloAutomatico(a, anio);
             const nuevo = {
                 title: titulo, materia: a.materia, year: anio, curso: a.curso,
                 profesor: esAsesora ? a.docentes.join(' / ') || user.nombre : docente,
@@ -526,13 +534,13 @@
             const esAsesora = user.role === 'advisor';
             const docente = esAsesora ? '' : docenteConfirmado(user.id) || user.nombre || user.id;
             const a = asignacionPorId(body?.asignacion_id);
-            const anio = anioDeCarga(body?.anio);
+            const anio = anioDelPrograma(body?.anio);
             if (!a) throw errorHttp('Elegí la materia y el curso del programa');
-            if (!anio) throw errorAnio();
+            if (!anio) throw errorAnioPrograma();
             const origen = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year < anio);
             if (!origen) throw errorHttp('No hay un programa de años anteriores para ese curso y materia', 404);
             const nuevo = {
-                title: String(origen.title).replace(new RegExp(`\\b${origen.year}\\b`, 'g'), String(anio)),
+                title: tituloAutomatico(a, anio),
                 materia: a.materia, year: anio, curso: a.curso,
                 profesor: esAsesora ? origen.profesor || a.docentes.join(' / ') : docente,
                 file_url: origen.file_url, fecha: new Date().toLocaleDateString('es-AR'), uploaded_by: user.id,

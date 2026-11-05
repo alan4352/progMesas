@@ -486,6 +486,9 @@ details.sub-collapsible[open] > summary { border-bottom: 1px solid var(--borde-s
 :root[data-tema="oscuro"] .form-control::placeholder { color: #a8968a; }
 .form-control[type="file"] { padding: 8px 12px; }
 .form-control.has-toggle { padding-right: 48px; }
+/* Año lectivo: se muestra pero no se puede cambiar */
+.form-control.campo-fijo { background: transparent; border-style: dashed; cursor: default; font-weight: 700; }
+.form-control.campo-fijo:focus { box-shadow: none; }
 .form-control:focus, .form-select:focus {
     outline: none;
     border-color: var(--color-accent);

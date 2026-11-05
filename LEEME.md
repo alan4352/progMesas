@@ -45,15 +45,14 @@ No hace falta iniciar sesión.
 1. En **Subir programa de examen**, elegí en **Curso y materia** el curso y la materia. Aparecen **todos** los cursos;
    si estás vinculado, tus materias están primero, en **Mis materias**. Cada curso lleva su propio programa: si das la
    misma materia en varios cursos, cargá uno por curso.
-2. Revisá el **Año lectivo**: se puede elegir el año anterior, el actual o el siguiente.
-3. El **Título** es opcional: si lo dejás vacío se completa solo (por ejemplo, "Programa de Matemática - 2° 1° - 2026").
-4. Elegí el **archivo PDF** (hasta 10 MB) y tocá **Guardar programa**.
+2. El **Año lectivo** es el actual y no se puede cambiar. El título se pone solo
+   (por ejemplo, "Programa de Matemática - 2° 1° - 2026").
+3. Elegí el **archivo PDF** (hasta 10 MB) y tocá **Guardar programa**.
 
 Arriba del formulario aparece la **fecha límite** de entrega del año, si la asesora la fijó, y cuántos días faltan.
 
 **Usar el programa del año anterior:** si para ese curso y materia hay un programa de un año anterior, al elegirlo aparece
-**Usar el de 2025** (o el año que corresponda). Tocalo y queda cargado para este año sin volver a subir el PDF; si el título
-mencionaba el año anterior, se cambia solo.
+**Usar el de 2025** (o el año que corresponda). Tocalo y queda cargado para este año sin volver a subir el PDF, con el título de este año.
 
 **Reemplazar un programa:** subí el nuevo PDF para el mismo curso, materia y año. La página avisa que ya hay uno cargado
 y, si confirmás, lo reemplaza. La versión anterior **no se borra**: queda en **Versiones anteriores**.

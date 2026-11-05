@@ -111,16 +111,11 @@
                     </div>
                     <div>
                         <label class="form-label" for="anio">Año lectivo</label>
-                        <select id="anio" class="form-select" required></select>
+                        <input id="anio" class="form-control campo-fijo" readonly aria-readonly="true" tabindex="-1"
+                               title="Se cargan siempre los programas del año lectivo actual">
                     </div>
                 </div>
                 <p id="infoAsignacion" class="info-asignacion"></p>
-                <div class="form-grid">
-                    <div class="col-ancha">
-                        <label class="form-label" for="titulo">Título (opcional)</label>
-                        <input id="titulo" class="form-control" maxlength="150" placeholder="Se completa solo si lo dejás vacío">
-                    </div>
-                </div>
                 <div class="input-group">
                     <label class="form-label" for="pdf">Archivo PDF del programa <small id="maxPdf"></small></label>
                     <input type="file" id="pdf" accept="application/pdf,.pdf" class="form-control" required>

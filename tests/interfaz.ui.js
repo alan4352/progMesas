@@ -98,32 +98,36 @@ test('visitante: ve los programas, filtra por curso con un enlace y descarga el 
 test('asesora: sube, reemplaza y ve las versiones anteriores', async () => {
     const pg = await nuevaPagina();
     await ingresar(pg, 'asesor@test.com');
-    for (const titulo of ['Primera versión', 'Segunda versión']) {
+    // No hay campo de título: se genera solo. El año lectivo se muestra fijo.
+    assert.equal(await pg.locator('#titulo').count(), 0);
+    assert.equal(await pg.locator('#anio').inputValue(), '2026');
+    assert.equal(await pg.locator('#anio').getAttribute('readonly'), '');
+    for (let i = 0; i < 2; i++) {
         await pg.selectOption('#asignacion', '1-1_geografia');
-        await pg.fill('#titulo', titulo);
         await pg.setInputFiles('#pdf', archivoPdf);
         await pg.click('#btnSubir');
-        await pg.waitForSelector(`#lista .card:has-text("${titulo}")`);
+        await pg.waitForSelector('#lista .card:has-text("Programa de Geografía - 1° 1° - 2026")');
+        await pg.waitForFunction(() => !document.getElementById('btnSubir').disabled);
     }
-    await pg.fill('#busqueda', 'Segunda versión');
+    await pg.fill('#busqueda', 'Programa de Geografía - 1° 1° - 2026');
     const boton = pg.locator('button[data-accion="versiones"]');
     assert.match(await boton.innerText(), /Versiones anteriores \(1\)/);
     await boton.click();
     await pg.waitForSelector('.lista-versiones .fila-version');
-    assert.match(await pg.locator('.lista-versiones').innerText(), /Primera versión/);
+    assert.match(await pg.locator('.lista-versiones').innerText(), /Programa de Geografía - 1° 1° - 2026/);
     assert.equal(await boton.getAttribute('aria-expanded'), 'true');
     assert.deepEqual(pg.errores, []);
 });
 
 test('asesora: reutiliza el programa del año anterior', async () => {
     const asesora = await srv.ingresar('asesor@test.com');
-    await srv.subir(asesora, { asignacion: '3-2_ingles', anio: 2025, titulo: 'Inglés 3° 2° - 2025' });
+    srv.sembrarPrograma({ asignacion: '3-2_ingles', anio: 2025 });
 
     const pg = await nuevaPagina();
     await ingresar(pg, 'asesor@test.com');
     await pg.selectOption('#asignacion', '3-2_ingles');
     await pg.click('button[data-accion="reutilizar"]');
-    await pg.waitForSelector('#lista .card:has-text("Inglés 3° 2° - 2026")');
+    await pg.waitForSelector('#lista .card:has-text("Programa de Inglés - 3° 2° - 2026")');
     assert.deepEqual(pg.errores, []);
 });
 
@@ -167,8 +171,7 @@ test('docente nuevo: puede cargar cualquier curso y, si elige su nombre, ve sus 
     const todas = await pg.locator('#asignacion option').count();
     assert.ok(todas > 100, 'aparecen todos los cursos y materias');
     assert.equal(await pg.locator('#asignacion optgroup[label="Mis materias"]').count(), 0);
-    // El año lectivo se elige de una lista cerrada: anterior, actual o siguiente
-    assert.deepEqual(await pg.locator('#anio option').allInnerTexts(), ['2027', '2026', '2025']);
+    // El año lectivo es el actual y no se puede cambiar
     assert.equal(await pg.locator('#anio').inputValue(), '2026');
 
     await pg.fill('#nombreDocente', 'Mattiassi');

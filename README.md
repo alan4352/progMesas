@@ -105,7 +105,7 @@ npm start
 |---|---|
 | `EXTERNO_JWT_SECRET` | **Obligatoria.** Clave compartida con el campus (`PROGMESAS_SECRETO`), 32 caracteres o más. Sin ella el servidor no arranca. |
 | `EXTERNO_LOGIN_URL`, `EXTERNO_LOGOUT_URL` | Páginas del campus para ingresar (`programas.php`) y cerrar sesión (`logout.php`). |
-| `ANIO_LECTIVO` | Opcional. El año lectivo se calcula solo (el año en curso en Argentina, cambia el 1 de enero); esta variable lo fija a mano. Los programas sólo se pueden cargar para ese año, el anterior o el siguiente. |
+| `ANIO_LECTIVO` | Opcional. El año lectivo se calcula solo (el año en curso en Argentina, cambia el 1 de enero); esta variable lo fija a mano. Los programas se cargan sólo para ese año; la fecha límite admite también el anterior y el siguiente. |
 | `PORT` | Puerto del servidor (3000 por defecto). |
 | `MAX_PDF_MB` | Tamaño máximo de cada PDF (10 por defecto). |
 | `TRUST_PROXY` | `1` si el servidor está detrás de un proxy (Nginx, Render). Hace que los registros usen la IP real del visitante. |
@@ -252,8 +252,8 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Un docente puede cargar el programa de cualquier curso, pero cada carga queda en el **registro de actividad** con su
   cuenta, y si reemplaza un programa la versión anterior se conserva. No puede tomar un nombre de la lista que ya usa
   otra cuenta. El historial de versiones lo ven sólo la asesora y el docente de la materia.
-- Sólo se aceptan PDF válidos (se revisa el contenido, no sólo la extensión; hasta 10 MB por defecto). El año de un programa
-  sólo puede ser el anterior, el actual o el siguiente al año lectivo (se controla en el servidor, no sólo en el formulario).
+- Sólo se aceptan PDF válidos (se revisa el contenido, no sólo la extensión; hasta 10 MB por defecto). Los programas se cargan
+  sólo para el año lectivo actual y con título automático (se controla en el servidor, no sólo en el formulario).
 - Todo el contenido cargado por usuarios se escapa antes de mostrarse, con una política CSP que bloquea scripts externos.
 - Registro de actividad de todas las acciones que modifican datos.
 - La exportación a CSV neutraliza textos que Excel interpretaría como fórmulas.
@@ -262,6 +262,14 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 05/11/2026 — Año lectivo fijo y título automático
+
+- El formulario de carga ya no tiene **Título**: siempre se genera solo ("Programa de Materia - Curso - Año"), también al
+  reutilizar el programa de un año anterior. Si un pedido trae otro título, se ignora.
+- El **Año lectivo** se muestra fijo (el actual) y no se puede cambiar. El servidor rechaza subir o reutilizar para otro año.
+  La fecha límite la sigue pudiendo fijar la asesora para el año anterior, el actual o el siguiente.
+- Pruebas: los programas de años anteriores se cargan directo en la base de prueba (`sembrarPrograma`).
 
 ### 05/11/2026 — ProgMesas dentro del campus integrado
 
