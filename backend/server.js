@@ -62,12 +62,25 @@ app.get(['/', '/index.html'], (req, res) => res.sendFile(RUTAS.index));
 app.get('/privacidad.html', (req, res) => res.sendFile(RUTAS.privacidad));
 app.get('/terminos.html', (req, res) => res.sendFile(RUTAS.terminos));
 app.use('/frontend', express.static(RUTAS.frontend));
-app.use(
-    '/uploads',
-    express.static(RUTAS.uploads, {
-        setHeaders: (res) => res.setHeader('Content-Type', 'application/pdf')
-    })
-);
+// Los PDF se sirven en /uploads/ y también en /backend/uploads/ (la dirección que usa la versión PHP dentro del campus)
+const servirPdf = express.static(RUTAS.uploads, {
+    setHeaders: (res) => res.setHeader('Content-Type', 'application/pdf')
+});
+app.use('/uploads', servirPdf);
+app.use('/backend/uploads', servirPdf);
+
+// El frontend llama a la API como "api.php?r=/ruta" (igual que dentro del campus, con api.php sobre Apache).
+// Aquí se traduce a la ruta /api/ruta de este servidor.
+app.use((req, res, next) => {
+    if (req.path !== '/api.php') return next();
+    const params = new URLSearchParams(req.url.split('?')[1] || '');
+    const ruta = params.get('r') || '/';
+    if (!ruta.startsWith('/') || ruta.includes('..')) return res.status(400).json({ error: 'Ruta inválida' });
+    params.delete('r');
+    const query = params.toString();
+    req.url = '/api' + ruta + (query ? '?' + query : '');
+    next();
+});
 
 // ================= SUBIDA (validación del PDF) =================
 

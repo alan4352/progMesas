@@ -664,7 +664,9 @@ async function init() {
 
     let anio = new Date().getFullYear();
     try {
-        anio = (await api('/config')).anioLectivo;
+        const c = await api('/config');
+        anio = c.anioLectivo;
+        mostrarVolverCampus(c);
     } catch {
         /* valor por defecto */
     }

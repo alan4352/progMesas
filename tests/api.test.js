@@ -252,6 +252,22 @@ test('los programas se cargan sólo para el año lectivo actual; la fecha límit
     assert.equal((await srv.pedir('/fecha-limite', { method: 'PUT', json: { anio: 2027, fecha: '2027-11-20' }, token: asesora })).status, 200);
 });
 
+test('la API también responde como api.php?r=/ruta y los PDF se sirven en /backend/uploads/', async () => {
+    const r = await fetch(srv.base + '/api.php?r=' + encodeURIComponent('/config'));
+    assert.equal(r.status, 200);
+    assert.equal((await r.json()).anioLectivo, 2026);
+    const conQuery = await fetch(srv.base + '/api.php?r=' + encodeURIComponent('/fecha-limite') + '&anio=2026');
+    assert.equal((await conQuery.json()).anio, 2026);
+    assert.equal((await fetch(srv.base + '/api.php?r=..%2Fsecreto')).status, 400);
+
+    const asesora = await ingresar('asesor@test.com');
+    const { datos } = await subir(asesora, { asignacion: '5-1-TC_logica' });
+    const p = (await pedir('/programas')).datos.find((x) => x.id === datos.id);
+    const pdf = await fetch(srv.base + '/backend' + p.file_url);
+    assert.equal(pdf.status, 200);
+    assert.equal(pdf.headers.get('content-type'), 'application/pdf');
+});
+
 test('el título se genera solo: el que manda el formulario se ignora', async () => {
     const asesora = await ingresar('asesor@test.com');
     const r = await subir(asesora, { asignacion: '2-3_ingles', titulo: 'Otro título cualquiera' });

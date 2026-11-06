@@ -44,6 +44,13 @@ function crearPaseProgMesas($id, $nombre, $correo, $rol) {
 }
 
 // Dirección de ProgMesas con el pase incluido.
+// Si el servidor Node está activo en el puerto 3000 lo usa; si no, abre la versión integrada en Apache/XAMPP (../progmesas).
 function enlaceProgMesas($id, $nombre, $correo, $rol) {
-    return rtrim(PROGMESAS_URL, '/') . '/?token=' . rawurlencode(crearPaseProgMesas($id, $nombre, $correo, $rol));
+    $base = '../progmesas';
+    $sock = @fsockopen('127.0.0.1', 3000, $errno, $errstr, 0.12);
+    if (is_resource($sock)) {
+        fclose($sock);
+        $base = rtrim(PROGMESAS_URL, '/');
+    }
+    return $base . '/?token=' . rawurlencode(crearPaseProgMesas($id, $nombre, $correo, $rol));
 }

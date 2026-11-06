@@ -667,10 +667,19 @@
     const fetchOriginal = window.fetch.bind(window);
 
     window.fetch = async (recurso, opciones = {}) => {
-        if (typeof recurso !== 'string' || !recurso.startsWith('/api/')) return fetchOriginal(recurso, opciones);
+        // La página llama a "api.php?r=/ruta" (o a "/api/ruta"); la demo atiende las dos formas
+        if (typeof recurso !== 'string') return fetchOriginal(recurso, opciones);
+        const url = new URL(recurso, location.href);
+        let ruta;
+        if (url.pathname.endsWith('/api.php')) {
+            ruta = url.searchParams.get('r') || '/';
+            url.searchParams.delete('r');
+        } else if (recurso.startsWith('/api/')) {
+            ruta = url.pathname.slice(4);
+        } else {
+            return fetchOriginal(recurso, opciones);
+        }
         await listo;
-        const url = new URL(recurso, 'https://demo.local');
-        const ruta = url.pathname.slice(4);
         const metodo = (opciones.method || 'GET').toUpperCase();
         let body = opciones.body;
         if (typeof body === 'string') {

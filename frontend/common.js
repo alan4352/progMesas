@@ -1,6 +1,17 @@
 // Utilidades compartidas por index.html y dashboard.html
 
-const API = '/api';
+// Carpeta raíz de ProgMesas (donde está index.html): "/" en el servidor Node, "/final/progmesas/" dentro del campus.
+// Se calcula desde este archivo (frontend/common.js), así funciona igual en las dos páginas.
+const RAIZ_APP = new URL('..', document.currentScript?.src || location.href).pathname;
+
+/**
+ * Dirección de la API. Se usa siempre la forma "api.php?r=/ruta": dentro del campus la atiende api.php (Apache/XAMPP,
+ * sin Node) y el servidor Node la acepta también, así no hace falta saber cuál de los dos está atrás.
+ */
+function urlApi(ruta) {
+    const [camino, query] = String(ruta || '').split('?');
+    return `${RAIZ_APP}api.php?r=${encodeURIComponent(camino)}${query ? '&' + query : ''}`;
+}
 
 // ================= ÍCONOS =================
 // Íconos SVG de trazo (estilo Lucide, licencia ISC). Van dentro del código porque la
@@ -67,9 +78,22 @@ function esc(valor) {
 /** Sólo se aceptan PDFs de este servidor o de Google Drive. */
 function urlPdfSegura(url) {
     const u = String(url || '');
-    if (u.startsWith('/uploads/')) return u;
+    // Los PDF guardados en el servidor están en backend/uploads/ (Node también los sirve en esa dirección)
+    if (/^\/uploads\/[^/]+$/.test(u)) return `${RAIZ_APP}backend/uploads/${u.slice('/uploads/'.length)}`;
     if (/^https:\/\/drive\.google\.com\/file\/d\/[\w-]+\/preview$/.test(u)) return u;
     return null;
+}
+
+/** Muestra "Volver al campus" (el panel del campus, junto a la página de ingreso) si hay un campus configurado. */
+function mostrarVolverCampus(config) {
+    const enlace = document.getElementById('btnVolverCampus');
+    if (!enlace || !config?.loginUrl) return;
+    try {
+        enlace.href = new URL('dashboard.php', new URL(config.loginUrl, location.href)).href;
+        enlace.classList.remove('hidden');
+    } catch {
+        /* dirección inválida: el enlace queda oculto */
+    }
 }
 
 function compararCursos(a, b) {
@@ -159,7 +183,7 @@ async function api(ruta, opciones = {}) {
 
     let res;
     try {
-        res = await fetch(API + ruta, { ...opciones, headers, credentials: 'same-origin' });
+        res = await fetch(urlApi(ruta), { ...opciones, headers, credentials: 'same-origin' });
     } catch {
         throw new Error('No se pudo conectar con el servidor');
     }
@@ -214,7 +238,7 @@ async function descargar(ruta, nombre) {
     const token = leerToken();
     let res;
     try {
-        res = await fetch(API + ruta, { headers: token ? { Authorization: 'Bearer ' + token } : {}, credentials: 'same-origin' });
+        res = await fetch(urlApi(ruta), { headers: token ? { Authorization: 'Bearer ' + token } : {}, credentials: 'same-origin' });
     } catch {
         throw new Error('No se pudo conectar con el servidor');
     }

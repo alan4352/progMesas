@@ -93,6 +93,9 @@ if ($modulo === 'programa') {
 
 ## ProgMesas como subpágina del campus
 
+`includes/progmesas.php` elige solo a dónde mandar: si el servidor Node de ProgMesas está corriendo en el puerto 3000 usa
+`PROGMESAS_URL`; si no, abre la carpeta `../progmesas`, donde `api.php` atiende la API en PHP (sin Node).
+
 En el campus integrado (carpeta `final/`, junto a `proyectores/` y `preinscripciones/`), ProgMesas va en
 `final/progmesas/`:
 

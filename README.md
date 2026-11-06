@@ -192,6 +192,23 @@ Para probarla en la compu: `npm install`, después `node demo/construir_sitio.js
 Los pasos (servicio que arranca solo en Linux o Windows, HTTPS con Nginx, copias de seguridad y actualizaciones)
 están en [LEEME.md](LEEME.md#2-instalación-en-el-servidor-de-la-escuela).
 
+### Dentro del campus, sobre Apache/XAMPP (sin Node)
+
+En el campus integrado, ProgMesas es la carpeta `progmesas/`, al lado de `campus/`, `proyectores/` y `preinscripciones/`.
+Ahí la API la atiende **`api.php`** (PHP + SQLite), con la misma base `backend/database.sqlite`, la misma planilla
+`backend/data/asignaciones.xlsx` y las mismas reglas que el servidor Node, así que no hace falta instalar Node.
+
+- `index.php` es la entrada: si la persona ya inició sesión en el campus, la manda a `campus/programas.php`, que arma el
+  pase y vuelve; si no, muestra la consulta pública.
+- `api.php` toma la clave `PROGMESAS_SECRETO` de `campus/includes/config.php` (sin ella no acepta ningún pase) y también
+  reconoce la sesión del campus del mismo navegador.
+- Los PDF se guardan en `backend/uploads/`. Los `.htaccess` impiden descargar la base, la planilla, el código y el `.env`.
+- El frontend llama siempre a `api.php?r=/ruta`: dentro del campus responde `api.php` y el servidor Node acepta la misma
+  forma, así el mismo frontend sirve en los dos casos.
+- `campus/includes/progmesas.php` usa el servidor Node si está corriendo en el puerto 3000 y, si no, la carpeta `progmesas/`.
+  Para usar Node, `iniciar.bat` (Windows) o `iniciar.sh` arrancan el servidor.
+- Requisitos de PHP: las extensiones `pdo_sqlite` y `zip` (vienen con XAMPP). Google Drive sólo funciona con el servidor Node.
+
 ### Sistema completo en Render (temporal)
 
 Render se usa mientras tanto, hasta instalarlo en el servidor de la escuela. `render.yaml` configura el servidor real:
@@ -208,6 +225,9 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 
 ```
 ├── index.html               Página principal (listado y subida; el ingreso es desde el campus)
+├── index.php, api.php       Entrada y API en PHP para correr dentro del campus sobre Apache/XAMPP (sin Node)
+├── .htaccess                Protección de archivos en Apache (también backend/.htaccess)
+├── iniciar.bat, iniciar.sh  Arrancan el servidor Node dentro de la carpeta del campus
 ├── privacidad.html          Política de privacidad (pantalla de consentimiento de Google OAuth)
 ├── terminos.html            Condiciones del servicio
 ├── package.json             Arranque desde la raíz (instala backend/ con postinstall) y scripts de pruebas
@@ -262,6 +282,18 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 06/11/2026 — Versión PHP para correr dentro del campus (prototipo v4)
+
+- Se sumaron los cambios del prototipo v4: `api.php` (la API en PHP + SQLite, para Apache/XAMPP sin Node), `index.php`,
+  los `.htaccess`, el enlace **Volver al campus** y la elección automática entre Node y la carpeta en
+  `campus/includes/progmesas.php`.
+- `api.php` se puso al día con las últimas reglas: año lectivo fijo, título automático y tamaño máximo del PDF. Se quitó
+  una clave escrita en el código: ahora sólo usa `PROGMESAS_SECRETO` del campus. La sesión del campus se lee con los
+  mismos datos que guarda `login.php` (`id`, `correo`).
+- El frontend llama a `api.php?r=/ruta` en todos los casos; el servidor Node acepta esa forma y sirve los PDF también en
+  `/backend/uploads/`. "Volver al campus" sale de la dirección de ingreso del campus (oculto si no hay campus).
+- Pruebas: la API responde como `api.php?r=/ruta` y los PDF se sirven en `/backend/uploads/`.
 
 ### 05/11/2026 — Correcciones de la carpeta del proyecto
 

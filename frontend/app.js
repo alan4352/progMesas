@@ -496,6 +496,7 @@ async function init() {
     } catch {
         /* se usan los valores por defecto */
     }
+    mostrarVolverCampus(config);
     // Los programas se cargan siempre para el año lectivo actual: se muestra y no se puede cambiar
     $('anio').value = String(config.anioLectivo);
     $('maxPdf').textContent = `(máximo ${config.maxPdfMb} MB)`;
