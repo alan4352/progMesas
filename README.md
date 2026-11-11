@@ -9,6 +9,8 @@ Proyecto de Práctica Profesional — Escuela Técnica N.º 2 "Independencia".
 - **Política de privacidad:** <https://alan4352.github.io/progMesas/privacidad.html>
 - **Condiciones del servicio:** <https://alan4352.github.io/progMesas/terminos.html>
 - **Guía de uso para cada rol e instalación en el servidor de la escuela:** [LEEME.md](LEEME.md)
+- **Documentación externa (guía de uso, versión campus):** [docs/documentacion/documentacion-externa.md](docs/documentacion/documentacion-externa.md)
+- **Documentación interna (técnica, versión campus):** [docs/documentacion/documentacion-interna.md](docs/documentacion/documentacion-interna.md)
 
 ## Funciones
 
@@ -282,6 +284,16 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 11/11/2026 — Documentación interna y externa
+
+- Se agregó `docs/documentacion/` con la documentación de ProgMesas tal como funciona dentro de CampusT2, en Markdown,
+  Word y PDF:
+  - **externa** (`documentacion-externa`): guía de uso para alumnos, docentes y directivos, con el ingreso desde el
+    campus, el Dashboard y una tabla de mensajes de error;
+  - **interna** (`documentacion-interna`): arquitectura, integración con el campus (pase JWT y sesión), rutas de la API
+    con sus permisos, tablas SQLite y planilla de asignaciones, instalación (XAMPP, nginx, Render), seguridad,
+    mantenimiento y limitaciones conocidas.
 
 ### 06/11/2026 — Versión PHP para correr dentro del campus (prototipo v4)
 
