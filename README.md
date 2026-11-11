@@ -278,12 +278,24 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
   sólo para el año lectivo actual y con título automático (se controla en el servidor, no sólo en el formulario).
 - Todo el contenido cargado por usuarios se escapa antes de mostrarse, con una política CSP que bloquea scripts externos.
 - Registro de actividad de todas las acciones que modifican datos.
+- En la versión PHP (`api.php`), si no llega el pase y se usa la sesión del campus, los pedidos que modifican datos
+  exigen la cabecera `X-Requested-With: progmesas`, que sólo manda la propia página (`frontend/common.js`). Así otro
+  sitio no puede subir ni borrar con la sesión de quien lo visita (CSRF). La sesión se abre con
+  `campus/includes/sesion.php`, la misma cookie segura del campus.
 - La exportación a CSV neutraliza textos que Excel interpretaría como fórmulas.
 - Las credenciales (`.env`, `oauth.json`, `token.json`, `clave.json`) están excluidas del repositorio; en un hosting
   se pasan como variables de entorno.
 - Dependencias sin vulnerabilidades conocidas (`npm audit`, octubre de 2026).
 
 ## Historial de cambios
+
+### 11/11/2026 — Igualado con la copia de CampusT2
+
+- `api.php`: protección anti-CSRF cuando se usa la sesión del campus (cabecera `X-Requested-With: progmesas` en todo
+  lo que no sea GET) y sesión abierta con `campus/includes/sesion.php` si existe.
+- `frontend/common.js`: `api()` manda esa cabecera en todos los pedidos.
+- Escudo de la escuela actualizado (`frontend/img/escudo.png`).
+- Con esto el código de ProgMesas es igual en los dos repositorios.
 
 ### 11/11/2026 — Documentación interna y externa
 
