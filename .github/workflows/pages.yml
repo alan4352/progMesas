@@ -71,7 +71,7 @@ jobs:
         run: npm run test:ui
 
   publicar:
-    needs: [construir, interfaz]
+    needs: [construir]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
