@@ -26,11 +26,11 @@ ProgMesas no tiene usuario ni contraseña propios: se usa la cuenta del Campus V
 
 ## 2. Alumnos y familias: consultar programas
 
-La pantalla principal, **Programas cargados**, muestra todos los programas de examen que subieron los docentes. No hace falta iniciar sesión para verla. Cada materia puede tener dos programas, uno para alumnos regulares y otro para alumnos libres; cada programa lleva la etiqueta Regular o Libre.
+La pantalla principal, **Programas cargados**, muestra todos los programas de examen que subieron los docentes. No hace falta iniciar sesión para verla. Cada materia puede tener, además de su programa, un programa libre (para alumnos libres), que lleva la etiqueta Libre.
 
 **Buscar un programa**
 
-1. Elegí el curso, la materia, el año o el tipo (regulares, libres o los dos) con los filtros de arriba, o escribí parte del nombre en el buscador.
+1. Elegí el curso, la materia, el año o los libres (Incluir libres, Sin libres o Sólo libres) con los filtros de arriba, o escribí parte del nombre en el buscador.
 2. La lista se actualiza sola mientras escribís.
 3. Si no aparece nada, probá con menos filtros: puede que ese programa todavía no se haya cargado.
 
@@ -45,7 +45,7 @@ La pantalla principal, **Programas cargados**, muestra todos los programas de ex
 
 **Descargar todos los programas de un curso**
 
-Con un curso elegido aparece el botón **Descargar los programas de {curso} {año} (ZIP)**. Baja un único archivo comprimido con todos los PDF de ese curso, uno por materia y tipo (por ejemplo, «Matemática - Libre.pdf»). Si en el filtro elegiste sólo regulares o sólo libres, trae sólo esos, útil para preparar varias mesas a la vez.
+Con un curso elegido aparece el botón **Descargar los programas de {curso} {año} (ZIP)**. Baja un único archivo comprimido con todos los PDF de ese curso, uno por materia; el programa libre va aparte, como «Matemática - Libre.pdf». Si en el filtro elegiste Sólo libres, trae sólo esos, útil para preparar varias mesas a la vez.
 
 ## 3. Docentes: cargar programas
 
@@ -57,19 +57,19 @@ En **Elegí tu nombre en la lista de docentes (opcional)** buscá tu nombre tal 
 
 **Cargar un programa**
 
-1. En **Curso y materia** elegí la materia. Podés elegir cualquier curso, no solo los tuyos. Después, en Tipo de programa, elegí Regular o Libre: son dos programas distintos y subir uno no reemplaza al otro. En la lista de materias, «(cargado: regular y libre)» indica cuáles ya están.
+1. En **Curso y materia** elegí la materia. Podés elegir cualquier curso, no solo los tuyos. Si es el programa para alumnos libres, marcá Es el programa libre: el programa y el programa libre son distintos y subir uno no reemplaza al otro. En la lista de materias, «(ya cargado)», «(cargado sólo el libre)» o «(cargado, también el libre)» indica cuáles ya están.
 2. El **Año lectivo** se completa solo con el año actual y no se puede cambiar.
 3. En **Archivo PDF del programa** elegí el archivo. Tiene que ser PDF y pesar como máximo 10 MB.
-4. Tocá **Guardar programa**. El título se arma solo: «Programa regular de {materia} - {curso} - {año}» o «Programa libre de …».
+4. Tocá **Guardar programa**. El título se arma solo: «Programa de {materia} - {curso} - {año}», o «Programa libre de …» si es el libre.
 5. Aparece el aviso **¡Programa subido!** y el programa ya se ve en la lista.
 
 **Reemplazar un programa**
 
-Si ya había un programa del mismo tipo para esa materia, curso y año, cargá el nuevo de la misma forma. El sistema pregunta si querés reemplazarlo; al aceptar, avisa **Programa reemplazado** y guarda el anterior en **Versiones anteriores (n)**, debajo del programa, por si hace falta consultarlo.
+Si ya había un programa para esa materia, curso y año (libre o no, según la casilla), cargá el nuevo de la misma forma. El sistema pregunta si querés reemplazarlo; al aceptar, avisa **Programa reemplazado** y guarda el anterior en **Versiones anteriores (n)**, debajo del programa, por si hace falta consultarlo.
 
 **Reutilizar el programa de otro año**
 
-Si el programa no cambió respecto del año anterior, no hace falta volver a subirlo. En la materia aparece **Usar el de {año}**: al tocarlo, el sistema copia ese programa al año actual, con el mismo tipo (regular o libre) que tenía y muestra **Listo: se usa el programa de {año}**.
+Si el programa no cambió respecto del año anterior, no hace falta volver a subirlo. En la materia aparece **Usar el de {año}**: al tocarlo, el sistema copia ese programa al año actual, (si la casilla de libre está marcada, usa el programa libre de ese año) y muestra **Listo: se usa el programa de {año}**.
 
 ## 4. Directivos (asesoría): control de programas
 
@@ -82,7 +82,7 @@ Entrá desde el campus con el módulo **Control de programas de examen**. Ademá
 
 | Sección | Para qué sirve |
 | --- | --- |
-| Cobertura general | Porcentaje de materias que ya tienen programa del año actual (alcanza con el regular o el libre) |
+| Cobertura general | Porcentaje de materias que ya tienen programa del año actual (alcanza con el programa o con el libre) |
 | Notificaciones y alertas | Avisos de pendientes y de la fecha límite |
 | Estado por curso | Qué cursos están completos y cuáles no |
 | Estado por docente | Cuántos programas debe cargar cada docente y cuántos cargó |

@@ -93,7 +93,7 @@ Todas las rutas se llaman como `api.php?r=/ruta` y responden JSON. Los errores v
 **Reglas de la carga**
 
 - El año del programa es siempre el lectivo actual (`anioDelPrograma()`); otro año devuelve el error «Sólo se pueden cargar programas del año lectivo actual».
-- El título lo arma `tituloAutomatico()`: «Programa {tipo} de {materia} - {curso} - {año}».
+- El título lo arma `tituloAutomatico()`: «Programa de {materia} - {curso} - {año}», o «Programa libre de …» si el tipo es libre (el regular no se aclara en título, etiqueta ni ZIP).
 - Máximo `MAX_PDF_MB` (10 MB). Se comprueba que el archivo empiece con `%PDF-`, no solo la extensión.
 - Cada materia puede tener un programa regular y uno libre (sin tipo se toma regular; otro valor da error 400). Si ya existe un programa para la misma asignación, año y tipo, el anterior pasa a `programas_versiones` y el nuevo ocupa su lugar.
 - Cada acción que cambia datos queda en la tabla `registro` (`registrarAccion()`).
@@ -104,7 +104,7 @@ Todas las rutas se llaman como `api.php?r=/ruta` y responden JSON. Los errores v
 
 | Tabla | Para qué | Campos principales |
 | --- | --- | --- |
-| `programas` | Programa vigente de cada materia, curso, año y tipo. La columna tipo vale regular o libre; los programas cargados antes de que existiera quedaron como regulares | `id`, `title`, `materia`, `curso`, `year`, `profesor`, `file_url`, `uploaded_by`, `asignacion_id`, `created_at` |
+| `programas` | Programa vigente de cada materia, curso, año y tipo. La columna tipo vale regular o libre; los programas cargados antes de que existiera quedaron como regulares. Al iniciar se corrigen los títulos que habían quedado como «Programa regular de …» | `id`, `title`, `materia`, `curso`, `year`, `profesor`, `file_url`, `uploaded_by`, `asignacion_id`, `created_at` |
 | `programas_versiones` | Programas reemplazados | `programa_id`, `file_url`, `reemplazado_at`, `reemplazado_por` |
 | `docentes_usuarios` | Vínculo entre cuenta del campus y nombre de la planilla | `usuario_id`, `email`, `docente`, `estado`, `confirmado_por` |
 | `registro` | Auditoría | `fecha`, `usuario_id`, `rol`, `accion`, `detalle` (JSON) |
