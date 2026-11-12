@@ -54,7 +54,16 @@
         return anioValido(v) === anio ? anio : null;
     }
     const errorAnioPrograma = () => errorHttp(`Sólo se pueden cargar programas del año lectivo actual (${datos.config.anioLectivo})`);
-    const tituloAutomatico = (a, anio) => `Programa de ${a.materia} - ${a.curso} - ${anio}`;
+    const tituloAutomatico = (a, anio, tipo = 'regular') => `Programa ${tipo} de ${a.materia} - ${a.curso} - ${anio}`;
+    // Tipo de programa: regular o libre (los datos sin tipo son regulares)
+    const TIPOS = ['regular', 'libre'];
+    const tipoDe = (p) => (p.tipo === 'libre' ? 'libre' : 'regular');
+    function tipoValido(v) {
+        if (v === undefined || v === null || v === '') return 'regular';
+        const t = String(v).trim().toLowerCase();
+        return TIPOS.includes(t) ? t : null;
+    }
+    const errorTipo = () => errorHttp('El tipo de programa tiene que ser regular o libre');
     function ahora() {
         return new Date().toISOString();
     }
@@ -269,13 +278,25 @@
 
     function calcularCobertura(anio) {
         const delAnio = programasOrdenados().filter((p) => p.year === anio);
+        // Una materia está completa con cualquiera de los dos programas (regular o libre)
         const porAsignacion = new Map();
-        for (const p of delAnio) if (p.asignacion_id && !porAsignacion.has(p.asignacion_id)) porAsignacion.set(p.asignacion_id, p);
+        for (const p of delAnio) {
+            if (!p.asignacion_id) continue;
+            const tipos = porAsignacion.get(p.asignacion_id) || {};
+            if (!tipos[tipoDe(p)]) tipos[tipoDe(p)] = p;
+            porAsignacion.set(p.asignacion_id, tipos);
+        }
+        const resumen = (p) => p
+            ? { id: p.id, title: p.title, tipo: tipoDe(p), fecha: p.fecha, created_at: p.created_at, file_url: p.file_url, almacenamiento: p.almacenamiento }
+            : null;
         const asignaciones = requeridas().map((a) => {
-            const p = porAsignacion.get(a.id);
+            const tipos = porAsignacion.get(a.id) || {};
+            const p = [tipos.regular, tipos.libre].filter(Boolean)
+                .sort((x, y) => String(y.created_at).localeCompare(String(x.created_at)))[0];
             return {
                 id: a.id, curso: a.curso, turno: a.turno, materia: a.materia, docentes: a.docentes, revisar: a.revisar,
-                programa: p ? { id: p.id, title: p.title, fecha: p.fecha, created_at: p.created_at, file_url: p.file_url, almacenamiento: p.almacenamiento } : null
+                programa: resumen(p),
+                programas: Object.fromEntries(TIPOS.map((t) => [t, resumen(tipos[t])]))
             };
         });
         const ids = new Set(datos.asignaciones.map((a) => a.id));
@@ -283,9 +304,9 @@
         return { anio, asignaciones, sinAsignacion };
     }
 
-    /** Agrega el programa o reemplaza el del mismo curso, materia y año, guardando la versión anterior. */
+    /** Agrega el programa o reemplaza el del mismo curso, materia, año y tipo, guardando la versión anterior. */
     function guardarPrograma(a, anio, nuevo, user) {
-        const anterior = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year === anio);
+        const anterior = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year === anio && tipoDe(p) === nuevo.tipo);
         if (anterior) {
             estado.versiones.push({
                 id: estado.sigVersion++, programa_id: anterior.id, title: anterior.title, profesor: anterior.profesor,
@@ -477,20 +498,25 @@
             const anteriores = new Map();
             for (const p of programasOrdenados()) {
                 if (!p.asignacion_id) continue;
-                if (p.year === anio && !cargados.has(p.asignacion_id)) cargados.set(p.asignacion_id, p);
-                if (p.year < anio && !anteriores.has(p.asignacion_id)) anteriores.set(p.asignacion_id, p);
+                const clave = `${p.asignacion_id}|${tipoDe(p)}`;
+                if (p.year === anio && !cargados.has(clave)) cargados.set(clave, p);
+                if (p.year < anio && !anteriores.has(clave)) anteriores.set(clave, p);
             }
+            const resumen = (p, conAnio) => p
+                ? { id: p.id, title: p.title, fecha: p.fecha, tipo: tipoDe(p), ...(conAnio ? { year: p.year } : {}) }
+                : null;
+            const porTipo = (mapa, id, conAnio) => Object.fromEntries(TIPOS.map((t) => [t, resumen(mapa.get(`${id}|${t}`), conAnio)]));
             return {
                 anio, docente, fechaLimite: fechaLimite(anio),
                 vinculo: esAsesora ? null : vinculoPublico(vinculoDe(user.id)),
                 asignaciones: lista.map((a) => {
-                    const p = cargados.get(a.id);
-                    const ant = anteriores.get(a.id);
+                    const programas = porTipo(cargados, a.id, false);
                     return {
                         id: a.id, curso: a.curso, turno: a.turno, materia: a.materia, docentes: a.docentes, requiere: a.requiere,
                         propia: propias.has(a.id),
-                        programa: p ? { id: p.id, title: p.title, fecha: p.fecha } : null,
-                        anterior: ant ? { id: ant.id, year: ant.year, title: ant.title, fecha: ant.fecha } : null
+                        programa: programas.regular || programas.libre,
+                        programas,
+                        anteriores: porTipo(anteriores, a.id, true)
                     };
                 })
             };
@@ -502,17 +528,19 @@
             const docente = esAsesora ? '' : docenteConfirmado(user.id) || user.nombre || user.id;
             const a = asignacionPorId(body.get('asignacion_id'));
             const anio = anioDelPrograma(body.get('anio'));
+            const tipo = tipoValido(body.get('tipo'));
             const archivo = body.get('pdf');
             if (!a) throw errorHttp('Elegí la materia y el curso del programa');
             if (!anio) throw errorAnioPrograma();
+            if (!tipo) throw errorTipo();
             if (!(archivo instanceof Blob)) throw errorHttp('Falta el archivo PDF');
             if (archivo.size > datos.config.maxPdfMb * 1024 * 1024) throw errorHttp(`El PDF supera el máximo de ${datos.config.maxPdfMb} MB`, 413);
             const cabecera = new TextDecoder('latin1').decode(await archivo.slice(0, 5).arrayBuffer());
             if (cabecera !== '%PDF-') throw errorHttp('El archivo no es un PDF válido');
 
-            const titulo = tituloAutomatico(a, anio);
+            const titulo = tituloAutomatico(a, anio, tipo);
             const nuevo = {
-                title: titulo, materia: a.materia, year: anio, curso: a.curso,
+                title: titulo, materia: a.materia, year: anio, curso: a.curso, tipo,
                 profesor: esAsesora ? a.docentes.join(' / ') || user.nombre : docente,
                 file_url: await guardarPdfLocal(archivo.slice(0, archivo.size, 'application/pdf')),
                 fecha: new Date().toLocaleDateString('es-AR'), uploaded_by: user.id, asignacion_id: a.id,
@@ -521,7 +549,7 @@
             const id = guardarPrograma(a, anio, nuevo, user);
             const reemplazado = estado.versiones.some((v) => v.programa_id === id && v.reemplazado_at === nuevo.created_at);
             registrar(user, reemplazado ? 'programa.reemplazado' : 'programa.subido', {
-                id, curso: a.curso, materia: a.materia, anio, titulo, almacenamiento: 'demo'
+                id, curso: a.curso, materia: a.materia, anio, tipo, titulo, almacenamiento: 'demo'
             });
             return {
                 ok: true, id, reemplazado, almacenamiento: 'demo',
@@ -535,20 +563,22 @@
             const docente = esAsesora ? '' : docenteConfirmado(user.id) || user.nombre || user.id;
             const a = asignacionPorId(body?.asignacion_id);
             const anio = anioDelPrograma(body?.anio);
+            const tipo = tipoValido(body?.tipo);
             if (!a) throw errorHttp('Elegí la materia y el curso del programa');
             if (!anio) throw errorAnioPrograma();
-            const origen = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year < anio);
-            if (!origen) throw errorHttp('No hay un programa de años anteriores para ese curso y materia', 404);
+            if (!tipo) throw errorTipo();
+            const origen = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year < anio && tipoDe(p) === tipo);
+            if (!origen) throw errorHttp(`No hay un programa ${tipo} de años anteriores para ese curso y materia`, 404);
             const nuevo = {
-                title: tituloAutomatico(a, anio),
-                materia: a.materia, year: anio, curso: a.curso,
+                title: tituloAutomatico(a, anio, tipo),
+                materia: a.materia, year: anio, curso: a.curso, tipo,
                 profesor: esAsesora ? origen.profesor || a.docentes.join(' / ') : docente,
                 file_url: origen.file_url, fecha: new Date().toLocaleDateString('es-AR'), uploaded_by: user.id,
                 asignacion_id: a.id, almacenamiento: origen.almacenamiento, created_at: ahora()
             };
-            const actual = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year === anio);
+            const actual = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year === anio && tipoDe(p) === tipo);
             const id = guardarPrograma(a, anio, nuevo, user);
-            registrar(user, 'programa.reutilizado', { id, curso: a.curso, materia: a.materia, anio, desde: origen.year, titulo: nuevo.title });
+            registrar(user, 'programa.reutilizado', { id, curso: a.curso, materia: a.materia, anio, tipo, desde: origen.year, titulo: nuevo.title });
             return { ok: true, id, reemplazado: Boolean(actual), desde: origen.year };
         }
 
@@ -562,7 +592,7 @@
             for (const r of [p, ...versiones]) if (usosDeArchivo(r.file_url) === 0) await borrarPdfLocal(r.file_url);
             guardarEstado();
             registrar(user, 'programa.eliminado', {
-                id: p.id, curso: p.curso, materia: p.materia, anio: p.year, titulo: p.title, versiones: versiones.length
+                id: p.id, curso: p.curso, materia: p.materia, anio: p.year, tipo: tipoDe(p), titulo: p.title, versiones: versiones.length
             });
             return { ok: true };
         }
@@ -627,15 +657,20 @@
             const curso = String(query.get('curso') || '').trim();
             if (!curso) throw errorHttp('Indicá el curso');
             const anio = query.get('anio') ? anioValido(query.get('anio')) : null;
+            const tipo = query.get('tipo') ? tipoValido(query.get('tipo')) : null;
+            if (query.get('tipo') && !tipo) throw errorTipo();
             const clave = claveTexto(curso);
-            const lista = programasOrdenados().filter((p) => claveTexto(p.curso) === clave && (!anio || p.year === anio));
+            const lista = programasOrdenados().filter(
+                (p) => claveTexto(p.curso) === clave && (!anio || p.year === anio) && (!tipo || tipoDe(p) === tipo)
+            );
             if (lista.length === 0) throw errorHttp('No hay programas cargados para ese curso', 404);
             const archivos = [];
             const faltantes = [];
             const usados = new Set();
             for (const p of lista) {
-                let nombre = `${p.year}/${p.materia}`;
-                for (let i = 2; usados.has(nombre); i++) nombre = `${p.year}/${p.materia} (${i})`;
+                const base = `${p.year}/${p.materia} - ${tipoDe(p) === 'libre' ? 'Libre' : 'Regular'}`;
+                let nombre = base;
+                for (let i = 2; usados.has(nombre); i++) nombre = `${base} (${i})`;
                 usados.add(nombre);
                 try {
                     archivos.push({ nombre: `${nombre}.pdf`, datos: await leerPdfDemo(p.file_url) });

@@ -128,9 +128,10 @@ export async function iniciarServidor({ entorno = {}, preparar = '' } = {}) {
         return token;
     }
 
-    function subir(token, { asignacion, anio, archivo = PDF, nombre = 'programa.pdf', titulo }) {
+    function subir(token, { asignacion, anio, archivo = PDF, nombre = 'programa.pdf', titulo, tipo }) {
         const form = new FormData();
         form.append('asignacion_id', asignacion);
+        if (tipo !== undefined) form.append('tipo', tipo);
         if (anio !== undefined) form.append('anio', String(anio));
         if (titulo !== undefined) form.append('titulo', titulo);
         form.append('pdf', new Blob([archivo], { type: 'application/pdf' }), nombre);
@@ -141,9 +142,9 @@ export async function iniciarServidor({ entorno = {}, preparar = '' } = {}) {
      * Carga directo en la base un programa de otro año (por ejemplo, el del año anterior para reutilizarlo).
      * Por la API sólo se puede subir el del año lectivo actual.
      */
-    function sembrarPrograma({ asignacion, anio, archivo = PDF }) {
+    function sembrarPrograma({ asignacion, anio, archivo = PDF, tipo = 'regular' }) {
         const codigo = `
-            const [asignacionId, anio, base64] = process.argv.slice(1);
+            const [asignacionId, anio, base64, tipo] = process.argv.slice(1);
             const { agregarPrograma } = await import('./backend/store.js');
             const { asignacionPorId } = await import('./backend/asignaciones.js');
             const { guardarPdf } = await import('./backend/almacenamiento.js');
@@ -151,12 +152,12 @@ export async function iniciarServidor({ entorno = {}, preparar = '' } = {}) {
             const datos = { anio: Number(anio), curso: a.curso, materia: a.materia, profesor: a.docentes.join(' / ') };
             const archivo = await guardarPdf(Buffer.from(base64, 'base64'), datos);
             const id = agregarPrograma({
-                title: 'Programa de ' + a.materia + ' - ' + a.curso + ' - ' + anio, materia: a.materia, year: Number(anio),
-                curso: a.curso, profesor: datos.profesor, uploaded_by: 'prueba', asignacion_id: a.id, ...archivo
+                title: 'Programa ' + tipo + ' de ' + a.materia + ' - ' + a.curso + ' - ' + anio, materia: a.materia, year: Number(anio),
+                curso: a.curso, profesor: datos.profesor, uploaded_by: 'prueba', asignacion_id: a.id, tipo, ...archivo
             });
             process.stdout.write('ID=' + id);
         `;
-        const salida = execFileSync(process.execPath, ['--input-type=module', '-e', codigo, asignacion, String(anio), Buffer.from(archivo).toString('base64')],
+        const salida = execFileSync(process.execPath, ['--input-type=module', '-e', codigo, asignacion, String(anio), Buffer.from(archivo).toString('base64'), tipo],
             { cwd: RAIZ, env: ENTORNO, stdio: ['ignore', 'pipe', 'pipe'] }).toString();
         return { id: Number(/ID=(\d+)/.exec(salida)[1]) };
     }

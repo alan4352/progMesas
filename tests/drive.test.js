@@ -102,7 +102,7 @@ test('el ZIP del curso trae los PDF desde Drive', async () => {
     const r = await srv.pedir(`/cursos/zip?curso=${encodeURIComponent('2° 4°')}&anio=2026`, { crudo: true });
     assert.equal(r.status, 200);
     const archivos = leerZip(r.cuerpo);
-    const mate = archivos.find((a) => a.nombre === '2026/Matemática.pdf');
+    const mate = archivos.find((a) => a.nombre === '2026/Matemática - Regular.pdf');
     assert.ok(mate);
     assert.match(mate.datos.toString('latin1'), /reemplazo caido/);
 });

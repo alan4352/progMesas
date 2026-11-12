@@ -273,7 +273,7 @@ test('el título se genera solo: el que manda el formulario se ignora', async ()
     const r = await subir(asesora, { asignacion: '2-3_ingles', titulo: 'Otro título cualquiera' });
     assert.equal(r.status, 200);
     const p = (await pedir('/programas')).datos.find((x) => x.id === r.datos.id);
-    assert.equal(p.title, `Programa de ${p.materia} - ${p.curso} - 2026`);
+    assert.equal(p.title, `Programa regular de ${p.materia} - ${p.curso} - 2026`);
 });
 
 test('subir otra vez el mismo curso y materia reemplaza el programa anterior', async () => {
@@ -288,6 +288,52 @@ test('subir otra vez el mismo curso y materia reemplaza el programa anterior', a
     assert.equal(p.versiones, undefined);
     const h = await pedir(`/programas/${p.id}/versiones`, { token: asesora });
     assert.equal(h.datos.versiones.length >= 1, true);
+});
+
+test('cada materia tiene un programa regular y uno libre: subir el libre no reemplaza el regular', async () => {
+    const asesora = await ingresar('asesor@test.com');
+    const regular = await subir(asesora, { asignacion: '1-3_ingles', tipo: 'regular' });
+    const libre = await subir(asesora, { asignacion: '1-3_ingles', tipo: 'libre' });
+    assert.equal(regular.status, 200);
+    assert.equal(libre.status, 200);
+    assert.equal(libre.datos.reemplazado, false, 'el libre no reemplaza al regular');
+    assert.notEqual(libre.datos.id, regular.datos.id);
+    assert.equal(await cantidadDe('1-3_ingles'), 2);
+
+    const lista = (await pedir('/programas')).datos;
+    const pl = lista.find((x) => x.id === libre.datos.id);
+    assert.equal(pl.tipo, 'libre');
+    assert.equal(pl.title, `Programa libre de ${pl.materia} - ${pl.curso} - 2026`);
+    assert.equal(lista.find((x) => x.id === regular.datos.id).tipo, 'regular');
+
+    // Otro libre reemplaza sólo al libre
+    const otroLibre = await subir(asesora, { asignacion: '1-3_ingles', tipo: 'libre' });
+    assert.equal(otroLibre.datos.reemplazado, true);
+    assert.equal(otroLibre.datos.id, libre.datos.id);
+
+    // Sin tipo se toma como regular; un tipo inexistente se rechaza
+    const sinTipo = await subir(asesora, { asignacion: '1-3_ingles' });
+    assert.equal(sinTipo.datos.id, regular.datos.id);
+    assert.equal((await subir(asesora, { asignacion: '1-3_ingles', tipo: 'previo' })).status, 400);
+
+    // El formulario muestra los dos por separado
+    const mias = (await pedir('/asignaciones/mias?anio=2026', { token: asesora })).datos;
+    const a = mias.asignaciones.find((x) => x.id === '1-3_ingles');
+    assert.equal(a.programas.regular.id, regular.datos.id);
+    assert.equal(a.programas.libre.id, libre.datos.id);
+});
+
+test('cobertura: una materia cuenta como completa con el programa regular o con el libre', async () => {
+    const asesora = await ingresar('asesor@test.com');
+    await subir(asesora, { asignacion: '2-1_geografia', tipo: 'libre' });
+    const cob = (await pedir('/cobertura?anio=2026', { token: asesora })).datos;
+    const a = cob.asignaciones.find((x) => x.id === '2-1_geografia');
+    assert.ok(a.programa, 'con sólo el libre ya no está pendiente');
+    assert.equal(a.programa.tipo, 'libre');
+    assert.equal(a.programas.regular, null);
+    assert.equal(a.programas.libre.tipo, 'libre');
+    const faltantes = (await pedir('/programas/faltantes?anio=2026', { token: asesora })).datos;
+    assert.equal(faltantes.some((f) => f.id === '2-1_geografia'), false);
 });
 
 test('varios docentes de Matemática de distintos cursos suben a la vez sin pisarse', async () => {

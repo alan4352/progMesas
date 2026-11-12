@@ -82,7 +82,8 @@ test('se puede reutilizar el programa del año anterior sin volver a subirlo', a
 
     const mias = (await srv.pedir('/asignaciones/mias?anio=2026', { token: asesora })).datos;
     const a = mias.asignaciones.find((x) => x.id === '2-1_ingles');
-    assert.deepEqual([a.anterior.id, a.anterior.year], [original.datos.id, 2025]);
+    assert.deepEqual([a.anteriores.regular.id, a.anteriores.regular.year], [original.datos.id, 2025]);
+    assert.equal(a.anteriores.libre, null, 'no hay libre de años anteriores');
 
     const antes = archivosEnUploads().length;
     const r = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: '2-1_ingles', anio: 2026 }, token: asesora });
@@ -92,7 +93,7 @@ test('se puede reutilizar el programa del año anterior sin volver a subirlo', a
 
     const nuevo = (await srv.pedir('/programas')).datos.find((p) => p.id === r.datos.id);
     assert.equal(nuevo.year, 2026);
-    assert.equal(nuevo.title, `Programa de ${nuevo.materia} - ${nuevo.curso} - 2026`, 'título automático del año nuevo');
+    assert.equal(nuevo.title, `Programa regular de ${nuevo.materia} - ${nuevo.curso} - 2026`, 'título automático del año nuevo');
     const pdf = await fetch(srv.base + nuevo.file_url);
     assert.match(Buffer.from(await pdf.arrayBuffer()).toString('latin1'), /% 2025/);
 
@@ -115,6 +116,18 @@ test('reutilizar: sin programa anterior responde 404; un docente puede reutiliza
     srv.sembrarPrograma({ asignacion: mias[0].id, anio: 2025 });
     const propio = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: mias[0].id, anio: 2026 }, token: prof });
     assert.equal(propio.status, 200);
+});
+
+test('reutilizar respeta el tipo: el libre de 2025 se usa como libre de 2026', async () => {
+    srv.sembrarPrograma({ asignacion: '2-3_geografia', anio: 2025, tipo: 'libre', archivo: pdfCon('libre 2025') });
+    const sinRegular = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: '2-3_geografia', anio: 2026, tipo: 'regular' }, token: asesora });
+    assert.equal(sinRegular.status, 404, 'no hay regular de años anteriores');
+
+    const r = await srv.pedir('/programas/reutilizar', { method: 'POST', json: { asignacion_id: '2-3_geografia', anio: 2026, tipo: 'libre' }, token: asesora });
+    assert.equal(r.status, 200, JSON.stringify(r.datos));
+    const nuevo = (await srv.pedir('/programas')).datos.find((p) => p.id === r.datos.id);
+    assert.equal(nuevo.tipo, 'libre');
+    assert.equal(nuevo.title, `Programa libre de ${nuevo.materia} - ${nuevo.curso} - 2026`);
 });
 
 // ================= FECHA LÍMITE =================
@@ -171,12 +184,20 @@ test('se descargan todos los programas de un curso en un ZIP, ordenados por año
     assert.equal(r.headers.get('content-type'), 'application/zip');
     assert.match(r.headers.get('content-disposition'), /attachment/);
     const nombres = leerZip(r.cuerpo).map((a) => a.nombre).sort();
-    assert.deepEqual(nombres, ['2025/Matemática.pdf', '2026/Inglés.pdf', '2026/Matemática.pdf']);
-    const mate25 = leerZip(r.cuerpo).find((a) => a.nombre === '2025/Matemática.pdf');
+    assert.deepEqual(nombres, ['2025/Matemática - Regular.pdf', '2026/Inglés - Regular.pdf', '2026/Matemática - Regular.pdf']);
+    const mate25 = leerZip(r.cuerpo).find((a) => a.nombre === '2025/Matemática - Regular.pdf');
     assert.match(mate25.datos.toString('latin1'), /mate 2025/);
 
     const soloAnio = await srv.pedir(`/cursos/zip?curso=${encodeURIComponent('3° 3°')}&anio=2026`, { crudo: true });
     assert.equal(leerZip(soloAnio.cuerpo).length, 2);
+
+    // El libre va en el mismo ZIP con su nombre, y se puede pedir sólo un tipo
+    await srv.subir(asesora, { asignacion: '3-3_matematica', tipo: 'libre', archivo: pdfCon('mate libre') });
+    const ambos = await srv.pedir(`/cursos/zip?curso=${encodeURIComponent('3° 3°')}&anio=2026`, { crudo: true });
+    assert.ok(leerZip(ambos.cuerpo).some((a) => a.nombre === '2026/Matemática - Libre.pdf'));
+    const libres = await srv.pedir(`/cursos/zip?curso=${encodeURIComponent('3° 3°')}&anio=2026&tipo=libre`, { crudo: true });
+    assert.deepEqual(leerZip(libres.cuerpo).map((a) => a.nombre), ['2026/Matemática - Libre.pdf']);
+    assert.equal((await srv.pedir(`/cursos/zip?curso=${encodeURIComponent('3° 3°')}&tipo=otro`)).status, 400);
 
     assert.equal((await srv.pedir('/cursos/zip?curso=' + encodeURIComponent('9° 9°'))).status, 404);
     assert.equal((await srv.pedir('/cursos/zip')).status, 400);
