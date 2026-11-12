@@ -273,7 +273,7 @@ test('el título se genera solo: el que manda el formulario se ignora', async ()
     const r = await subir(asesora, { asignacion: '2-3_ingles', titulo: 'Otro título cualquiera' });
     assert.equal(r.status, 200);
     const p = (await pedir('/programas')).datos.find((x) => x.id === r.datos.id);
-    assert.equal(p.title, `Programa regular de ${p.materia} - ${p.curso} - 2026`);
+    assert.equal(p.title, `Programa de ${p.materia} - ${p.curso} - 2026`);
 });
 
 test('subir otra vez el mismo curso y materia reemplaza el programa anterior', async () => {

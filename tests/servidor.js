@@ -152,7 +152,7 @@ export async function iniciarServidor({ entorno = {}, preparar = '' } = {}) {
             const datos = { anio: Number(anio), curso: a.curso, materia: a.materia, profesor: a.docentes.join(' / ') };
             const archivo = await guardarPdf(Buffer.from(base64, 'base64'), datos);
             const id = agregarPrograma({
-                title: 'Programa ' + tipo + ' de ' + a.materia + ' - ' + a.curso + ' - ' + anio, materia: a.materia, year: Number(anio),
+                title: 'Programa ' + (tipo === 'libre' ? 'libre ' : '') + 'de ' + a.materia + ' - ' + a.curso + ' - ' + anio, materia: a.materia, year: Number(anio),
                 curso: a.curso, profesor: datos.profesor, uploaded_by: 'prueba', asignacion_id: a.id, tipo, ...archivo
             });
             process.stdout.write('ID=' + id);

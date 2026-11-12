@@ -93,7 +93,7 @@ test('se puede reutilizar el programa del año anterior sin volver a subirlo', a
 
     const nuevo = (await srv.pedir('/programas')).datos.find((p) => p.id === r.datos.id);
     assert.equal(nuevo.year, 2026);
-    assert.equal(nuevo.title, `Programa regular de ${nuevo.materia} - ${nuevo.curso} - 2026`, 'título automático del año nuevo');
+    assert.equal(nuevo.title, `Programa de ${nuevo.materia} - ${nuevo.curso} - 2026`, 'título automático del año nuevo');
     const pdf = await fetch(srv.base + nuevo.file_url);
     assert.match(Buffer.from(await pdf.arrayBuffer()).toString('latin1'), /% 2025/);
 
@@ -184,8 +184,8 @@ test('se descargan todos los programas de un curso en un ZIP, ordenados por año
     assert.equal(r.headers.get('content-type'), 'application/zip');
     assert.match(r.headers.get('content-disposition'), /attachment/);
     const nombres = leerZip(r.cuerpo).map((a) => a.nombre).sort();
-    assert.deepEqual(nombres, ['2025/Matemática - Regular.pdf', '2026/Inglés - Regular.pdf', '2026/Matemática - Regular.pdf']);
-    const mate25 = leerZip(r.cuerpo).find((a) => a.nombre === '2025/Matemática - Regular.pdf');
+    assert.deepEqual(nombres, ['2025/Matemática.pdf', '2026/Inglés.pdf', '2026/Matemática.pdf']);
+    const mate25 = leerZip(r.cuerpo).find((a) => a.nombre === '2025/Matemática.pdf');
     assert.match(mate25.datos.toString('latin1'), /mate 2025/);
 
     const soloAnio = await srv.pedir(`/cursos/zip?curso=${encodeURIComponent('3° 3°')}&anio=2026`, { crudo: true });

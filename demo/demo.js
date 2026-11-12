@@ -54,7 +54,7 @@
         return anioValido(v) === anio ? anio : null;
     }
     const errorAnioPrograma = () => errorHttp(`Sólo se pueden cargar programas del año lectivo actual (${datos.config.anioLectivo})`);
-    const tituloAutomatico = (a, anio, tipo = 'regular') => `Programa ${tipo} de ${a.materia} - ${a.curso} - ${anio}`;
+    const tituloAutomatico = (a, anio, tipo = 'regular') => `Programa ${tipo === 'libre' ? 'libre ' : ''}de ${a.materia} - ${a.curso} - ${anio}`;
     // Tipo de programa: regular o libre (los datos sin tipo son regulares)
     const TIPOS = ['regular', 'libre'];
     const tipoDe = (p) => (p.tipo === 'libre' ? 'libre' : 'regular');
@@ -568,7 +568,7 @@
             if (!anio) throw errorAnioPrograma();
             if (!tipo) throw errorTipo();
             const origen = programasOrdenados().find((p) => p.asignacion_id === a.id && p.year < anio && tipoDe(p) === tipo);
-            if (!origen) throw errorHttp(`No hay un programa ${tipo} de años anteriores para ese curso y materia`, 404);
+            if (!origen) throw errorHttp(`No hay un ${tipo === 'libre' ? 'programa libre' : 'programa'} de años anteriores para ese curso y materia`, 404);
             const nuevo = {
                 title: tituloAutomatico(a, anio, tipo),
                 materia: a.materia, year: anio, curso: a.curso, tipo,
@@ -668,7 +668,7 @@
             const faltantes = [];
             const usados = new Set();
             for (const p of lista) {
-                const base = `${p.year}/${p.materia} - ${tipoDe(p) === 'libre' ? 'Libre' : 'Regular'}`;
+                const base = `${p.year}/${p.materia}${tipoDe(p) === 'libre' ? ' - Libre' : ''}`;
                 let nombre = base;
                 for (let i = 2; usados.has(nombre); i++) nombre = `${base} (${i})`;
                 usados.add(nombre);

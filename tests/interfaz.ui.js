@@ -106,15 +106,15 @@ test('asesora: sube, reemplaza y ve las versiones anteriores', async () => {
         await pg.selectOption('#asignacion', '1-1_geografia');
         await pg.setInputFiles('#pdf', archivoPdf);
         await pg.click('#btnSubir');
-        await pg.waitForSelector('#lista .card:has-text("Programa regular de Geografía - 1° 1° - 2026")');
+        await pg.waitForSelector('#lista .card:has-text("Programa de Geografía - 1° 1° - 2026")');
         await pg.waitForFunction(() => !document.getElementById('btnSubir').disabled);
     }
-    await pg.fill('#busqueda', 'Programa regular de Geografía - 1° 1° - 2026');
+    await pg.fill('#busqueda', 'Programa de Geografía - 1° 1° - 2026');
     const boton = pg.locator('button[data-accion="versiones"]');
     assert.match(await boton.innerText(), /Versiones anteriores \(1\)/);
     await boton.click();
     await pg.waitForSelector('.lista-versiones .fila-version');
-    assert.match(await pg.locator('.lista-versiones').innerText(), /Programa regular de Geografía - 1° 1° - 2026/);
+    assert.match(await pg.locator('.lista-versiones').innerText(), /Programa de Geografía - 1° 1° - 2026/);
     assert.equal(await boton.getAttribute('aria-expanded'), 'true');
     assert.deepEqual(pg.errores, []);
 });
@@ -122,19 +122,21 @@ test('asesora: sube, reemplaza y ve las versiones anteriores', async () => {
 test('asesora: sube el programa libre aparte del regular y lo filtra', async () => {
     const pg = await nuevaPagina();
     await ingresar(pg, 'asesor@test.com');
-    assert.equal(await pg.locator('input[name="tipo"][value="regular"]').isChecked(), true, 'regular por defecto');
+    assert.equal(await pg.locator('#esLibre').isChecked(), false, 'por defecto no es libre');
     await pg.selectOption('#asignacion', '4-2-TAE_ingles');
-    await pg.check('input[name="tipo"][value="libre"]');
+    await pg.check('#esLibre');
     await pg.setInputFiles('#pdf', archivoPdf);
     await pg.click('#btnSubir');
     const tarjeta = pg.locator('#lista .card:has-text("Programa libre de Inglés")');
     await tarjeta.first().waitFor();
     assert.match(await tarjeta.first().innerText(), /Libre/);
-    // Con "Libre" elegido avisa que ya hay uno; con "Regular", no
+    // El regular no lleva etiqueta
+    assert.equal(await pg.locator('#lista .card:has-text("Programa de Geografía") .etiqueta-tipo').count(), 0);
+    // Marcado como libre avisa que ya hay uno; sin marcar, no
     await pg.waitForFunction(() => !document.getElementById('btnSubir').disabled);
     await pg.selectOption('#asignacion', '4-2-TAE_ingles');
     assert.match(await pg.locator('#infoAsignacion').innerText(), /Ya hay un programa libre/);
-    await pg.check('input[name="tipo"][value="regular"]');
+    await pg.uncheck('#esLibre');
     assert.doesNotMatch(await pg.locator('#infoAsignacion').innerText(), /Ya hay un programa/);
     // Filtro por tipo
     await pg.selectOption('#filtroTipo', 'regular');
@@ -151,7 +153,7 @@ test('asesora: reutiliza el programa del año anterior', async () => {
     await ingresar(pg, 'asesor@test.com');
     await pg.selectOption('#asignacion', '3-2_ingles');
     await pg.click('button[data-accion="reutilizar"]');
-    await pg.waitForSelector('#lista .card:has-text("Programa regular de Inglés - 3° 2° - 2026")');
+    await pg.waitForSelector('#lista .card:has-text("Programa de Inglés - 3° 2° - 2026")');
     assert.deepEqual(pg.errores, []);
 });
 
