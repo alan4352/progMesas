@@ -302,6 +302,9 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Sólo los libres llevan etiqueta (**Libre**) en la lista y en el dashboard. El filtro dice **Incluir libres / Sin libres /
   Sólo libres**. En el ZIP, el común es "Materia.pdf" y el libre "Materia - Libre.pdf".
 - Internamente sigue la columna `tipo` (`regular` o `libre`) y el parámetro `tipo` de la API, sin cambios.
+- Carpeta del proyecto (`Carpeta del Proyecto — ProgMesas.docx` / `.pdf`) actualizada con el programa libre: concepto
+  de programa, reglas del negocio, alcance, requerimientos funcionales, caso de uso CU07, diagrama entidad-relación,
+  diccionario de datos (campo `tipo` de PROGRAMAS) y manual de uso.
 
 ### 12/11/2026 — Programas regulares y libres
 
