@@ -1,6 +1,6 @@
 # ProgMesas — Documentación interna (técnica)
 
-Actualizado el 11/11/2026 · Alan Buzzatto y Valentino Rodriguez
+Actualizado el 12/11/2026 · Alan Buzzatto y Valentino Rodriguez
 
 Documentación para quien instala, mantiene o modifica ProgMesas dentro del repositorio CampusT2 (carpeta `progmesas/`). La guía de uso para alumnos, docentes y directivos está en el documento de documentación externa.
 
@@ -72,19 +72,19 @@ Todas las rutas se llaman como `api.php?r=/ruta` y responden JSON. Los errores v
 | GET `/yo` | Pública | Usuario actual o `null`; registra el acceso del docente |
 | GET `/programas` | Pública | Lista de programas (la asesoría ve campos extra) |
 | GET `/fecha-limite` | Pública | Fecha límite del año |
-| GET `/cursos/zip` | Pública | ZIP con los PDF de un curso y año |
+| GET `/cursos/zip` | Pública | ZIP con los PDF de un curso y año (opcional: sólo un tipo) |
 | GET `/docentes/nombres` | teacher, advisor | Nombres de la planilla para vincular |
 | POST `/docentes/vinculo` | teacher | El docente elige su nombre de la planilla |
 | GET `/programas/:id/versiones` | teacher, advisor | Versiones reemplazadas |
 | GET `/asignaciones/mias` | teacher, advisor | Materias y cursos, con las del docente primero |
-| POST `/programas/subir` | teacher, advisor | Sube un PDF (multipart: `asignacion_id`, `anio`, `pdf`) |
-| POST `/programas/reutilizar` | teacher, advisor | Copia el programa de otro año al actual |
+| POST `/programas/subir` | teacher, advisor | Sube un PDF regular o libre (campo tipo) (multipart: `asignacion_id`, `anio`, `pdf`) |
+| POST `/programas/reutilizar` | teacher, advisor | Copia el programa de otro año, del mismo tipo, al actual |
 | GET `/docentes/vinculos` | advisor, viewer | Cuentas y vínculos |
 | POST `/docentes/vinculos/:id/confirmar` | advisor | Asigna o corrige el nombre de una cuenta |
 | DELETE `/docentes/vinculos/:id` | advisor | Desvincula una cuenta |
 | DELETE `/programas/:id` | advisor | Borra el programa, su PDF y sus versiones |
 | PATCH `/programas/:id/asignacion` | advisor | Asocia un programa viejo a una materia de la planilla |
-| GET `/cobertura` | advisor, viewer | Datos del Dashboard |
+| GET `/cobertura` | advisor, viewer | Datos del Dashboard (una materia está completa con el regular o el libre) |
 | PUT `/fecha-limite` | advisor | Guarda o borra la fecha límite |
 | GET `/registro` | advisor, viewer | Registro de actividad |
 | GET `/programas/faltantes` | advisor, viewer | Pendientes (para el CSV) |
@@ -93,9 +93,9 @@ Todas las rutas se llaman como `api.php?r=/ruta` y responden JSON. Los errores v
 **Reglas de la carga**
 
 - El año del programa es siempre el lectivo actual (`anioDelPrograma()`); otro año devuelve el error «Sólo se pueden cargar programas del año lectivo actual».
-- El título lo arma `tituloAutomatico()`: «Programa de {materia} - {curso} - {año}».
+- El título lo arma `tituloAutomatico()`: «Programa {tipo} de {materia} - {curso} - {año}».
 - Máximo `MAX_PDF_MB` (10 MB). Se comprueba que el archivo empiece con `%PDF-`, no solo la extensión.
-- Si ya existe un programa para la misma asignación y año, el anterior pasa a `programas_versiones` y el nuevo ocupa su lugar.
+- Cada materia puede tener un programa regular y uno libre (sin tipo se toma regular; otro valor da error 400). Si ya existe un programa para la misma asignación, año y tipo, el anterior pasa a `programas_versiones` y el nuevo ocupa su lugar.
 - Cada acción que cambia datos queda en la tabla `registro` (`registrarAccion()`).
 
 ## 4. Datos
@@ -104,7 +104,7 @@ Todas las rutas se llaman como `api.php?r=/ruta` y responden JSON. Los errores v
 
 | Tabla | Para qué | Campos principales |
 | --- | --- | --- |
-| `programas` | Programa vigente de cada materia, curso y año | `id`, `title`, `materia`, `curso`, `year`, `profesor`, `file_url`, `uploaded_by`, `asignacion_id`, `created_at` |
+| `programas` | Programa vigente de cada materia, curso, año y tipo. La columna tipo vale regular o libre; los programas cargados antes de que existiera quedaron como regulares | `id`, `title`, `materia`, `curso`, `year`, `profesor`, `file_url`, `uploaded_by`, `asignacion_id`, `created_at` |
 | `programas_versiones` | Programas reemplazados | `programa_id`, `file_url`, `reemplazado_at`, `reemplazado_por` |
 | `docentes_usuarios` | Vínculo entre cuenta del campus y nombre de la planilla | `usuario_id`, `email`, `docente`, `estado`, `confirmado_por` |
 | `registro` | Auditoría | `fecha`, `usuario_id`, `rol`, `accion`, `detalle` (JSON) |
