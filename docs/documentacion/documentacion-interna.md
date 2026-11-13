@@ -1,6 +1,6 @@
 # ProgMesas — Documentación interna (técnica)
 
-Actualizado el 12/11/2026 · Alan Buzzatto y Valentino Rodriguez
+Actualizado el 13/11/2026 · Alan Buzzatto y Valentino Rodriguez
 
 Documentación para quien instala, mantiene o modifica ProgMesas dentro del repositorio CampusT2 (carpeta `progmesas/`). La guía de uso para alumnos, docentes y directivos está en el documento de documentación externa.
 
@@ -13,7 +13,7 @@ CampusT2 es el sitio principal: da el inicio de sesión y el panel de cada rol. 
 | Modo | Qué corre | Cuándo se usa |
 | --- | --- | --- |
 | PHP (principal) | `api.php` dentro del mismo Apache/nginx del campus | Siempre: XAMPP, servidor Debian y Render |
-| Node (opcional) | `backend/server.js` en el puerto 3000 | Solo si alguien lo inicia con `iniciar.bat` / `iniciar.sh`; agrega Google Drive y respaldos |
+| Node (opcional) | `backend/server.js` en el puerto 3000 | Solo si alguien lo inicia con `iniciar.bat` / `iniciar.sh`; agrega copias de seguridad automáticas |
 
 El campus decide a cuál mandar al usuario en `enlaceProgMesas()` (`campus/includes/progmesas.php`): si hay algo escuchando en `127.0.0.1:3000` usa `PROGMESAS_URL`; si no, `../progmesas`. El frontend es el mismo en los dos modos: siempre llama a `api.php?r=/ruta`, y el servidor Node también acepta esa forma.
 
@@ -22,18 +22,21 @@ El campus decide a cuál mandar al usuario en `enlaceProgMesas()` (`campus/inclu
 1. El navegador abre `progmesas/` → `index.php`. Si hay sesión del campus y no llegó un `?token=`, redirige a `../campus/programas.php`, que arma el pase y vuelve con el token. Si no, sirve `index.html`.
 2. `frontend/common.js` guarda el token y hace las llamadas con `api()`, que agrega `Authorization: Bearer …` y `X-Requested-With: progmesas`.
 3. `api.php` identifica al usuario (`obtenerUsuarioActual()`), resuelve la ruta y responde JSON.
-4. Los PDF se sirven como archivos estáticos desde `backend/uploads/`.
+4. Los PDF se abren desde Google Drive (vista previa pública) o, si quedaron en el servidor, como archivos estáticos de `backend/uploads/`.
 
 **Carpetas y archivos**
 
 | Ruta | Contenido |
 | --- | --- |
 | `index.php`, `index.html` | Entrada y página principal (consulta y carga) |
-| `api.php` | Toda la API en modo PHP: rutas, SQLite, lectura de la planilla, ZIP |
+| `api.php` | Toda la API en modo PHP: rutas, SQLite, lectura de la planilla, almacenamiento de los PDF, ZIP |
+| `backend/drive.php` | Cliente de Google Drive en PHP (API REST v3 y OAuth 2.0, sin librerías) |
+| `backend/autorizar_drive.php` | Autoriza la cuenta de Drive de la escuela desde la línea de comandos |
+| `backend/oauth.json`, `backend/token.json` | Credenciales de la app de Google y permiso de la cuenta (no se suben al repositorio) |
 | `frontend/` | `app.js` (página principal), `dashboard.html` + `dashboard.js` (asesoría), `common.js` (sesión y `api()`), `tema.js` (claro/oscuro), `styles.css` |
 | `backend/data/asignaciones.xlsx` | Planilla oficial de cursos, materias y docentes |
 | `backend/database.sqlite` | Base de datos (programas, vínculos, registro, ajustes) |
-| `backend/uploads/` | PDF de los programas |
+| `backend/uploads/` | PDF que quedaron en el servidor porque Drive no estaba disponible |
 | `backend/*.js` | Servidor Node opcional (`server.js`, `drive.js`, `respaldos.js`, …) y scripts para generar la planilla |
 | `.htaccess`, `backend/.htaccess` | Bloqueos para Apache |
 | `privacidad.html`, `terminos.html` | Textos legales |
@@ -72,23 +75,23 @@ Todas las rutas se llaman como `api.php?r=/ruta` y responden JSON. Los errores v
 | GET `/yo` | Pública | Usuario actual o `null`; registra el acceso del docente |
 | GET `/programas` | Pública | Lista de programas (la asesoría ve campos extra) |
 | GET `/fecha-limite` | Pública | Fecha límite del año |
-| GET `/cursos/zip` | Pública | ZIP con los PDF de un curso y año (opcional: sólo un tipo) |
+| GET `/cursos/zip` | Pública | ZIP con los PDF de un curso y año, bajados de Drive o del servidor (opcional: sólo un tipo) |
 | GET `/docentes/nombres` | teacher, advisor | Nombres de la planilla para vincular |
 | POST `/docentes/vinculo` | teacher | El docente elige su nombre de la planilla |
 | GET `/programas/:id/versiones` | teacher, advisor | Versiones reemplazadas |
 | GET `/asignaciones/mias` | teacher, advisor | Materias y cursos, con las del docente primero |
-| POST `/programas/subir` | teacher, advisor | Sube un PDF regular o libre (campo tipo) (multipart: `asignacion_id`, `anio`, `pdf`) |
+| POST `/programas/subir` | teacher, advisor | Sube un PDF regular o libre (multipart: `asignacion_id`, `anio`, `tipo`, `pdf`) |
 | POST `/programas/reutilizar` | teacher, advisor | Copia el programa de otro año, del mismo tipo, al actual |
 | GET `/docentes/vinculos` | advisor, viewer | Cuentas y vínculos |
 | POST `/docentes/vinculos/:id/confirmar` | advisor | Asigna o corrige el nombre de una cuenta |
 | DELETE `/docentes/vinculos/:id` | advisor | Desvincula una cuenta |
-| DELETE `/programas/:id` | advisor | Borra el programa, su PDF y sus versiones |
+| DELETE `/programas/:id` | advisor | Borra el programa y sus versiones, y sus PDF de Drive o del servidor si ningún otro programa los usa |
 | PATCH `/programas/:id/asignacion` | advisor | Asocia un programa viejo a una materia de la planilla |
-| GET `/cobertura` | advisor, viewer | Datos del Dashboard (una materia está completa con el regular o el libre) |
+| GET `/cobertura` | advisor, viewer | Datos del Dashboard (una materia está completa con el regular o el libre) y estado de Drive |
 | PUT `/fecha-limite` | advisor | Guarda o borra la fecha límite |
 | GET `/registro` | advisor, viewer | Registro de actividad |
 | GET `/programas/faltantes` | advisor, viewer | Pendientes (para el CSV) |
-| POST `/drive/sincronizar` | advisor | Sin efecto en PHP (solo Node) |
+| POST `/drive/sincronizar` | advisor | Pasa a Drive los PDF que quedaron en el servidor (hasta 50 por vez) |
 
 **Reglas de la carga**
 
@@ -108,7 +111,7 @@ Todas las rutas se llaman como `api.php?r=/ruta` y responden JSON. Los errores v
 | `programas_versiones` | Programas reemplazados | `programa_id`, `file_url`, `reemplazado_at`, `reemplazado_por` |
 | `docentes_usuarios` | Vínculo entre cuenta del campus y nombre de la planilla | `usuario_id`, `email`, `docente`, `estado`, `confirmado_por` |
 | `registro` | Auditoría | `fecha`, `usuario_id`, `rol`, `accion`, `detalle` (JSON) |
-| `ajustes` | Clave/valor | Fecha límite por año |
+| `ajustes` | Clave/valor | Fecha límite por año (`fecha_limite_2026`), último error de Drive (`drive_error`) y último paso a Drive (`drive_sincronizado_at`) |
 
 **Planilla de asignaciones** (`backend/data/asignaciones.xlsx`). Es la lista oficial de qué materias tiene cada curso y quién las dicta; de ahí salen la cobertura y los pendientes. `api.php` la lee con un lector ZIP propio más SimpleXML (no necesita librerías), solo la primera hoja, buscando las columnas por el encabezado:
 
@@ -122,11 +125,15 @@ Todas las rutas se llaman como `api.php?r=/ruta` y responden JSON. Los errores v
 | `Requiere programa` | `SI` / `NO` | `NO` la saca de la cobertura |
 | `Origen`, `Revisar` |  | Informativas |
 
-**PDF** (`backend/uploads/`). Se guardan como `<milisegundos>_<curso_materia>.pdf`; `file_url` queda como `/uploads/<archivo>` y el frontend lo abre en `RAIZ_APP + 'backend/uploads/…'`. Las versiones reemplazadas conservan su archivo hasta que se elimina el programa.
+**PDF.** `guardarPdf()` los sube a **Google Drive** con `driveSubir()` (`backend/drive.php`): carpetas Año / Curso / Materia dentro de la carpeta raíz de la escuela, con el nombre `año-curso_docente_materia.pdf` (`_libre` si es el libre), y públicos de sólo lectura. En la base quedan `almacenamiento = 'drive'`, `archivo_ref` = id del archivo y `file_url` = su vista previa (`https://drive.google.com/file/d/<id>/preview`).
+
+Si Drive no está configurado o falla, el PDF se guarda en `backend/uploads/` como `<milisegundos>_<curso_materia_tipo>.pdf` (`almacenamiento = 'local'`, `file_url = /uploads/<archivo>`) y, si fue una falla, la respuesta trae un aviso. `pasarADrive()` sube después esos archivos y actualiza los programas y versiones que los usan; la llama el botón **Pasar a Drive ahora** y también `sincronizacionAutomatica()`, al abrir el dashboard, como mucho cada 6 horas (hasta 10 archivos por vez). Un programa reutilizado comparte el archivo del original, y las versiones reemplazadas conservan el suyo hasta que se elimina el programa.
+
+**Permiso de Drive.** `driveTokenAcceso()` usa el `refresh_token` de `backend/token.json` para pedir un token de acceso a Google y guarda el renovado en el mismo archivo. Si falla, el error queda en `ajustes.drive_error` y el dashboard lo muestra.
 
 ## 5. Instalación y publicación
 
-ProgMesas se instala junto con el campus; no tiene instalación propia. Requisitos de PHP para su parte: 8.1 o superior con `pdo_sqlite`, `xml` (SimpleXML), `zlib` y `mbstring`.
+ProgMesas se instala junto con el campus; no tiene instalación propia. Requisitos de PHP para su parte: 8.1 o superior con `pdo_sqlite`, `xml` (SimpleXML), `zlib`, `mbstring` y `openssl`, y `allow_url_fopen = On` (para hablar con Google Drive).
 
 **Configuración que necesita**
 
@@ -135,6 +142,10 @@ ProgMesas se instala junto con el campus; no tiene instalación propia. Requisit
 | `campus/includes/config.php` | `PROGMESAS_SECRETO` | Clave del pase. Generarla con `php -r "echo bin2hex(random_bytes(32));"` |
 | `campus/includes/config.php` | `PROGMESAS_HORAS` | Duración del pase (8 por defecto) |
 | `campus/includes/config.php` | `PROGMESAS_URL` | Dirección del servidor Node, si se usa |
+| `progmesas/backend/oauth.json` | Credenciales de la app de Google | Google Drive (las mismas que usa la versión Node) |
+| `progmesas/backend/token.json` | Permiso de la cuenta de la escuela | Lo crea `php backend/autorizar_drive.php` |
+| Variable `DRIVE_CARPETA_RAIZ` o `PROGMESAS_DRIVE_CARPETA_RAIZ` en `config.php` | Id de la carpeta de Drive | Opcional: por defecto, la carpeta de la escuela |
+| Variables `GOOGLE_OAUTH_JSON`, `GOOGLE_TOKEN_JSON` | Contenido de los dos archivos anteriores | Para Render, donde no se pueden copiar archivos |
 | `progmesas/.env` | `EXTERNO_JWT_SECRET` | Solo para Node: igual a `PROGMESAS_SECRETO` |
 
 **XAMPP (Windows)**
@@ -142,6 +153,7 @@ ProgMesas se instala junto con el campus; no tiene instalación propia. Requisit
 1. Copiar CampusT2 dentro de `htdocs` y crear `config.php` como indica el README del repositorio.
 2. Entrar al campus como profesor o directivo y abrir el módulo de programas: la base SQLite y la carpeta `uploads` se crean solas.
 3. Apache usa los `.htaccess` de `progmesas/` y `progmesas/backend/`.
+4. Google Drive: copiar `oauth.json` a `progmesas/backend/` y, desde la carpeta `progmesas`, ejecutar `C:\xampp\php\php.exe backend\autorizar_drive.php`. Abrir el enlace que muestra, aceptar con la cuenta de la escuela y pegar la dirección a la que redirige.
 
 **Servidor de la escuela (Debian + nginx + PHP-FPM, `/var/www/final`)**
 
@@ -149,12 +161,13 @@ ProgMesas se instala junto con el campus; no tiene instalación propia. Requisit
 2. nginx **no lee los `.htaccess`**: usar `docs/nginx-campus.conf`, que devuelve 404 para todo `progmesas/backend/` salvo los `.pdf` de `uploads/`, y para cualquier `.sqlite`, `.xlsx`, `.env`, etc.
 3. El usuario de PHP-FPM (`www-data`) necesita escribir en `progmesas/backend/` (base, sus archivos `-wal`/`-shm` y `uploads/`).
 4. Comprobar con `sudo nginx -t` y recargar.
+5. Google Drive: copiar `oauth.json` a `progmesas/backend/`, ejecutar `php backend/autorizar_drive.php` desde `/var/www/final/progmesas` y darle a `www-data` permiso de lectura y escritura sobre `backend/token.json`.
 
 **Render + Aiven**
 
 - Render construye el `Dockerfile` (php:8.3-apache). `docker/entrypoint.sh` crea `progmesas/backend/uploads` y le da permisos a `www-data`.
 - `PROGMESAS_SECRETO` la genera Render sola (`render.yaml`); el resto de la configuración llega por variables de entorno (`config.render.php`).
-- ProgMesas no usa MySQL: Aiven solo guarda las tablas del campus. La base SQLite y los PDF viven en el disco del contenedor.
+- ProgMesas no usa MySQL: Aiven solo guarda las tablas del campus. La base SQLite vive en el disco del contenedor; los PDF, en Google Drive si se cargan `GOOGLE_OAUTH_JSON` y `GOOGLE_TOKEN_JSON` (si no, también en el disco).
 - Cada `git push` a la rama principal vuelve a publicar el sitio.
 
 ## 6. Seguridad
@@ -165,10 +178,11 @@ Las reglas generales están en `docs/SEGURIDAD.md` del repositorio. Lo propio de
 - **Pase firmado:** sin `PROGMESAS_SECRETO` válido no entra nadie por token. La clave no va en el repositorio ni en el código de `api.php`.
 - **Anti-CSRF:** con la sesión de respaldo, todo lo que no sea GET necesita `X-Requested-With: progmesas`. Cualquier llamada nueva desde el frontend tiene que pasar por `api()` de `common.js`.
 - **Archivos subidos:** solo PDF (se revisa la firma `%PDF-`), máximo 10 MB, con nombre generado por el servidor. Nunca se usa el nombre que manda el navegador.
-- **Datos internos ocultos:** Apache los bloquea con `.htaccess` (`.env`, `package.json`, `.sqlite`, `.js`/`.json`/`.xlsx` de `backend/`); nginx, con `docs/nginx-campus.conf`.
+- **Datos internos ocultos:** Apache los bloquea con `.htaccess` (`.env`, `package.json`, `.sqlite`, `.js`/`.json`/`.xlsx` de `backend/`, y `drive.php` y `autorizar_drive.php`); nginx, con `docs/nginx-campus.conf`. `drive.php` y `autorizar_drive.php` además responden 404 si se abren desde el navegador.
+- **Google Drive:** `oauth.json` y `token.json` dan acceso al Drive de la escuela: no se suben al repositorio (`.gitignore`) ni a la imagen de Docker (`.dockerignore`). Los PDF quedan públicos de sólo lectura, igual que en la página.
 - **Escape de datos:** el frontend arma el HTML con `esc()` para todo texto que viene de la API.
-- **Auditoría:** subir, reemplazar, reutilizar, eliminar, vincular y cambiar la fecha límite quedan en `registro` con usuario y fecha.
-- **Fuera del repositorio:** `config.php` y `progmesas/.env` están en `.gitignore`. Ver la limitación sobre la base y los PDF de ejemplo en la sección 8.
+- **Auditoría:** subir, reemplazar, reutilizar, eliminar, vincular, cambiar la fecha límite y pasar archivos a Drive quedan en `registro` con usuario y fecha.
+- **Fuera del repositorio:** `config.php`, `progmesas/.env`, `oauth.json` y `token.json` están en `.gitignore`. Ver la limitación sobre la base y los PDF de ejemplo en la sección 8.
 
 ## 7. Mantenimiento
 
@@ -180,13 +194,17 @@ Las reglas generales están en `docs/SEGURIDAD.md` del repositorio. Lo propio de
 
 **Copias de seguridad**
 
-Alcanza con copiar `backend/database.sqlite` (con sus `-wal`/`-shm`, o después de detener PHP) y la carpeta `backend/uploads/`. Hacerlo antes de cada actualización y, en época de mesas, todas las semanas.
+Los PDF quedan en Google Drive. Del servidor alcanza con copiar `backend/database.sqlite` (con sus `-wal`/`-shm`, o después de detener PHP), la carpeta `backend/uploads/` (si quedó algún PDF) y `backend/token.json`. Hacerlo antes de cada actualización y, en época de mesas, todas las semanas.
 
 **Actualizar el código**
 
-- Al copiar una versión nueva al servidor, no pisar `backend/database.sqlite`, `backend/uploads/`, `backend/data/` ni `.env`.
-- Los cambios hechos en el repositorio `progMesas` se pasan a CampusT2 copiando `api.php`, `index.php`, `index.html` y `frontend/`. Después hay que probar el ingreso desde el campus con los tres roles.
+- Al copiar una versión nueva al servidor, no pisar `backend/database.sqlite`, `backend/uploads/`, `backend/data/`, `backend/oauth.json`, `backend/token.json` ni `.env`.
+- Los cambios hechos en el repositorio `progMesas` se pasan a CampusT2 copiando `api.php`, `index.php`, `index.html`, `frontend/` y los `.php` de `backend/`. Después hay que probar el ingreso desde el campus con los tres roles.
 - Actualizar el `README.md` con cada cambio de funciones.
+
+**Renovar el permiso de Drive**
+
+Si el dashboard dice que el permiso venció, repetir `php backend/autorizar_drive.php`. Para que no venza cada 7 días, la app de Google tiene que estar «En producción» en la pantalla de consentimiento de OAuth.
 
 **Cambiar la clave del pase**
 
@@ -201,14 +219,16 @@ Cambiar `PROGMESAS_SECRETO` (y `EXTERNO_JWT_SECRET` si se usa Node) invalida tod
 | Error al guardar o «readonly database» | PHP no puede escribir en `backend/` |
 | Error 500 al leer la planilla | Falta la extensión `xml` de PHP |
 | Los PDF dan 404 en nginx | Falta el bloque de `uploads/` de `docs/nginx-campus.conf` |
+| «Google Drive no está configurado» | Falta `backend/oauth.json` o `backend/token.json` |
+| «Google Drive no está disponible: … venció» | Repetir `php backend/autorizar_drive.php` |
+| «PHP no puede conectarse a Google» | Activar `openssl` y `allow_url_fopen` en `php.ini` |
 
 ## 8. Limitaciones conocidas y pendientes
 
 | Tema | Situación | Qué hacer |
 | --- | --- | --- |
-| Aviso de Google Drive | En modo PHP `/cobertura` responde `drive.modo = 'local'` y el Dashboard igual muestra «Google Drive no está disponible» | Ocultar el aviso cuando el modo es `local` |
-| Render gratis | El disco del contenedor se borra en cada reinicio: se pierden la base SQLite y los PDF | Para uso real, el servidor de la escuela o un disco persistente |
+| Render gratis | El disco del contenedor se borra en cada reinicio: se pierde la base SQLite (los PDF no, si están en Drive) | Para uso real, el servidor de la escuela o un disco persistente |
 | Rol `viewer` (preceptor) | Existe en la API pero ningún rol del campus lo genera | Agregar el rol al campus si se necesita |
 | Base y PDF en el repositorio | `backend/database.sqlite` y cuatro PDF de prueba de `backend/uploads/` están subidos a CampusT2. Hoy solo tienen datos de ejemplo, pero un `git pull` en el servidor puede pisar la base real | Sacarlos del repositorio y agregarlos al `.gitignore` |
-| Mensaje al desvincular | El Dashboard avisa que el docente «no va a poder cargar programas», pero la API lo deja cargar igual | Corregir el texto |
-| Sin respaldos automáticos en PHP | `respaldos.js` y Drive solo existen en Node | Copias manuales (sección 7) o una tarea programada del servidor |
+| Sin copias automáticas de la base en PHP | Los PDF quedan en Drive, pero la base SQLite sólo se copia a mano (en Node lo hace `respaldos.js`) | Copias manuales (sección 7) o una tarea programada del servidor |
+| Drive sólo desde el dashboard | Sin un proceso que quede corriendo, los PDF que quedaron en el servidor pasan a Drive cuando la asesoría abre el dashboard o toca el botón | Si hiciera falta, una tarea programada que llame a `/drive/sincronizar` |

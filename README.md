@@ -323,6 +323,10 @@ hace falta Google Drive o un disco persistente (`DATOS_DIR`, ver `render.yaml`).
 - Dashboard: distingue "Drive no configurado" de "Drive no disponible" y deja reintentar el paso a Drive.
 - Pruebas: `tests/php_drive.test.js` levanta `api.php` con PHP y un Google Drive simulado (subida, carpetas, permiso
   público, renovación del permiso, caída de Drive, paso a Drive, ZIP y borrado). Se saltean si no hay PHP.
+- Dashboard: el aviso al desvincular a un docente ya no dice que no va a poder cargar programas (sí puede).
+- Documentación (`docs/documentacion/`) y carpeta del proyecto actualizadas a la versión del campus: Google Drive en PHP,
+  Gantt con la actividad 13 (integración al campus), Anexo B con el código del campus y de `drive.php`, Anexo D con la
+  documentación interna, Anexo E con capturas de pantalla y una sección nueva de conclusiones.
 
 ### 12/11/2026 — Sólo se aclara cuando el programa es libre
 

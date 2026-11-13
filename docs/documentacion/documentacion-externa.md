@@ -1,6 +1,6 @@
 # ProgMesas — Documentación externa (guía de uso)
 
-Actualizado el 12/11/2026 · Alan Buzzatto y Valentino Rodriguez
+Actualizado el 13/11/2026 · Alan Buzzatto y Valentino Rodriguez
 
 ProgMesas es el módulo de programas de examen del Campus Virtual de la E.E.T. N.º 2 "Independencia": los docentes suben el programa de cada materia y curso en PDF, la asesoría controla qué falta y alumnos y familias los consultan. Esta guía explica cómo usarlo según el rol con el que se entra al campus.
 
@@ -96,6 +96,7 @@ Entrá desde el campus con el módulo **Control de programas de examen**. Ademá
 - **Fecha límite:** elegí la fecha y tocá **Guardar fecha**; **Quitar** la borra. Los docentes la ven como aviso.
 - **Recordar a los que faltan:** en **Estado por docente**, **Enviar recordatorio** abre el programa de correo con un mensaje ya escrito que lista las materias pendientes de ese docente y la fecha límite. **Copiar correos de los docentes con pendientes** copia todas las direcciones juntas, y **Descargar pendientes (CSV)** baja la lista para abrirla en una planilla.
 - **Cuentas de docentes:** **Vincular**, **Asignar** o **Cambiar** el nombre de planilla de una cuenta, o **Desvincular** si está mal.
+- **Google Drive:** los programas se guardan en el Drive de la escuela, en carpetas Año / Curso / Materia. Si alguno quedó en el servidor porque Drive no respondía, arriba aparece un aviso con el botón **Pasar a Drive ahora**.
 - **Para alumnos:** **Copiar enlace para alumnos** copia la dirección de consulta pública. **Descargar todo (ZIP)** baja todos los programas del año.
 
 ## 5. Menú, celular y modo oscuro
@@ -116,6 +117,6 @@ Entrá desde el campus con el módulo **Control de programas de examen**. Ademá
 | Olvidé la contraseña del campus | La restablece un directivo desde **Restablecer contraseñas** del campus. |
 | Cuenta bloqueada | Tras 5 intentos fallidos el campus bloquea la cuenta 15 minutos. Esperá y volvé a probar. |
 | Mis materias no aparecen primero | Todavía no vinculaste tu nombre. Hacelo en **Elegí tu nombre en la lista de docentes**. |
-| Aviso «Google Drive no está disponible» en el Dashboard | En el servidor de la escuela los PDF se guardan en el propio servidor y no en Drive. Es solo un aviso: los programas están guardados igual. |
+| Aviso «Google Drive no está disponible» en el Dashboard | Los PDF se guardan en el Google Drive de la escuela. Si Drive no responde o venció su permiso, se guardan en el servidor y el programa queda publicado igual. Cuando Drive vuelve, pasan solos (o con **Pasar a Drive ahora**). Si el aviso dice que el permiso venció, avisale a los responsables del sistema. |
 
 ¿Algo no funciona y no está en esta tabla? Avisale a la asesoría o a los responsables del sistema, con una captura de pantalla del mensaje.
